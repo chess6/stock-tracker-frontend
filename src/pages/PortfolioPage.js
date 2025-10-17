@@ -13,11 +13,17 @@ function MiniChart({ row }) {
     if (!data || data.length === 0) return null;
     // Dotted line for previous close
     const prevCloseLine = prevClose != null ? Array(data.length).fill(prevClose) : null;
+
     return (
         <ApexCharts
             options={{
                 chart: { id: 'mini', sparkline: { enabled: true } },
-                stroke: { width: 2 },
+                stroke: {
+                    width: [2, 2],
+                    colors: ['#77B6EA', '#545454'],
+                    curve: 'straight',
+                    dashArray: [0, 2]
+                },
                 tooltip: { enabled: false },
                 xaxis: { labels: { show: false } },
                 yaxis: { labels: { show: false } },
@@ -27,14 +33,25 @@ function MiniChart({ row }) {
                 prevCloseLine ? { name: 'Prev Close', data: prevCloseLine, stroke: { dashArray: 4 }, color: '#888' } : null
             ].filter(Boolean)}
             type="line"
-            height={40}
+            height={50}
             width={100}
         />
     );
 }
 
+function tickerCellRenderer({ row }) {
+    const ticker = row.ticker.split('\n');
+    const name = row.name;
+    return (
+        <div>
+            <div><strong>{ticker}</strong></div>
+            <div><strong>{name}</strong></div>
+        </div>
+    );
+}
+
 const columns = [
-    { id: 'ticker', width: 180 },
+    { id: 'ticker', width: 180, cell: tickerCellRenderer },
     { id: 'chart', width: 120, cell: MiniChart },
     { id: 'price', width: 100 },
     { id: 'change', width: 100 },
@@ -85,25 +102,12 @@ const PortfolioPage = () => {
     const fetchSummaryCalled = useRef({});
     useEffect(() => {
         localStorage.setItem('portfolio', JSON.stringify(portfolio));
-        let cancelled = false;
+        // let cancelled = false;
         async function fetchPortfolioData() {
             const data = await Promise.all(
                 portfolio.map(async ticker => {
                     if (fetchSummaryCalled.current[ticker]) return fetchSummaryCalled.current[ticker];
                     const promise = (async () => {
-                        // Fetch summary for price, open, change, company
-                        const resp = await axios.get(API_ENDPOINTS.SUMMARY(ticker));
-                        const prices = resp.data.prices || [];
-                        const latest = prices[0] || {};
-                        const price = latest.close || '-';
-                        const open = latest.open || '-';
-                        const change = price && open ? (price - open).toFixed(2) : '-';
-                        let company = ticker;
-                        if (!latest.name && ticker && ticker.trim() !== '') {
-                            // Only call search API if ticker is not empty
-                        } else {
-                            company = latest.name;
-                        }
                         // Fetch intraday prices for chart
                         let chartData = [];
                         let prevClose = null;
@@ -115,6 +119,19 @@ const PortfolioPage = () => {
                         } catch (e) {
                             chartData = [];
                             prevClose = null;
+                        }
+                        // Fetch summary for price, open, change, company
+                        const resp = await axios.get(API_ENDPOINTS.SUMMARY(ticker));
+                        const prices = resp.data.prices || [];
+                        const latest = prices[0] || {};
+                        const price = latest.close || '-';
+                        const open = latest.open || '-';
+                        const change = prevClose && open ? (price - open).toFixed(2) : '-';
+                        let company = ticker;
+                        if (!latest.name && ticker && ticker.trim() !== '') {
+                            // Only call search API if ticker is not empty
+                        } else {
+                            company = latest.name;
                         }
                         return {
                             ticker,
@@ -137,29 +154,34 @@ const PortfolioPage = () => {
                     return promise;
                 })
             );
-            if (!cancelled) {
-                setRows(
-                    data.map((row, idx) => ({
-                        id: idx,
-                        ticker: row.ticker + '\n' + row.company,
-                        chartData: row.chartData,
-                        price: row.price,
-                        change: row.change,
-                        marketCap: row.marketCap,
-                        sp: row.sp,
-                        ebitdaEv: row.ebitdaEv,
-                        tbp: row.tbp,
-                        bp: row.bp,
-                        ep: row.ep,
-                        cfop: row.cfop,
-                        sfcfp: row.sfcfp,
-                    }))
-                );
-            }
+            // if (!cancelled) {
+            setRows(
+                data.map((row, idx) => ({
+                    id: idx,
+                    ticker: row.ticker,
+                    chartData: row.chartData,
+                    price: row.price,
+                    change: row.change,
+                    marketCap: row.marketCap,
+                    sp: row.sp,
+                    ebitdaEv: row.ebitdaEv,
+                    tbp: row.tbp,
+                    bp: row.bp,
+                    ep: row.ep,
+                    cfop: row.cfop,
+                    sfcfp: row.sfcfp,
+                    prevClose: row.prevClose
+                }))
+            );
+            // }
         }
-        if (portfolio.length > 0) fetchPortfolioData();
-        else setRows([]);
-        return () => { cancelled = true; };
+        if (portfolio.length > 0) {
+            fetchPortfolioData();
+        }
+        else {
+            setRows([]);
+        }
+        // return () => { cancelled = true; };
     }, [portfolio]);
 
     // Debounce timer for search (only call API for latest value)
@@ -259,10 +281,11 @@ const PortfolioPage = () => {
                             header: col.id.charAt(0).toUpperCase() + col.id.slice(1),
                             footer: col.id.charAt(0).toUpperCase() + col.id.slice(1)
                         }))}
+                        autoRowHeight={true}
                     />
                 </div>
                 {/* Dummy grid below portfolio grid */}
-                <div className="card shadow-sm p-3 mt-4">
+                {/* <div className="card shadow-sm p-3 mt-4">
                     <h2 className="mb-3">Dummy Grid</h2>
                     <Grid
                         data={[
@@ -295,7 +318,7 @@ const PortfolioPage = () => {
                             { id: "chart", header: "Chart", footer: "Chart", cell: MiniChart },
                         ]}
                     />
-                </div>
+                </div> */}
             </div>
         </>
     );
