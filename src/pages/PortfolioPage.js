@@ -40,12 +40,10 @@ function MiniChart({ row }) {
 }
 
 function tickerCellRenderer({ row }) {
-    const ticker = row.ticker.split('\n');
-    const name = row.name;
     return (
         <div>
-            <div><strong>{ticker}</strong></div>
-            <div><strong>{name}</strong></div>
+            <div><strong>{row.ticker}</strong></div>
+            {row.company && <div className="text-muted">{row.company}</div>}
         </div>
     );
 }
@@ -69,10 +67,10 @@ const PortfolioPage = () => {
     const [search, setSearch] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [portfolio, setPortfolio] = useState(() => {
-        // Try to load from localStorage, else default to ["AAPL"]
+        // Try to load from localStorage, else default to []
         const saved = localStorage.getItem('portfolio');
         if (saved) return JSON.parse(saved);
-        return ["AAPL"];
+        return [];
     });
     const [rows, setRows] = useState([]);
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -85,11 +83,6 @@ const PortfolioPage = () => {
         fetchPortfolioCalled.current = true;
         const res = await axios.get(API_ENDPOINTS.PORTFOLIO);
         let data = res.data;
-        if (!data.includes('AAPL')) {
-            await axios.post(API_ENDPOINTS.PORTFOLIO, { ticker: 'AAPL' });
-            const res2 = await axios.get(API_ENDPOINTS.PORTFOLIO);
-            data = res2.data;
-        }
         setPortfolio(data);
         localStorage.setItem('portfolio', JSON.stringify(data));
     };
@@ -100,6 +93,27 @@ const PortfolioPage = () => {
 
     // Guard summary fetch against duplicate calls (Strict Mode)
     const fetchSummaryCalled = useRef({});
+
+    const formatUsd = (value, fractionDigits = 2) => {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: fractionDigits,
+            maximumFractionDigits: fractionDigits,
+        }).format(Number(value));
+    };
+
+    const formatDecimal = (value, fractionDigits = 2) => {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+        return Number(value).toFixed(fractionDigits);
+    };
+
+    const formatPercent = (value, fractionDigits = 2) => {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+        return Number(value).toFixed(fractionDigits) + '%';
+    };
+
     useEffect(() => {
         localStorage.setItem('portfolio', JSON.stringify(portfolio));
         // let cancelled = false;
@@ -108,44 +122,121 @@ const PortfolioPage = () => {
                 portfolio.map(async ticker => {
                     if (fetchSummaryCalled.current[ticker]) return fetchSummaryCalled.current[ticker];
                     const promise = (async () => {
-                        // Fetch intraday prices for chart
+                        // Fetch intraday prices for chart and previous close
                         let chartData = [];
                         let prevClose = null;
                         try {
                             const intradayResp = await axios.get(API_ENDPOINTS.INTRADAY(ticker));
                             const intradayData = intradayResp.data;
-                            chartData = (intradayData.intraday || []).map(p => p.close);
-                            prevClose = intradayData.prevClose;
+                            chartData = (intradayData.intraday || [])
+                                .map(point => {
+                                    const value = point && point.close !== undefined ? Number(point.close) : Number(point?.last);
+                                    return Number.isNaN(value) ? null : value;
+                                })
+                                .filter(value => value !== null);
+                            const prev = intradayData.prevClose;
+                            if (prev !== null && prev !== undefined) {
+                                const parsedPrev = Number(prev);
+                                prevClose = Number.isNaN(parsedPrev) ? null : parsedPrev;
+                            }
                         } catch (e) {
                             chartData = [];
                             prevClose = null;
                         }
-                        // Fetch summary for price, open, change, company
+
+                        // Fetch summary for price and company details
                         const resp = await axios.get(API_ENDPOINTS.SUMMARY(ticker));
                         const prices = resp.data.prices || [];
                         const latest = prices[0] || {};
-                        const price = latest.close || '-';
-                        const open = latest.open || '-';
-                        const change = prevClose && open ? (price - open).toFixed(2) : '-';
-                        let company = ticker;
-                        if (!latest.name && ticker && ticker.trim() !== '') {
-                            // Only call search API if ticker is not empty
-                        } else {
-                            company = latest.name;
+                        const priceRaw = latest.close;
+                        const priceValue = (priceRaw !== null && priceRaw !== undefined) ? Number(priceRaw) : null;
+                        const price = (priceValue !== null && !Number.isNaN(priceValue)) ? formatUsd(priceValue) : '-';
+
+                        let change = '-';
+                        if (priceValue !== null && !Number.isNaN(priceValue) && prevClose !== null) {
+                            const diff = priceValue - prevClose;
+                            console.log('dbug', diff, prevClose);
+                            change = formatPercent(diff/prevClose*100);
                         }
+
+                        let company = latest.name || ticker;
+
+                        // Fetch fundamentals and calculate ratios
+                        let marketCap = '-';
+                        let sp = '-';
+                        let ebitdaEv = '-';
+                        let tbp = '-';
+                        let bp = '-';
+                        let ep = '-';
+                        let cfop = '-';
+                        let sfcfp = '-';
+
+                        try {
+                            const fundResp = await axios.get(API_ENDPOINTS.FINANCIALS(ticker));
+                            const metrics = fundResp.data && fundResp.data.metrics ? fundResp.data.metrics : {};
+                            const toNumber = key => {
+                                const value = metrics[key];
+                                if (value === null || value === undefined) return null;
+                                const parsed = Number(value);
+                                return Number.isNaN(parsed) ? null : parsed;
+                            };
+
+                            const marketCapValue = toNumber('marketCap');
+                            if (marketCapValue !== null) {
+                                marketCap = formatUsd(marketCapValue, 0);
+                            }
+
+                            const salesPerShare = toNumber('salesPerShare');
+                            if (salesPerShare !== null) {
+                                sp = formatDecimal(salesPerShare);
+                            }
+
+                            const ebitdaToEv = toNumber('ebitdaToEv');
+                            if (ebitdaToEv !== null) {
+                                ebitdaEv = formatDecimal(ebitdaToEv, 2);
+                            }
+
+                            const tangibleBookPerShare = toNumber('tangibleBookPerShare');
+                            if (tangibleBookPerShare !== null) {
+                                tbp = formatDecimal(tangibleBookPerShare, 2);
+                            }
+
+                            const bookPerShare = toNumber('bookPerShare');
+                            if (bookPerShare !== null) {
+                                bp = formatDecimal(bookPerShare, 2);
+                            }
+
+                            const earningsPerShare = toNumber('earningsPerShare');
+                            if (earningsPerShare !== null) {
+                                ep = formatDecimal(earningsPerShare, 2);
+                            }
+
+                            const cashFlowOpsPerShare = toNumber('cashFlowOpsPerShare');
+                            if (cashFlowOpsPerShare !== null) {
+                                cfop = formatDecimal(cashFlowOpsPerShare, 2);
+                            }
+
+                            const sfcfPerShare = toNumber('sfcfPerShare');
+                            if (sfcfPerShare !== null) {
+                                sfcfp = formatDecimal(sfcfPerShare, 2);
+                            }
+                        } catch (e) {
+                            // Leave defaults as '-'
+                        }
+
                         return {
                             ticker,
                             company,
                             price,
                             change,
-                            marketCap: '-',
-                            sp: '-',
-                            ebitdaEv: '-',
-                            tbp: '-',
-                            bp: '-',
-                            ep: '-',
-                            cfop: '-',
-                            sfcfp: '-',
+                            marketCap,
+                            sp,
+                            ebitdaEv,
+                            tbp,
+                            bp,
+                            ep,
+                            cfop,
+                            sfcfp,
                             chartData,
                             prevClose,
                         };
@@ -159,6 +250,7 @@ const PortfolioPage = () => {
                 data.map((row, idx) => ({
                     id: idx,
                     ticker: row.ticker,
+                    company: row.company,
                     chartData: row.chartData,
                     price: row.price,
                     change: row.change,
@@ -210,12 +302,13 @@ const PortfolioPage = () => {
     const handleAddToPortfolio = ticker => {
         // Add to backend
         axios.post(API_ENDPOINTS.PORTFOLIO, { ticker }).then(() => {
-            // Add to local state and localStorage
             setPortfolio(prev => {
                 const updated = [...new Set([...prev, ticker])];
                 localStorage.setItem('portfolio', JSON.stringify(updated));
                 return updated;
             });
+            // Ensure localStorage is updated immediately
+            localStorage.setItem('portfolio', JSON.stringify([...new Set([...portfolio, ticker])]));
             setDropdownOpen(false);
             setSearch('');
         });
