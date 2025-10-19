@@ -2,7 +2,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import PortfolioPage from './pages/PortfolioPage';
 import SummaryPage from './pages/SummaryPage';
 import FinancialsPage from './pages/FinancialsPage';
+import './App.css';
 import "@svar-ui/react-grid/all.css";
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
   return (

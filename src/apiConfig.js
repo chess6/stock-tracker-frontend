@@ -6,7 +6,7 @@ export const API_ENDPOINTS = {
   PORTFOLIO: `${API_BASE}/portfolio`,
   SUMMARY: ticker => `${API_BASE}/ticker/${ticker}/summary`,
   NEWS: ticker => `${API_BASE}/ticker/${ticker}/news`,
-  FINANCIALS: ticker => `${API_BASE}/ticker/${ticker}/financials`,
+  FINANCIALS: `${API_BASE}/ticker/financials`,
   INTRADAY: ticker => `${API_BASE}/ticker/${ticker}/intraday`,
 };
 

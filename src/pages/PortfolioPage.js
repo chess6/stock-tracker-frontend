@@ -1,19 +1,29 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { Grid } from '@svar-ui/react-grid';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import ApexCharts from 'react-apexcharts';
 
 // Attach MiniChart as the cell renderer for the 'chart' column
 function MiniChart({ row }) {
     // Accepts { row } prop from SVAR React Grid cell renderer
-    const data = row && row.chartData ? row.chartData : [];
+    const data = row && row.chartData
+        ? row.chartData.map(v => typeof v === 'number' && !isNaN(v) ? Math.round(v * 100) / 100 : v)
+        : [];
     const prevClose = row && row.prevClose;
+    const [showPrevCloseLine, setShowPrevCloseLine] = useState(false);
+    useEffect(() => {
+        setShowPrevCloseLine(false);
+        if (prevClose != null && data.length > 0) {
+            const timer = setTimeout(() => setShowPrevCloseLine(true), 500); // 300ms delay
+            return () => clearTimeout(timer);
+        }
+    }, [prevClose, data.length]);
     if (!data || data.length === 0) return null;
     // Dotted line for previous close
     const prevCloseLine = prevClose != null ? Array(data.length).fill(prevClose) : null;
-
     return (
         <ApexCharts
             options={{
@@ -30,7 +40,7 @@ function MiniChart({ row }) {
             }}
             series={[
                 { name: 'Price', data },
-                prevCloseLine ? { name: 'Prev Close', data: prevCloseLine, stroke: { dashArray: 4 }, color: '#888' } : null
+                showPrevCloseLine && prevCloseLine ? { name: 'Prev Close', data: prevCloseLine, stroke: { dashArray: 4 }, color: '#888' } : null
             ].filter(Boolean)}
             type="line"
             height={50}
@@ -48,48 +58,74 @@ function tickerCellRenderer({ row }) {
     );
 }
 
-const columns = [
-    { id: 'ticker', width: 180, cell: tickerCellRenderer },
-    { id: 'chart', width: 120, cell: MiniChart },
-    { id: 'price', width: 100 },
-    { id: 'change', width: 100 },
-    { id: 'marketCap', width: 120 },
-    { id: 'sp', width: 80 },
-    { id: 'ebitdaEv', width: 100 },
-    { id: 'tbp', width: 80 },
-    { id: 'bp', width: 80 },
-    { id: 'ep', width: 80 },
-    { id: 'cfop', width: 80 },
-    { id: 'sfcfp', width: 80 },
-];
+function deleteButtonCellRenderer({ row }) {
+    return (
+        <button
+            className="btn btn-sm btn-danger"
+            style={{ marginLeft: 8 }}
+            onClick={e => {
+                e.stopPropagation();
+                if (window.confirm(`Remove ${row.ticker} from portfolio?`)) {
+                    if (typeof row.onDelete === 'function') row.onDelete(row.ticker);
+                }
+            }}
+        >
+            <FontAwesomeIcon icon={faTrash} />
+        </button>
+    );
+}
+
+
 
 const PortfolioPage = () => {
+    // Column tooltips for SVAR Grid
+    const columnTooltips = {
+        ticker: 'Stock ticker symbol',
+        price: 'Latest closing price (USD)',
+        change: 'Percent change from previous close',
+        marketCap: 'Market capitalization (USD)',
+        sp: 'Sales per share',
+        ebitdaEv: 'EBITDA/Enterprise Value',
+        tbp: 'Tangible book value per share',
+        bp: 'Book value per share',
+        ep: 'Earnings per share',
+        cfop: 'Cash flow from operations per share',
+        sfcfp: 'Free cash flow per share',
+        delete: 'Remove from portfolio',
+    };
     const [search, setSearch] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [portfolio, setPortfolio] = useState(() => {
         // Try to load from localStorage, else default to []
-        const saved = localStorage.getItem('portfolio');
-        if (saved) return JSON.parse(saved);
-        return [];
+        return JSON.parse(localStorage.getItem("portfolio")) || []
     });
     const [rows, setRows] = useState([]);
-    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const columns = useMemo(() => [
+    { id: 'ticker', width: 180, cell: tickerCellRenderer, sort: true, tooltip: columnTooltips.ticker },
+    // { id: 'chart', width: 120, cell: MiniChart },
+    { id: 'price', width: 100, sort: true, tooltip: columnTooltips.price },
+    { id: 'change', width: 100, tooltip: columnTooltips.change },
+    { id: 'marketCap', width: 120, tooltip: columnTooltips.marketCap },
+    { id: 'sp', width: 80, tooltip: columnTooltips.sp },
+    { id: 'ebitdaEv', width: 100, tooltip: columnTooltips.ebitdaEv },
+    { id: 'tbp', width: 80, tooltip: columnTooltips.tbp },
+    { id: 'bp', width: 80, tooltip: columnTooltips.bp },
+    { id: 'ep', width: 80, tooltip: columnTooltips.ep },
+    { id: 'cfop', width: 80, tooltip: columnTooltips.cfop },
+    { id: 'sfcfp', width: 80, tooltip: columnTooltips.sfcfp },
+    { id: 'delete', width: 80, cell: deleteButtonCellRenderer, tooltip: columnTooltips.delete },
+    ], []);
 
-    // Sync with backend and localStorage on mount, guard against duplicate calls
-    const fetchPortfolioCalled = useRef(false);
-
-    const fetchPortfolio = async () => {
-        if (fetchPortfolioCalled.current) return;
-        fetchPortfolioCalled.current = true;
-        const res = await axios.get(API_ENDPOINTS.PORTFOLIO);
-        let data = res.data;
-        setPortfolio(data);
-        localStorage.setItem('portfolio', JSON.stringify(data));
+    // Handler to delete ticker from portfolio
+    const handleDeleteTicker = async ticker => {
+        setPortfolio(prev => {
+            const updated = prev.filter(t => t !== ticker);
+            localStorage.setItem('portfolio', JSON.stringify(updated));
+            return updated;
+        });
     };
-    useEffect(() => {
-        fetchPortfolio();
-        // eslint-disable-next-line
-    }, []);
+
+    const [dropdownOpen, setDropdownOpen] = useState(false);
 
     // Guard summary fetch against duplicate calls (Strict Mode)
     const fetchSummaryCalled = useRef({});
@@ -118,6 +154,17 @@ const PortfolioPage = () => {
         localStorage.setItem('portfolio', JSON.stringify(portfolio));
         // let cancelled = false;
         async function fetchPortfolioData() {
+            // Fetch all financials for tickers in one request
+            let metricsMap = {};
+            if (portfolio.length > 0) {
+                try {
+                    const tickersStr = portfolio.join(',');
+                    const fundResp = await axios.get(`${API_ENDPOINTS.FINANCIALS}?ticker=${tickersStr}`);
+                    metricsMap = fundResp.data && fundResp.data.metrics ? fundResp.data.metrics : {};
+                } catch (e) {
+                    metricsMap = {};
+                }
+            }
             const data = await Promise.all(
                 portfolio.map(async ticker => {
                     if (fetchSummaryCalled.current[ticker]) return fetchSummaryCalled.current[ticker];
@@ -144,7 +191,8 @@ const PortfolioPage = () => {
                             prevClose = null;
                         }
 
-                        // Fetch summary for price and company details
+
+                        // Fetch summary for price and company meta
                         const resp = await axios.get(API_ENDPOINTS.SUMMARY(ticker));
                         const prices = resp.data.prices || [];
                         const latest = prices[0] || {};
@@ -155,13 +203,16 @@ const PortfolioPage = () => {
                         let change = '-';
                         if (priceValue !== null && !Number.isNaN(priceValue) && prevClose !== null) {
                             const diff = priceValue - prevClose;
-                            console.log('dbug', diff, prevClose);
-                            change = formatPercent(diff/prevClose*100);
+                            change = formatPercent(diff / prevClose * 100);
                         }
 
-                        let company = latest.name || ticker;
+                        // Use company name from summary meta
+                        let company = ticker;
+                        if (resp.data && resp.data.meta && resp.data.meta.name) {
+                            company = resp.data.meta.name;
+                        }
 
-                        // Fetch fundamentals and calculate ratios
+                        // Use metricsMap for fundamentals and ratios
                         let marketCap = '-';
                         let sp = '-';
                         let ebitdaEv = '-';
@@ -172,8 +223,7 @@ const PortfolioPage = () => {
                         let sfcfp = '-';
 
                         try {
-                            const fundResp = await axios.get(API_ENDPOINTS.FINANCIALS(ticker));
-                            const metrics = fundResp.data && fundResp.data.metrics ? fundResp.data.metrics : {};
+                            const metrics = metricsMap[ticker] || {};
                             const toNumber = key => {
                                 const value = metrics[key];
                                 if (value === null || value === undefined) return null;
@@ -181,44 +231,43 @@ const PortfolioPage = () => {
                                 return Number.isNaN(parsed) ? null : parsed;
                             };
 
+                            // NASDAQ keys
                             const marketCapValue = toNumber('marketCap');
                             if (marketCapValue !== null) {
                                 marketCap = formatUsd(marketCapValue, 0);
                             }
-
-                            const salesPerShare = toNumber('salesPerShare');
-                            if (salesPerShare !== null) {
-                                sp = formatDecimal(salesPerShare);
+                            const spValue = toNumber('sp');
+                            if (spValue !== null) {
+                                sp = formatDecimal(spValue, 2);
+                            }
+                            const ebitdaEvValue = toNumber('ebitdaEv');
+                            if (ebitdaEvValue !== null) {
+                                ebitdaEv = formatDecimal(ebitdaEvValue, 2);
                             }
 
-                            const ebitdaToEv = toNumber('ebitdaToEv');
-                            if (ebitdaToEv !== null) {
-                                ebitdaEv = formatDecimal(ebitdaToEv, 2);
+                            const tbpValue = toNumber('tbp');
+                            if (tbpValue !== null) {
+                                tbp = formatDecimal(tbpValue, 2);
                             }
 
-                            const tangibleBookPerShare = toNumber('tangibleBookPerShare');
-                            if (tangibleBookPerShare !== null) {
-                                tbp = formatDecimal(tangibleBookPerShare, 2);
+                            const bpValue = toNumber('bp');
+                            if (bpValue !== null) {
+                                bp = formatDecimal(bpValue, 2);
                             }
 
-                            const bookPerShare = toNumber('bookPerShare');
-                            if (bookPerShare !== null) {
-                                bp = formatDecimal(bookPerShare, 2);
+                            const epValue = toNumber('ep');
+                            if (epValue !== null) {
+                                ep = formatDecimal(epValue, 2);
                             }
 
-                            const earningsPerShare = toNumber('earningsPerShare');
-                            if (earningsPerShare !== null) {
-                                ep = formatDecimal(earningsPerShare, 2);
+                            const cfopValue = toNumber('cfop');
+                            if (cfopValue !== null) {
+                                cfop = formatDecimal(cfopValue, 2);
                             }
 
-                            const cashFlowOpsPerShare = toNumber('cashFlowOpsPerShare');
-                            if (cashFlowOpsPerShare !== null) {
-                                cfop = formatDecimal(cashFlowOpsPerShare, 2);
-                            }
-
-                            const sfcfPerShare = toNumber('sfcfPerShare');
-                            if (sfcfPerShare !== null) {
-                                sfcfp = formatDecimal(sfcfPerShare, 2);
+                            const sfcfpValue = toNumber('sfcfp');
+                            if (sfcfpValue !== null) {
+                                sfcfp = formatDecimal(sfcfpValue, 2);
                             }
                         } catch (e) {
                             // Leave defaults as '-'
@@ -245,7 +294,6 @@ const PortfolioPage = () => {
                     return promise;
                 })
             );
-            // if (!cancelled) {
             setRows(
                 data.map((row, idx) => ({
                     id: idx,
@@ -262,10 +310,10 @@ const PortfolioPage = () => {
                     ep: row.ep,
                     cfop: row.cfop,
                     sfcfp: row.sfcfp,
-                    prevClose: row.prevClose
+                    prevClose: row.prevClose,
+                    onDelete: handleDeleteTicker
                 }))
             );
-            // }
         }
         if (portfolio.length > 0) {
             fetchPortfolioData();
@@ -273,7 +321,6 @@ const PortfolioPage = () => {
         else {
             setRows([]);
         }
-        // return () => { cancelled = true; };
     }, [portfolio]);
 
     // Debounce timer for search (only call API for latest value)
@@ -300,18 +347,16 @@ const PortfolioPage = () => {
     };
 
     const handleAddToPortfolio = ticker => {
-        // Add to backend
-        axios.post(API_ENDPOINTS.PORTFOLIO, { ticker }).then(() => {
-            setPortfolio(prev => {
-                const updated = [...new Set([...prev, ticker])];
-                localStorage.setItem('portfolio', JSON.stringify(updated));
-                return updated;
-            });
-            // Ensure localStorage is updated immediately
-            localStorage.setItem('portfolio', JSON.stringify([...new Set([...portfolio, ticker])]));
-            setDropdownOpen(false);
-            setSearch('');
+        // Add to localstorage
+        setPortfolio(prev => {
+            const updated = [...new Set([...prev, ticker])];
+            localStorage.setItem('portfolio', JSON.stringify(updated));
+            return updated;
         });
+        // Ensure localStorage is updated immediately
+        localStorage.setItem('portfolio', JSON.stringify([...new Set([...portfolio, ticker])]));
+        setDropdownOpen(false);
+        setSearch('');
     };
 
     const handleSearchTicker = ticker => {
@@ -374,6 +419,7 @@ const PortfolioPage = () => {
                             header: col.id.charAt(0).toUpperCase() + col.id.slice(1),
                             footer: col.id.charAt(0).toUpperCase() + col.id.slice(1)
                         }))}
+                        sortMarks={{ ticker: { order: "asc" }, price: { order: "asc" } }}
                         autoRowHeight={true}
                     />
                 </div>
