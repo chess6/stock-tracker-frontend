@@ -19,6 +19,9 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.4",
     "react-scripts": "5.0.1",
+    "react-tabulator": "^0.21.0",
+    "reactstrap": "^9.2.3",
+    "tabulator-tables": "^6.3.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

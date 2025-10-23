@@ -2,18 +2,23 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import PortfolioPage from './pages/PortfolioPage';
 import SummaryPage from './pages/SummaryPage';
 import FinancialsPage from './pages/FinancialsPage';
+import NasdaqColumnsGrid from './pages/NasdaqColumnsGrid';
 import './App.css';
 import "@svar-ui/react-grid/all.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import './styles/tabulator-custom.css';
+import AppNavbar from './components/AppNavbar';
 
 function App() {
   return (
     <Router>
+      <AppNavbar />
       <Routes>
         <Route path="/" element={<PortfolioPage />} />
         <Route path=":ticker" element={<SummaryPage />} />
         <Route path=":ticker/financials" element={<FinancialsPage />} />
-        <Route path="*" element={<Navigate to="/" />} />
+  <Route path="nasdaq-columns" element={<NasdaqColumnsGrid />} />
+  <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );

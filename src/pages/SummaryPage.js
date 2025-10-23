@@ -1,8 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import ApexCharts from 'react-apexcharts';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
+import { Link } from 'react-router-dom';
+import { Container, Row, Col, Card, CardBody, CardTitle, Button, Nav } from 'reactstrap';
 
 const SummaryPage = () => {
   const { ticker } = useParams();
@@ -159,54 +161,46 @@ const SummaryPage = () => {
     },
   ];
 
+
   return (
-    <div>
-      <nav>
-        <Link to={`/${ticker}`}>Summary</Link> |{' '}
-        <Link to={`/${ticker}/financials`}>Financials</Link>
-      </nav>
-      <h1>Summary for {ticker}</h1>
-      {loading ? (
-        <div>Loading...</div>
-      ) : (
-        <>
-          <div style={{ maxWidth: 800, margin: '0 auto' }}>
-            <div style={{ marginBottom: 16, textAlign: 'center' }}>
-              {rangeOptions.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setRange(opt.value)}
-                  style={{
-                    margin: '0 4px',
-                    padding: '4px 10px',
-                    borderRadius: 4,
-                    border: range === opt.value ? '2px solid #007bff' : '1px solid #ccc',
-                    background: range === opt.value ? '#e9f5ff' : '#fff',
-                    color: range === opt.value ? '#007bff' : '#333',
-                    fontWeight: range === opt.value ? 'bold' : 'normal',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            <ApexCharts options={chartOptions} series={chartSeries} type="line" height={320} />
-          </div>
-          <h2>News Feed</h2>
-          <ul>
-            {news.length === 0 && <li>No news found.</li>}
-            {news.map((item, idx) => (
-              <li key={idx} style={{ marginBottom: 12 }}>
-                <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
-                <div style={{ color: '#888', fontSize: 12 }}>{item.publishedDate ? item.publishedDate.slice(0, 10) : ''}</div>
-                <div>{item.description}</div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </div>
+    <Container className="py-3">
+      <Row className="mb-4">
+        <Nav>
+          <Link to={`/${ticker}`}>Summary</Link> |{' '}
+          <Link to={`/${ticker}/financials`}>Financials</Link>
+        </Nav>
+        <Col md={8} className="mx-auto">
+          <Card className="shadow-sm p-3">
+            <CardBody>
+              <CardTitle tag="h3" className="mb-3">{ticker} Summary</CardTitle>
+              <div className="mb-3">
+                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('1D')}>1D</Button>
+                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('5D')}>5D</Button>
+                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('1M')}>1M</Button>
+                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('3M')}>3M</Button>
+                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('6M')}>6M</Button>
+                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('YTD')}>YTD</Button>
+                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('1Y')}>1Y</Button>
+                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('5Y')}>5Y</Button>
+                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('MAX')}>MAX</Button>
+              </div>
+              <ApexCharts options={chartOptions} series={chartSeries} type="line" height={300} />
+            </CardBody>
+          </Card>
+        </Col>
+      </Row>
+      <h3>News Feed</h3>
+      <ul>
+        {news.length === 0 && <li>No news found.</li>}
+        {news.map((item, idx) => (
+          <li key={idx} style={{ marginBottom: 12 }}>
+            <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
+            <div style={{ color: '#888', fontSize: 12 }}>{item.publishedDate ? item.publishedDate.slice(0, 10) : ''}</div>
+            <div>{item.description}</div>
+          </li>
+        ))}
+      </ul>
+    </Container>
   );
 };
 

@@ -1,14 +1,34 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
-import { Grid } from '@svar-ui/react-grid';
+import { ReactTabulator } from 'react-tabulator';
+import 'react-tabulator/lib/styles.css';
+import 'tabulator-tables/dist/css/tabulator.min.css';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import ApexCharts from 'react-apexcharts';
+import { createRoot } from 'react-dom/client';
+import { Container, Card, CardBody, CardTitle } from 'reactstrap';
+import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
+
+// Tabulator custom formatter for MiniChart React component
+function tabulatorMiniChartFormatter(cell, formatterParams, onRendered) { // don't remove yet
+    const cellElement = cell.getElement();
+    const row = cell.getRow().getData();
+    onRendered(function () {
+        if (cellElement._reactRoot) {
+            cellElement._reactRoot.unmount();
+        }
+        const root = createRoot(cellElement);
+        cellElement._reactRoot = root;
+        root.render(<MiniChart row={row} />);
+    });
+    return "";
+}
 
 // Attach MiniChart as the cell renderer for the 'chart' column
 function MiniChart({ row }) {
-    // Accepts { row } prop from SVAR React Grid cell renderer
+    // Accepts { row } prop from Tabulator cell renderer
     const data = row && row.chartData
         ? row.chartData.map(v => typeof v === 'number' && !isNaN(v) ? Math.round(v * 100) / 100 : v)
         : [];
@@ -49,36 +69,8 @@ function MiniChart({ row }) {
     );
 }
 
-function tickerCellRenderer({ row }) {
-    return (
-        <div>
-            <div><strong>{row.ticker}</strong></div>
-            {row.company && <div className="text-muted">{row.company}</div>}
-        </div>
-    );
-}
-
-function deleteButtonCellRenderer({ row }) {
-    return (
-        <button
-            className="btn btn-sm btn-danger"
-            style={{ marginLeft: 8 }}
-            onClick={e => {
-                e.stopPropagation();
-                if (window.confirm(`Remove ${row.ticker} from portfolio?`)) {
-                    if (typeof row.onDelete === 'function') row.onDelete(row.ticker);
-                }
-            }}
-        >
-            <FontAwesomeIcon icon={faTrash} />
-        </button>
-    );
-}
-
-
-
 const PortfolioPage = () => {
-    // Column tooltips for SVAR Grid
+    // Column tooltips for Tabulator
     const columnTooltips = {
         ticker: 'Stock ticker symbol',
         price: 'Latest closing price (USD)',
@@ -93,28 +85,66 @@ const PortfolioPage = () => {
         sfcfp: 'Free cash flow per share',
         delete: 'Remove from portfolio',
     };
-    const [search, setSearch] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
+    // Search bar and results now handled in AppNavbar
     const [portfolio, setPortfolio] = useState(() => {
         // Try to load from localStorage, else default to []
         return JSON.parse(localStorage.getItem("portfolio")) || []
     });
     const [rows, setRows] = useState([]);
+    // Memoized delete button to prevent flicker
+    const MemoDeleteButton = useMemo(() => {
+        return function DeleteButton({ ticker }) {
+            return (
+                <button
+                    className="btn btn-sm btn-danger"
+                    style={{ marginLeft: 8 }}
+                    onClick={e => {
+                        e.stopPropagation();
+                        if (window.confirm(`Remove ${ticker} from portfolio?`)) {
+                            handleDeleteTicker(ticker);
+                        }
+                    }}
+                >
+                    <FontAwesomeIcon icon={faTrash} />
+                </button>
+            );
+        };
+    }, []);
+
     const columns = useMemo(() => [
-    { id: 'ticker', width: 180, cell: tickerCellRenderer, sort: true, tooltip: columnTooltips.ticker },
-    // { id: 'chart', width: 120, cell: MiniChart },
-    { id: 'price', width: 100, sort: true, tooltip: columnTooltips.price },
-    { id: 'change', width: 100, tooltip: columnTooltips.change },
-    { id: 'marketCap', width: 120, tooltip: columnTooltips.marketCap },
-    { id: 'sp', width: 80, tooltip: columnTooltips.sp },
-    { id: 'ebitdaEv', width: 100, tooltip: columnTooltips.ebitdaEv },
-    { id: 'tbp', width: 80, tooltip: columnTooltips.tbp },
-    { id: 'bp', width: 80, tooltip: columnTooltips.bp },
-    { id: 'ep', width: 80, tooltip: columnTooltips.ep },
-    { id: 'cfop', width: 80, tooltip: columnTooltips.cfop },
-    { id: 'sfcfp', width: 80, tooltip: columnTooltips.sfcfp },
-    { id: 'delete', width: 80, cell: deleteButtonCellRenderer, tooltip: columnTooltips.delete },
-    ], []);
+        {
+            title: 'Ticker', field: 'ticker', width: 180, headerTooltip: columnTooltips.ticker, sorter: 'string', formatter: (cell) => {
+                const row = cell.getRow().getData();
+                return `<div><strong>${row.ticker}</strong>${row.company ? `<div class='text-muted'>${row.company}</div>` : ''}</div>`;
+            }
+        },
+        // { title: 'Chart', field: 'chartData', width: 120, headerTooltip: 'Intraday price chart', formatter: tabulatorMiniChartFormatter }, // don't remove yet
+        { title: 'Price', field: 'price', width: 100, headerTooltip: columnTooltips.price, sorter: 'string' },
+        { title: 'Change', field: 'change', width: 100, headerTooltip: columnTooltips.change },
+        { title: 'Market Cap', field: 'marketCap', width: 120, headerTooltip: columnTooltips.marketCap },
+        { title: 'SP', field: 'sp', width: 80, headerTooltip: columnTooltips.sp },
+        { title: 'EBITDA/EV', field: 'ebitdaEv', width: 100, headerTooltip: columnTooltips.ebitdaEv },
+        { title: 'TBP', field: 'tbp', width: 80, headerTooltip: columnTooltips.tbp },
+        { title: 'BP', field: 'bp', width: 80, headerTooltip: columnTooltips.bp },
+        { title: 'EP', field: 'ep', width: 80, headerTooltip: columnTooltips.ep },
+        { title: 'CFOP', field: 'cfop', width: 80, headerTooltip: columnTooltips.cfop },
+        { title: 'SFCFP', field: 'sfcfp', width: 80, headerTooltip: columnTooltips.sfcfp },
+        {
+            title: 'Delete row?', field: 'delete', width: 100, headerTooltip: columnTooltips.delete,
+            formatter: function (cell, formatterParams, onRendered) {
+                const cellElement = cell.getElement();
+                const row = cell.getRow().getData();
+                onRendered(function () {
+                    if (!cellElement._reactRoot) {
+                        const root = createRoot(cellElement);
+                        cellElement._reactRoot = root;
+                        root.render(<MemoDeleteButton ticker={row.ticker} />);
+                    }
+                });
+                return "";
+            }
+        },
+    ], [MemoDeleteButton]);
 
     // Handler to delete ticker from portfolio
     const handleDeleteTicker = async ticker => {
@@ -125,30 +155,11 @@ const PortfolioPage = () => {
         });
     };
 
-    const [dropdownOpen, setDropdownOpen] = useState(false);
+    // Dropdown state now handled in AppNavbar
 
     // Guard summary fetch against duplicate calls (Strict Mode)
     const fetchSummaryCalled = useRef({});
 
-    const formatUsd = (value, fractionDigits = 2) => {
-        if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: fractionDigits,
-            maximumFractionDigits: fractionDigits,
-        }).format(Number(value));
-    };
-
-    const formatDecimal = (value, fractionDigits = 2) => {
-        if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
-        return Number(value).toFixed(fractionDigits);
-    };
-
-    const formatPercent = (value, fractionDigits = 2) => {
-        if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
-        return Number(value).toFixed(fractionDigits) + '%';
-    };
 
     useEffect(() => {
         localStorage.setItem('portfolio', JSON.stringify(portfolio));
@@ -159,309 +170,174 @@ const PortfolioPage = () => {
             if (portfolio.length > 0) {
                 try {
                     const tickersStr = portfolio.join(',');
-                    const fundResp = await axios.get(`${API_ENDPOINTS.FINANCIALS}?ticker=${tickersStr}`);
+                    const fundResp = await axios.get(`${API_ENDPOINTS.FINANCIALS}?ticker=${tickersStr}&mostRecent=true`);
                     metricsMap = fundResp.data && fundResp.data.metrics ? fundResp.data.metrics : {};
                 } catch (e) {
                     metricsMap = {};
                 }
             }
-            const data = await Promise.all(
-                portfolio.map(async ticker => {
-                    if (fetchSummaryCalled.current[ticker]) return fetchSummaryCalled.current[ticker];
-                    const promise = (async () => {
-                        // Fetch intraday prices for chart and previous close
-                        let chartData = [];
-                        let prevClose = null;
-                        try {
-                            const intradayResp = await axios.get(API_ENDPOINTS.INTRADAY(ticker));
-                            const intradayData = intradayResp.data;
-                            chartData = (intradayData.intraday || [])
-                                .map(point => {
-                                    const value = point && point.close !== undefined ? Number(point.close) : Number(point?.last);
-                                    return Number.isNaN(value) ? null : value;
-                                })
-                                .filter(value => value !== null);
-                            const prev = intradayData.prevClose;
-                            if (prev !== null && prev !== undefined) {
-                                const parsedPrev = Number(prev);
-                                prevClose = Number.isNaN(parsedPrev) ? null : parsedPrev;
-                            }
-                        } catch (e) {
-                            chartData = [];
-                            prevClose = null;
+            // Render grid immediately with financials data only
+            const initialRows = portfolio.map((ticker, idx) => {
+                const metrics = metricsMap[ticker] || {};
+                const toNumber = key => {
+                    const value = metrics[key];
+                    if (value === null || value === undefined) return null;
+                    const parsed = Number(value);
+                    return Number.isNaN(parsed) ? null : parsed;
+                };
+                let marketCap = '-';
+                let sp = '-';
+                let ebitdaEv = '-';
+                let tbp = '-';
+                let bp = '-';
+                let ep = '-';
+                let cfop = '-';
+                let sfcfp = '-';
+                const marketCapValue = toNumber('marketCap');
+                if (marketCapValue !== null) {
+                    marketCap = formatUsd(marketCapValue, 0);
+                }
+                const spValue = toNumber('sp');
+                if (spValue !== null) {
+                    sp = formatDecimal(spValue, 2);
+                }
+                const ebitdaEvValue = toNumber('ebitdaEv');
+                if (ebitdaEvValue !== null) {
+                    ebitdaEv = formatDecimal(ebitdaEvValue, 2);
+                }
+                const tbpValue = toNumber('tbp');
+                if (tbpValue !== null) {
+                    tbp = formatDecimal(tbpValue, 2);
+                }
+                const bpValue = toNumber('bp');
+                if (bpValue !== null) {
+                    bp = formatDecimal(bpValue, 2);
+                }
+                const epValue = toNumber('ep');
+                if (epValue !== null) {
+                    ep = formatDecimal(epValue, 2);
+                }
+                const cfopValue = toNumber('cfop');
+                if (cfopValue !== null) {
+                    cfop = formatDecimal(cfopValue, 2);
+                }
+                const sfcfpValue = toNumber('sfcfp');
+                if (sfcfpValue !== null) {
+                    sfcfp = formatDecimal(sfcfpValue, 2);
+                }
+                return {
+                    id: idx,
+                    ticker,
+                    company: ticker,
+                    chartData: [],
+                    price: '-',
+                    change: '-',
+                    marketCap,
+                    sp,
+                    ebitdaEv,
+                    tbp,
+                    bp,
+                    ep,
+                    cfop,
+                    sfcfp,
+                    prevClose: null,
+                    onDelete: handleDeleteTicker
+                };
+            });
+            setRows(initialRows);
+            // Now asynchronously fetch summary and intraday data for each ticker and update rows
+            // Track which tickers have already been fetched to prevent double API calls
+            const fetchedTickers = {};
+            portfolio.forEach((ticker, idx) => {
+                if (fetchedTickers[ticker]) return;
+                fetchedTickers[ticker] = true;
+                (async () => {
+                    // ...existing code for async fetch and row update...
+                    let chartData = [];
+                    let prevClose = null;
+                    try {
+                        const intradayResp = await axios.get(API_ENDPOINTS.INTRADAY(ticker));
+                        const intradayData = intradayResp.data;
+                        chartData = (intradayData.intraday || [])
+                            .map(point => {
+                                const value = point && point.close !== undefined ? Number(point.close) : Number(point?.last);
+                                return Number.isNaN(value) ? null : value;
+                            })
+                            .filter(value => value !== null);
+                        const prev = intradayData.prevClose;
+                        if (prev !== null && prev !== undefined) {
+                            const parsedPrev = Number(prev);
+                            prevClose = Number.isNaN(parsedPrev) ? null : parsedPrev;
                         }
-
-
-                        // Fetch summary for price and company meta
+                    } catch (e) {
+                        chartData = [];
+                        prevClose = null;
+                    }
+                    let price = '-';
+                    let change = '-';
+                    let company = ticker;
+                    try {
                         const resp = await axios.get(API_ENDPOINTS.SUMMARY(ticker));
                         const prices = resp.data.prices || [];
                         const latest = prices[0] || {};
                         const priceRaw = latest.close;
                         const priceValue = (priceRaw !== null && priceRaw !== undefined) ? Number(priceRaw) : null;
-                        const price = (priceValue !== null && !Number.isNaN(priceValue)) ? formatUsd(priceValue) : '-';
-
-                        let change = '-';
+                        price = (priceValue !== null && !Number.isNaN(priceValue)) ? formatUsd(priceValue) : '-';
                         if (priceValue !== null && !Number.isNaN(priceValue) && prevClose !== null) {
                             const diff = priceValue - prevClose;
                             change = formatPercent(diff / prevClose * 100);
                         }
-
-                        // Use company name from summary meta
-                        let company = ticker;
                         if (resp.data && resp.data.meta && resp.data.meta.name) {
                             company = resp.data.meta.name;
                         }
-
-                        // Use metricsMap for fundamentals and ratios
-                        let marketCap = '-';
-                        let sp = '-';
-                        let ebitdaEv = '-';
-                        let tbp = '-';
-                        let bp = '-';
-                        let ep = '-';
-                        let cfop = '-';
-                        let sfcfp = '-';
-
-                        try {
-                            const metrics = metricsMap[ticker] || {};
-                            const toNumber = key => {
-                                const value = metrics[key];
-                                if (value === null || value === undefined) return null;
-                                const parsed = Number(value);
-                                return Number.isNaN(parsed) ? null : parsed;
-                            };
-
-                            // NASDAQ keys
-                            const marketCapValue = toNumber('marketCap');
-                            if (marketCapValue !== null) {
-                                marketCap = formatUsd(marketCapValue, 0);
-                            }
-                            const spValue = toNumber('sp');
-                            if (spValue !== null) {
-                                sp = formatDecimal(spValue, 2);
-                            }
-                            const ebitdaEvValue = toNumber('ebitdaEv');
-                            if (ebitdaEvValue !== null) {
-                                ebitdaEv = formatDecimal(ebitdaEvValue, 2);
-                            }
-
-                            const tbpValue = toNumber('tbp');
-                            if (tbpValue !== null) {
-                                tbp = formatDecimal(tbpValue, 2);
-                            }
-
-                            const bpValue = toNumber('bp');
-                            if (bpValue !== null) {
-                                bp = formatDecimal(bpValue, 2);
-                            }
-
-                            const epValue = toNumber('ep');
-                            if (epValue !== null) {
-                                ep = formatDecimal(epValue, 2);
-                            }
-
-                            const cfopValue = toNumber('cfop');
-                            if (cfopValue !== null) {
-                                cfop = formatDecimal(cfopValue, 2);
-                            }
-
-                            const sfcfpValue = toNumber('sfcfp');
-                            if (sfcfpValue !== null) {
-                                sfcfp = formatDecimal(sfcfpValue, 2);
-                            }
-                        } catch (e) {
-                            // Leave defaults as '-'
-                        }
-
-                        return {
-                            ticker,
-                            company,
+                    } catch (e) {
+                        // leave as default
+                    }
+                    setRows(prevRows => {
+                        if (!prevRows[idx]) return prevRows;
+                        const updatedRow = {
+                            ...prevRows[idx],
                             price,
                             change,
-                            marketCap,
-                            sp,
-                            ebitdaEv,
-                            tbp,
-                            bp,
-                            ep,
-                            cfop,
-                            sfcfp,
+                            company,
                             chartData,
-                            prevClose,
+                            prevClose
                         };
-                    })();
-                    fetchSummaryCalled.current[ticker] = promise;
-                    return promise;
-                })
-            );
-            setRows(
-                data.map((row, idx) => ({
-                    id: idx,
-                    ticker: row.ticker,
-                    company: row.company,
-                    chartData: row.chartData,
-                    price: row.price,
-                    change: row.change,
-                    marketCap: row.marketCap,
-                    sp: row.sp,
-                    ebitdaEv: row.ebitdaEv,
-                    tbp: row.tbp,
-                    bp: row.bp,
-                    ep: row.ep,
-                    cfop: row.cfop,
-                    sfcfp: row.sfcfp,
-                    prevClose: row.prevClose,
-                    onDelete: handleDeleteTicker
-                }))
-            );
+                        if (JSON.stringify(prevRows[idx]) === JSON.stringify(updatedRow)) return prevRows;
+                        const newRows = prevRows.slice();
+                        newRows[idx] = updatedRow;
+                        return newRows;
+                    });
+                })();
+            });
         }
         if (portfolio.length > 0) {
             fetchPortfolioData();
-        }
-        else {
+        } else {
             setRows([]);
         }
     }, [portfolio]);
 
-    // Debounce timer for search (only call API for latest value)
-    const searchTimeoutRef = useRef();
-    const latestSearchValue = useRef('');
-    const handleSearchChange = e => {
-        const value = e.target.value;
-        setSearch(value);
-        latestSearchValue.current = value;
-        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-        if (value.length > 1) {
-            searchTimeoutRef.current = setTimeout(async () => {
-                // Only call API if value hasn't changed and not empty
-                if (latestSearchValue.current === value && value.trim() !== '') {
-                    const res = await axios.get(`${API_ENDPOINTS.SEARCH}?q=${value}`);
-                    setSearchResults(res.data);
-                    setDropdownOpen(true);
-                }
-            }, 1000);
-        } else {
-            setDropdownOpen(false);
-            setSearchResults([]);
-        }
-    };
-
-    const handleAddToPortfolio = ticker => {
-        // Add to localstorage
-        setPortfolio(prev => {
-            const updated = [...new Set([...prev, ticker])];
-            localStorage.setItem('portfolio', JSON.stringify(updated));
-            return updated;
-        });
-        // Ensure localStorage is updated immediately
-        localStorage.setItem('portfolio', JSON.stringify([...new Set([...portfolio, ticker])]));
-        setDropdownOpen(false);
-        setSearch('');
-    };
-
-    const handleSearchTicker = ticker => {
-        window.location.href = `/${ticker}`;
-    };
+    // Search handlers now handled in AppNavbar
 
     return (
-        <>
-            <nav className="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-                <div className="container-fluid">
-                    <span className="navbar-brand">Stock Portfolio</span>
-                </div>
-            </nav>
-            <div className="container">
-                <div className="row justify-content-center mb-4">
-                    <div className="col-md-6">
-                        <div className="card shadow-sm p-3">
-                            <h2 className="mb-3">Add/Search Ticker</h2>
-                            <input
-                                type="text"
-                                className="form-control mb-2"
-                                value={search}
-                                onChange={handleSearchChange}
-                                placeholder="Search or add ticker/company name"
-                            />
-                            {dropdownOpen && searchResults.length > 0 && (
-                                <div
-                                    className="list-group shadow"
-                                    style={{
-                                        position: 'absolute',
-                                        left: 0,
-                                        right: 0,
-                                        top: '100%',
-                                        marginTop: 2,
-                                        zIndex: 10,
-                                        maxHeight: 250,
-                                        overflowY: 'auto',
-                                    }}
-                                >
-                                    {searchResults.map((item, idx) => (
-                                        <div key={idx} className="list-group-item d-flex justify-content-between align-items-center">
-                                            <span><strong>{item.ticker}</strong> <span className="text-muted">{item.name}</span></span>
-                                            <span>
-                                                <button className="btn btn-sm btn-success me-2" onClick={() => handleAddToPortfolio(item.ticker)}>Add</button>
-                                                <button className="btn btn-sm btn-primary" onClick={() => handleSearchTicker(item.ticker)}>Search</button>
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-                <div className="card shadow-sm p-3">
-                    <h2 className="mb-3">Portfolio</h2>
-                    <Grid
+        <Container className="py-3"> {/* remove container if want to max out width of the grid */}
+            <Card className="shadow-sm p-3">
+                <CardBody>
+                    <CardTitle tag="h3" className="mb-3">Portfolio</CardTitle>
+                    <ReactTabulator
                         data={rows}
-                        columns={columns.map(col => ({
-                            ...col,
-                            header: col.id.charAt(0).toUpperCase() + col.id.slice(1),
-                            footer: col.id.charAt(0).toUpperCase() + col.id.slice(1)
-                        }))}
-                        sortMarks={{ ticker: { order: "asc" }, price: { order: "asc" } }}
-                        autoRowHeight={true}
+                        columns={columns}
+                        layout="fitData"
+                        options={{
+                            movableColumns: true,
+                            tooltips: true
+                        }}
                     />
-                </div>
-                {/* Dummy grid below portfolio grid */}
-                {/* <div className="card shadow-sm p-3 mt-4">
-                    <h2 className="mb-3">Dummy Grid</h2>
-                    <Grid
-                        data={[
-                            {
-                                id: 1,
-                                city: "Amieshire",
-                                email: "Leora13@yahoo.com",
-                                firstName: "Ernest",
-                                lastName: "Schuppe",
-                                companyName: "Lebsack - Nicolas",
-                                chartData: [210, 212, 215, 213, 218, 220, 217],
-                            },
-                            {
-                                id: 2,
-                                city: "Gust",
-                                email: "Mose_Gerhold51@yahoo.com",
-                                firstName: "Janis",
-                                lastName: "Vandervort",
-                                companyName: "Glover - Hermiston",
-                                chartData: [210, 212, 215, 213, 218, 220, 217],
-                            },
-                        ]}
-                        columns={[
-                            { id: "id", width: 50 },
-                            { id: "city", width: 100, header: "City", footer: "City" },
-                            { id: "firstName", header: "First Name", footer: "First Name", width: 150 },
-                            { id: "lastName", header: "Last Name", footer: "Last Name", width: 150 },
-                            { id: "email", header: "Email", footer: "Email" },
-                            { id: "companyName", header: "Company", footer: "Company" },
-                            { id: "chart", header: "Chart", footer: "Chart", cell: MiniChart },
-                        ]}
-                    />
-                </div> */}
-            </div>
-        </>
+                </CardBody>
+            </Card>
+        </Container>
     );
-    // ...existing code...
 };
 
 export default PortfolioPage;

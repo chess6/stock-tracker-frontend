@@ -3,7 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import ApexCharts from 'react-apexcharts';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
-import { Grid } from '@svar-ui/react-grid';
+import { ReactTabulator } from 'react-tabulator';
+import 'react-tabulator/lib/styles.css';
+import 'tabulator-tables/dist/css/tabulator.min.css';
+import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
 
 const yearOptions = [5, 10, 15, 'all'];
 const statementTypes = [
@@ -16,13 +19,18 @@ const periodOptions = [
   { label: 'Quarterly', value: 'quarterly' },
   { label: 'TTM', value: 'ttm' },
 ];
+const reportOptions = [
+  { label: 'As Reported', value: 'AR' },
+  { label: 'Most Recent', value: 'MR' },
+];
 
 const FinancialsPage = () => {
   const { ticker } = useParams();
   const [financials, setFinancials] = useState({ income: [], balanceSheet: [], cashFlow: [] });
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('annual');
-  const [years, setYears] = useState(10);
+  const [years, setYears] = useState(5);
+  const [report, setReport] = useState('AR');
   const [activeType, setActiveType] = useState('income');
   const [selectedMetrics, setSelectedMetrics] = useState(['revenue', 'gp', 'opinc', 'netinc']);
 
@@ -31,28 +39,37 @@ const FinancialsPage = () => {
     setLoading(true);
     async function fetchAll() {
       try {
-        const types = ['income', 'balanceSheet', 'cashFlow'];
-        const data = {};
-        for (const type of types) {
-          const res = await axios.get(`${API_ENDPOINTS.FINANCIALS(ticker)}?type=${type}&period=${period}&limit=${years === 'all' ? 100 : years}`);
-          // Defensive: NASDAQ API returns { raw: { datatable: { columns, data } } }
-          if (res.data && res.data.raw && res.data.raw.datatable && Array.isArray(res.data.raw.datatable.data)) {
-            // Map columns to keys
-            const columns = res.data.raw.datatable.columns || [];
-            const colNames = columns.map(c => c.name);
-            const rows = res.data.raw.datatable.data.map(arr => {
-              const obj = {};
-              colNames.forEach((k, i) => { obj[k] = arr[i]; });
-              return obj;
-            });
-            data[type] = rows;
-          } else if (Array.isArray(res.data)) {
-            data[type] = res.data;
-          } else {
-            data[type] = [];
-          }
+        const tickers = Array.isArray(ticker) ? ticker : [ticker];
+        const tickersStr = tickers.join(',');
+        // Calculate gte date based on years variable
+        let gteDate = '';
+        if (years !== 'all' && years && typeof years === 'number') {
+          const now = new Date();
+          const past = new Date(now.getFullYear() - years, now.getMonth(), now.getDate());
+          gteDate = past.toISOString().slice(0, 10);
         }
-        if (!cancelled) setFinancials(data);
+        // Build dimension param from reportOptions + periodOptions (e.g. ARY, MRQ, MRT, etc)
+        let reportCode = report || 'AR';
+        let periodCode = 'Y';
+        if (period === 'annual') periodCode = 'Y';
+        else if (period === 'quarterly') periodCode = 'Q';
+        else if (period === 'ttm') periodCode = 'T';
+        const dimensionParam = `${reportCode}${periodCode}`;
+        const url = `${API_ENDPOINTS.FINANCIALS}?ticker=${tickersStr}&dimension=${dimensionParam}${gteDate ? `&gte=${gteDate}` : ''}`;
+        const res = await axios.get(url);
+        let rows = [];
+        if (res.data && res.data.raw && res.data.raw.datatable && Array.isArray(res.data.raw.datatable.data)) {
+          const columns = res.data.raw.datatable.columns || [];
+          const colNames = columns.map(c => c.name);
+          rows = res.data.raw.datatable.data.map(arr => {
+            const obj = {};
+            colNames.forEach((k, i) => { obj[k] = arr[i]; });
+            return obj;
+          });
+        } else if (Array.isArray(res.data)) {
+          rows = res.data;
+        }
+        if (!cancelled) setFinancials({ income: rows, balanceSheet: rows, cashFlow: rows });
       } catch (e) {
         if (!cancelled) setFinancials({ income: [], balanceSheet: [], cashFlow: [] });
       } finally {
@@ -61,7 +78,7 @@ const FinancialsPage = () => {
     }
     fetchAll();
     return () => { cancelled = true; };
-  }, [ticker, period, years]);
+  }, [ticker, period, years, report]);
 
   // Metric definitions per statement
   const METRICS_MAP = {
@@ -71,7 +88,7 @@ const FinancialsPage = () => {
       { key: 'opinc', label: 'Operating Income', alt: ['operatingIncome'] },
       { key: 'ebit', label: 'EBIT' },
       { key: 'ebitda', label: 'EBITDA' },
-      { key: 'netinc', label: 'Net Income', alt: ['netIncome','netinccmn'] },
+      { key: 'netinc', label: 'Net Income', alt: ['netIncome', 'netinccmn'] },
       { key: 'eps', label: 'EPS' },
       { key: 'rnd', label: 'R&D' },
       { key: 'sgna', label: 'SG&A' },
@@ -107,55 +124,69 @@ const FinancialsPage = () => {
     return Number.isNaN(n) ? null : n;
   };
 
-  const statementRows = useMemo(() => {
-    const data = financials[activeType] || [];
-    const metrics = METRICS_MAP[activeType] || [];
-    if (!data.length || !metrics.length) return [];
-    return metrics.map((m, rIdx) => {
-      const row = { id: rIdx, metric: m.label, key: m.key };
-      data.forEach((periodRow, idx) => {
-        // Try main key, then alt keys, then fallback to '-'
-        let val = null;
-        if (periodRow[m.key] !== undefined && periodRow[m.key] !== null) {
-          val = safeNumber(periodRow[m.key]);
-        } else if (m.alt && Array.isArray(m.alt)) {
-          for (const altKey of m.alt) {
-            if (periodRow[altKey] !== undefined && periodRow[altKey] !== null) {
-              val = safeNumber(periodRow[altKey]);
-              if (val !== null) break;
-            }
+  // Build rows and columns for ReactTabulator
+  const data = financials[activeType] || [];
+  const metrics = METRICS_MAP[activeType] || [];
+  // Columns: Metric, then one per period
+  const periods = data.map(r => (r.calendardate || r.reportperiod || r.fiscalperiod || r.endDate || r.periodEnd || '').slice(0, 10));
+  const columns = [
+    { title: 'Metric', field: 'metric', frozen: true },
+    ...periods.map((p, idx) => ({
+      title: p || `P${idx + 1}`,
+      field: `p${idx}`,
+      width: 120,
+      cssClass: 'tab-mono',
+      formatter: function(cell) {
+        // Use formatters for currency/decimal if possible
+        const val = cell.getValue();
+        if (val === '-' || val === null || val === undefined) return '-';
+        // Heuristic: revenue, profit, assets, etc as USD; EPS as decimal; percent if key includes 'margin' or 'percent'
+        const row = cell.getRow().getData();
+        const key = row.key || '';
+        if (['revenue','gp','opinc','ebit','ebitda','netinc','assets','liabilities','equity','cashneq','debt','ppnenet','inventory','receivables','payables','workingcapital','ncfo','capex','fcf','ncfi','ncff','ncfdiv','ncfdebt','ncf','rnd','sgna','taxexp'].includes(key)) {
+          return formatUsd(val, 0);
+        }
+        if (['eps','sp','tbp','bp','ep','cfop','sfcfp'].includes(key)) {
+          return formatDecimal(val, 2);
+        }
+        if (key.includes('margin') || key.includes('percent')) {
+          return formatPercent(val, 2);
+        }
+        return formatDecimal(val, 2);
+      }
+    }))
+  ];
+  // Rows: one per metric
+  const tabRows = metrics.map((m, rIdx) => {
+    const row = { id: rIdx, metric: m.label, key: m.key };
+    data.forEach((periodRow, idx) => {
+      // Try main key, then alt keys, then fallback to '-'
+      let val = null;
+      if (periodRow[m.key] !== undefined && periodRow[m.key] !== null) {
+        val = safeNumber(periodRow[m.key]);
+      } else if (m.alt && Array.isArray(m.alt)) {
+        for (const altKey of m.alt) {
+          if (periodRow[altKey] !== undefined && periodRow[altKey] !== null) {
+            val = safeNumber(periodRow[altKey]);
+            if (val !== null) break;
           }
         }
-        row[`p${idx}`] = val === null ? '-' : val;
-      });
-      return row;
+      }
+      row[`p${idx}`] = val === null ? '-' : val;
     });
-  }, [financials, activeType]);
-
-  const statementColumns = useMemo(() => {
-    const data = financials[activeType] || [];
-    if (!data.length) return [];
-    // Try to get period label from available keys
-    const periods = data.map(r => {
-      // NASDAQ: calendardate, reportperiod, fiscalperiod
-      return (r.calendardate || r.reportperiod || r.fiscalperiod || r.endDate || r.periodEnd || '').slice(0,10);
-    });
-    return [
-      { id: 'metric', header: 'Metric', width: 240, pinned: 'left' },
-      ...periods.map((p, idx) => ({ id: `p${idx}`, header: p || `P${idx+1}`, width: 140, sort: false })),
-    ];
-  }, [financials, activeType]);
+    return row;
+  });
 
   const chartSeries = useMemo(() => {
     const data = financials[activeType] || [];
     const labelFor = (key) => {
-      const m = (METRICS_MAP[activeType]||[]).find(x=>x.key===key);
+      const m = (METRICS_MAP[activeType] || []).find(x => x.key === key);
       return m ? m.label : key;
     };
     return selectedMetrics.map(key => ({
       name: labelFor(key),
       data: data.map(r => {
-        const alt = (METRICS_MAP[activeType]||[]).find(m=>m.key===key)?.alt;
+        const alt = (METRICS_MAP[activeType] || []).find(m => m.key === key)?.alt;
         const altKey = alt ? alt.find(k => r[k] !== undefined && r[k] !== null) : undefined;
         return safeNumber(r[key] ?? (altKey ? r[altKey] : undefined)) ?? 0;
       }),
@@ -163,20 +194,117 @@ const FinancialsPage = () => {
   }, [selectedMetrics, activeType, financials]);
 
   const barChartOptions = useMemo(() => ({
-    chart: { type: 'bar', stacked: false },
+    chart: {
+      type: 'bar',
+      stacked: false,
+      zoom: { enabled: true, type: 'x', autoScaleYaxis: true }, // not working
+      toolbar: { // not working
+        show: true,
+        tools: {
+          zoom: true,
+          zoomin: true,
+          zoomout: true,
+          pan: true,
+          reset: true,
+        },
+        autoSelected: 'zoom',
+      },
+      pan: { enabled: true, type: 'x', },
+    },
+    plotOptions: {
+      bar: {
+        columnWidth: '30%', // Make bars thinner to fit content
+      }
+    },
     xaxis: {
-      categories: (financials[activeType] || []).map(r => (r.endDate || r.periodEnd || r.calendardate || '').slice(0,10)),
+      categories: (financials[activeType] || []).map(r => (r.endDate || r.periodEnd || r.calendardate || '').slice(0, 10)),
       title: { text: 'Period End' },
     },
     title: { text: 'Key Financials', align: 'left' },
     legend: { position: 'top' },
-    tooltip: { y: { formatter: (val) => typeof val === 'number' ? val.toLocaleString() : '-' } },
+    dataLabels: {
+      enabled: true,
+      formatter: (val) => {
+        if (typeof val !== 'number' || isNaN(val)) return '';
+        const absVal = Math.abs(val);
+        let suffix = '';
+        let divisor = 1;
+        if (absVal >= 1e12) {
+          suffix = 'T';
+          divisor = 1e12;
+        } else if (absVal >= 1e9) {
+          suffix = 'B';
+          divisor = 1e9;
+        } else if (absVal >= 1e6) {
+          suffix = 'M';
+          divisor = 1e6;
+        } else if (absVal >= 1e3) {
+          suffix = 'K';
+          divisor = 1e3;
+        }
+        const short = (val / divisor).toPrecision(3);
+        return short + suffix;
+      }
+    },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      followCursor: true,
+      y: {
+        formatter: (val) => {
+          if (typeof val !== 'number' || isNaN(val)) return '-';
+          const absVal = Math.abs(val);
+          let suffix = '';
+          let divisor = 1;
+          if (absVal >= 1e12) {
+            suffix = 'T';
+            divisor = 1e12;
+          } else if (absVal >= 1e9) {
+            suffix = 'B';
+            divisor = 1e9;
+          } else if (absVal >= 1e6) {
+            suffix = 'M';
+            divisor = 1e6;
+          } else if (absVal >= 1e3) {
+            suffix = 'K';
+            divisor = 1e3;
+          }
+          const short = (val / divisor).toPrecision(3);
+          return short + suffix;
+        }
+      }
+    },
+    yaxis: {
+      labels: {
+        formatter: (val) => {
+          if (typeof val !== 'number' || isNaN(val)) return '';
+          const absVal = Math.abs(val);
+          let suffix = '';
+          let divisor = 1;
+          if (absVal >= 1e12) {
+            suffix = 'T';
+            divisor = 1e12;
+          } else if (absVal >= 1e9) {
+            suffix = 'B';
+            divisor = 1e9;
+          } else if (absVal >= 1e6) {
+            suffix = 'M';
+            divisor = 1e6;
+          } else if (absVal >= 1e3) {
+            suffix = 'K';
+            divisor = 1e3;
+          }
+          const short = (val / divisor).toPrecision(3);
+          return short + suffix;
+        }
+      }
+    }
   }), [financials, activeType]);
 
   const onMetricRowClick = (row) => {
     if (!row || !row.key) return;
     const key = row.key;
-    setSelectedMetrics(prev => prev.includes(key) ? prev.filter(k=>k!==key) : [...prev, key]);
+    setSelectedMetrics(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   };
 
   return (
@@ -194,6 +322,14 @@ const FinancialsPage = () => {
       <div className="card shadow-sm mb-3">
         <div className="card-body">
           <div className="row g-3 align-items-end">
+            <div className="col-auto">
+              <label className="form-label d-block">Report</label>
+              <div className="btn-group" role="group">
+                {reportOptions.map(opt => (
+                  <button key={opt.value} type="button" className={`btn btn-sm ${report === opt.value ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setReport(opt.value)}>{opt.label}</button>
+                ))}
+              </div>
+            </div>
             <div className="col-auto">
               <label className="form-label d-block">Period</label>
               <div className="btn-group" role="group">
@@ -228,24 +364,38 @@ const FinancialsPage = () => {
       </div>
 
       <div className="card shadow-sm">
-        <div className="card-header">{statementTypes.find(s=>s.value===activeType)?.label}</div>
+        <div className="card-header">{statementTypes.find(s => s.value === activeType)?.label}</div>
         <div className="card-body">
-          {loading ? (
-            <div>Loading...</div>
-          ) : (
-            (statementRows.length === 0) ? (
-              <div>No data.</div>
+          <div className="tabulator-wrapper">
+            {loading ? (
+              <div>Loading...</div>
             ) : (
-              <Grid
-                data={statementRows}
-                columns={statementColumns.map(c => ({...c, header: c.header, footer: c.header}))}
-                rowClassName={row => selectedMetrics.includes(row.key) ? 'table-primary' : ''}
-                onRowClick={(row) => onMetricRowClick(row)}
-                autoRowHeight
-              />
-            )
-          )}
-          <div className="form-text mt-2">Tip: Click a metric row to toggle it in the chart above.</div>
+              (tabRows.length === 0) ? (
+                <div>No data.</div>
+              ) : (
+                <ReactTabulator
+                  data={tabRows}
+                  columns={columns}
+                  layout="fitData"
+                  options={{
+                    movableColumns: true,
+                    tooltips: true,
+                    rowFormatter: function(row) {
+                      // Highlight selected metrics
+                      const data = row.getData();
+                      if (selectedMetrics.includes(data.key)) {
+                        row.getElement().classList.add('table-primary');
+                      } else {
+                        row.getElement().classList.remove('table-primary');
+                      }
+                    },
+                  }}
+                  rowClick={(_, row) => onMetricRowClick(row.getData())}
+                />
+              )
+            )}
+            <div className="form-text mt-2">Tip: Click a metric row to toggle it in the chart above.</div>
+          </div>
         </div>
       </div>
     </div>

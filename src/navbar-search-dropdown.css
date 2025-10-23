@@ -1,0 +1,5 @@
+/* Custom class for navbar search dropdown max height and scroll */
+.navbar-search-dropdown {
+  max-height: 250px;
+  overflow-y: auto;
+}
