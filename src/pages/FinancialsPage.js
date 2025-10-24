@@ -134,7 +134,6 @@ const FinancialsPage = () => {
     ...periods.map((p, idx) => ({
       title: p || `P${idx + 1}`,
       field: `p${idx}`,
-      width: 120,
       cssClass: 'tab-mono',
       formatter: function(cell) {
         // Use formatters for currency/decimal if possible

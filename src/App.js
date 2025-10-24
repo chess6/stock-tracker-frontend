@@ -6,7 +6,6 @@ import NasdaqColumnsGrid from './pages/NasdaqColumnsGrid';
 import './App.css';
 import "@svar-ui/react-grid/all.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './styles/tabulator-custom.css';
 import AppNavbar from './components/AppNavbar';
 
 function App() {
@@ -17,8 +16,8 @@ function App() {
         <Route path="/" element={<PortfolioPage />} />
         <Route path=":ticker" element={<SummaryPage />} />
         <Route path=":ticker/financials" element={<FinancialsPage />} />
-  <Route path="nasdaq-columns" element={<NasdaqColumnsGrid />} />
-  <Route path="*" element={<Navigate to="/" />} />
+        <Route path="nasdaq-columns" element={<NasdaqColumnsGrid />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );

@@ -28,7 +28,7 @@ const AppNavbar = () => {
           setSearchResults(res.data);
           setDropdownOpen(true);
         }
-      }, 1000);
+      }, 100);
     } else {
       setDropdownOpen(false);
       setSearchResults([]);

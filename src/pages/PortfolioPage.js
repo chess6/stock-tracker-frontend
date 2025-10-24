@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { ReactTabulator } from 'react-tabulator';
@@ -33,24 +34,24 @@ function MiniChart({ row }) {
         ? row.chartData.map(v => typeof v === 'number' && !isNaN(v) ? Math.round(v * 100) / 100 : v)
         : [];
     const prevClose = row && row.prevClose;
-    const [showPrevCloseLine, setShowPrevCloseLine] = useState(false);
-    useEffect(() => {
-        setShowPrevCloseLine(false);
-        if (prevClose != null && data.length > 0) {
-            const timer = setTimeout(() => setShowPrevCloseLine(true), 500); // 300ms delay
-            return () => clearTimeout(timer);
-        }
-    }, [prevClose, data.length]);
+    // Always show dotted line if prevClose and data exist
+    const showPrevCloseLine = prevClose != null && data.length > 0;
     if (!data || data.length === 0) return null;
     // Dotted line for previous close
     const prevCloseLine = prevClose != null ? Array(data.length).fill(prevClose) : null;
+    // Determine color: green if price >= 0, red if price < 0
+    let changeValue = row.change;
+    if (typeof changeValue === "string") {
+        changeValue = parseFloat(changeValue.replace('%', ''));
+    }
+    const priceColor = (changeValue >= 0) ? '#28a745' : '#dc3545';
     return (
         <ApexCharts
             options={{
                 chart: { id: 'mini', sparkline: { enabled: true } },
                 stroke: {
                     width: [2, 2],
-                    colors: ['#77B6EA', '#545454'],
+                    colors: [priceColor, priceColor], // Dotted line matches priceColor
                     curve: 'straight',
                     dashArray: [0, 2]
                 },
@@ -60,7 +61,7 @@ function MiniChart({ row }) {
             }}
             series={[
                 { name: 'Price', data },
-                showPrevCloseLine && prevCloseLine ? { name: 'Prev Close', data: prevCloseLine, stroke: { dashArray: 4 }, color: '#888' } : null
+                showPrevCloseLine && prevCloseLine ? { name: 'Prev Close', data: prevCloseLine, stroke: { dashArray: 4 }, color: priceColor } : null
             ].filter(Boolean)}
             type="line"
             height={50}
@@ -130,27 +131,28 @@ const PortfolioPage = () => {
             }
         },
         { title: 'Chart', field: 'chartData', width: 120, headerTooltip: 'Intraday price chart', formatter: tabulatorMiniChartFormatter }, // don't remove yet
-        { title: 'Price', field: 'price', headerTooltip: columnTooltips.price, sorter: 'string' },
-        { title: 'Change', field: 'change', headerTooltip: columnTooltips.change },
-        { title: 'Market Cap', field: 'marketCap', headerTooltip: columnTooltips.marketCap },
-        { title: 'SP', field: 'sp', headerTooltip: columnTooltips.sp },
-        { title: 'Eb/EV', field: 'ebitdaEv', headerTooltip: columnTooltips.ebitdaEv },
-        { title: 'TBP', field: 'tbp', headerTooltip: columnTooltips.tbp },
-        { title: 'BP', field: 'bp', headerTooltip: columnTooltips.bp },
-        { title: 'EP', field: 'ep', headerTooltip: columnTooltips.ep },
-        { title: 'CFOP', field: 'cfop', headerTooltip: columnTooltips.cfop },
-        { title: 'SFCFP', field: 'sfcfp', headerTooltip: columnTooltips.sfcfp },
+        { title: 'Price', field: 'price', headerTooltip: columnTooltips.price, sorter: 'string', formatter: (cell) => formatUsd(cell.getValue()) },
+        { title: 'Change', field: 'change', headerTooltip: columnTooltips.change, formatter: (cell) => formatPercent(cell.getValue()) },
+        { title: 'Market Cap', field: 'marketCap', headerTooltip: columnTooltips.marketCap, formatter: (cell) => formatUsd(cell.getValue(), 0) },
+        { title: 'SP', field: 'sp', headerTooltip: columnTooltips.sp, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
+        { title: 'Eb/EV', field: 'ebitdaEv', headerTooltip: columnTooltips.ebitdaEv, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
+        { title: 'TBP', field: 'tbp', headerTooltip: columnTooltips.tbp, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
+        { title: 'BP', field: 'bp', headerTooltip: columnTooltips.bp, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
+        { title: 'EP', field: 'ep', headerTooltip: columnTooltips.ep, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
+        { title: 'CFOP', field: 'cfop', headerTooltip: columnTooltips.cfop, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
+        { title: 'SFCFP', field: 'sfcfp', headerTooltip: columnTooltips.sfcfp, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
         {
             title: 'Delete row?', field: 'delete', headerTooltip: columnTooltips.delete,
             formatter: function (cell, formatterParams, onRendered) {
                 const cellElement = cell.getElement();
                 const row = cell.getRow().getData();
-                onRendered(function () {
-                    if (!cellElement._reactRoot) {
-                        const root = createRoot(cellElement);
-                        cellElement._reactRoot = root;
-                        root.render(<MemoDeleteButton ticker={row.ticker} />);
+                onRendered(() => {
+                    if (cellElement._reactRoot) {
+                        cellElement._reactRoot.unmount();
                     }
+                    const root = createRoot(cellElement);
+                    cellElement._reactRoot = root;
+                    root.render(<MemoDeleteButton ticker={row.ticker} onDelete={row.onDelete} />);
                 });
                 return "";
             }
@@ -177,12 +179,14 @@ const PortfolioPage = () => {
             let metricsMap = {};
             let topQuotes = {};
             let changeMap = {};
+            let intradayMap = {};
             if (portfolio.length > 0) {
                 const tickersStr = portfolio.join(',');
-                const [fundRes, topRes, changeRes] = await Promise.allSettled([
+                const [fundRes, topRes, changeRes, ...intradayResArr] = await Promise.allSettled([
                     axios.get(`${API_ENDPOINTS.FINANCIALS}?ticker=${tickersStr}&mostRecent=true`),
                     axios.get(API_ENDPOINTS.TOP_OF_BOOK, { params: { tickers: tickersStr } }),
                     axios.get(API_ENDPOINTS.DAILY_CHANGE, { params: { tickers: tickersStr } }),
+                    ...portfolio.map(ticker => axios.get(API_ENDPOINTS.INTRADAY(ticker)))
                 ]);
                 if (fundRes.status === 'fulfilled') {
                     metricsMap = fundRes.value.data && fundRes.value.data.metrics ? fundRes.value.data.metrics : {};
@@ -193,6 +197,21 @@ const PortfolioPage = () => {
                 if (changeRes.status === 'fulfilled') {
                     changeMap = (changeRes.value.data && changeRes.value.data.changes) || {};
                 }
+                // Collect intraday data for each ticker
+                portfolio.forEach((ticker, idx) => {
+                    const res = intradayResArr[idx];
+                    if (res && res.status === 'fulfilled') {
+                        const intradayData = res.value.data;
+                        intradayMap[ticker] = (intradayData.intraday || [])
+                            .map(point => {
+                                const value = point && point.close !== undefined ? Number(point.close) : Number(point?.last);
+                                return Number.isNaN(value) ? null : value;
+                            })
+                            .filter(value => value !== null);
+                    } else {
+                        intradayMap[ticker] = [];
+                    }
+                });
             }
             const initialRows = portfolio.map((ticker, idx) => {
                 const metrics = metricsMap[ticker] || {};
@@ -202,23 +221,14 @@ const PortfolioPage = () => {
                     const parsed = Number(value);
                     return Number.isNaN(parsed) ? null : parsed;
                 };
-                let marketCap = '-';
-                let sp = '-';
-                let ebitdaEv = '-';
-                let tbp = '-';
-                let bp = '-';
-                let ep = '-';
-                let cfop = '-';
-                let sfcfp = '-';
-                const marketCapValue = toNumber('marketCap');
-                if (marketCapValue !== null) marketCap = formatUsd(marketCapValue, 0);
-                const spValue = toNumber('sp'); if (spValue !== null) sp = formatDecimal(spValue, 2);
-                const ebitdaEvValue = toNumber('ebitdaEv'); if (ebitdaEvValue !== null) ebitdaEv = formatDecimal(ebitdaEvValue, 2);
-                const tbpValue = toNumber('tbp'); if (tbpValue !== null) tbp = formatDecimal(tbpValue, 2);
-                const bpValue = toNumber('bp'); if (bpValue !== null) bp = formatDecimal(bpValue, 2);
-                const epValue = toNumber('ep'); if (epValue !== null) ep = formatDecimal(epValue, 2);
-                const cfopValue = toNumber('cfop'); if (cfopValue !== null) cfop = formatDecimal(cfopValue, 2);
-                const sfcfpValue = toNumber('sfcfp'); if (sfcfpValue !== null) sfcfp = formatDecimal(sfcfpValue, 2);
+                const marketCap = toNumber('marketCap');
+                const sp = toNumber('sp');
+                const ebitdaEv = toNumber('ebitdaEv');
+                const tbp = toNumber('tbp');
+                const bp = toNumber('bp');
+                const ep = toNumber('ep');
+                const cfop = toNumber('cfop');
+                const sfcfp = toNumber('sfcfp');
 
                 const tq = topQuotes[ticker] || {};
                 const lastCandidates = [tq.last, tq.tngoLast];
@@ -228,26 +238,27 @@ const PortfolioPage = () => {
                 const changeInfo = changeMap[ticker] || {};
                 const prevClose = changeInfo.prevClose != null ? Number(changeInfo.prevClose) : null;
                 const todayClose = changeInfo.todayClose != null ? Number(changeInfo.todayClose) : null;
-                let change = '-';
+                let change = null;
                 if (todayClose != null && prevClose != null && !Number.isNaN(todayClose) && !Number.isNaN(prevClose) && prevClose !== 0) {
                     const diff = todayClose - prevClose;
-                    change = formatPercent((diff / prevClose) * 100);
+                    change = (diff / prevClose) * 100;
                 }
-                // Price fallback order: last -> todayClose -> prevClose -> '-'
-                let price = '-';
+                // Price fallback order: last -> todayClose -> prevClose -> null
+                let price = null;
                 if (last != null && !Number.isNaN(last)) {
-                    price = formatUsd(last);
+                    price = last;
                 } else if (todayClose != null && !Number.isNaN(todayClose)) {
-                    price = formatUsd(todayClose);
+                    price = todayClose;
                 } else if (prevClose != null && !Number.isNaN(prevClose)) {
-                    price = formatUsd(prevClose);
+                    price = prevClose;
                 }
                 const company = tq.name || ticker;
+                const chartData = intradayMap[ticker] || [];
                 return {
                     id: idx,
                     ticker,
                     company,
-                    chartData: [],
+                    chartData,
                     price,
                     change,
                     marketCap,
@@ -263,34 +274,6 @@ const PortfolioPage = () => {
                 };
             });
             setRows(initialRows);
-            // Restore intraday fetch for charts (per-ticker)
-            const fetched = {};
-            portfolio.forEach((ticker, idx) => {
-                if (fetched[ticker]) return;
-                fetched[ticker] = true;
-                (async () => {
-                    try {
-                        const intradayResp = await axios.get(API_ENDPOINTS.INTRADAY(ticker));
-                        const intradayData = intradayResp.data;
-                        const chartData = (intradayData.intraday || [])
-                            .map(point => {
-                                const value = point && point.close !== undefined ? Number(point.close) : Number(point?.last);
-                                return Number.isNaN(value) ? null : value;
-                            })
-                            .filter(value => value !== null);
-                        setRows(prev => {
-                            if (!prev[idx]) return prev;
-                            const updated = { ...prev[idx], chartData };
-                            if (JSON.stringify(prev[idx]) === JSON.stringify(updated)) return prev;
-                            const copy = prev.slice();
-                            copy[idx] = updated;
-                            return copy;
-                        });
-                    } catch (e) {
-                        // ignore chart errors
-                    }
-                })();
-            });
         }
         if (portfolio.length > 0) {
             fetchPortfolioData();
