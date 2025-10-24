@@ -366,7 +366,7 @@ const FinancialsPage = () => {
       <div className="card shadow-sm">
         <div className="card-header">{statementTypes.find(s => s.value === activeType)?.label}</div>
         <div className="card-body">
-          <div className="tabulator-wrapper">
+          <div>
             {loading ? (
               <div>Loading...</div>
             ) : (

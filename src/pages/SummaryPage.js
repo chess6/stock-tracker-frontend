@@ -10,49 +10,66 @@ const SummaryPage = () => {
   const { ticker } = useParams();
   const [prices, setPrices] = useState([]); // summary endpoint
   const [intraday, setIntraday] = useState([]); // intraday endpoint
-  const [prevClose, setPrevClose] = useState(null);
   const [news, setNews] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('1Y');
+  const [latestClose, setLatestClose] = useState(null);
+  const [prevClose, setPrevClose] = useState(null);
 
   useEffect(() => {
-    setLoading(true);
     let cancelled = false;
     async function fetchAll() {
       try {
-        // Fetch summary (historical)
-        const summaryResp = await axios.get(API_ENDPOINTS.SUMMARY(ticker));
-        if (!cancelled) setPrices(summaryResp.data.prices || []);
-        // Fetch intraday (for 1D/5D)
-        const intradayResp = await axios.get(API_ENDPOINTS.INTRADAY(ticker));
+        const [summaryRes, intradayRes, newsRes, changeRes] = await Promise.allSettled([
+          axios.get(API_ENDPOINTS.SUMMARY(ticker)),
+          axios.get(API_ENDPOINTS.INTRADAY(ticker)),
+          axios.get(API_ENDPOINTS.NEWS(ticker)),
+          axios.get(API_ENDPOINTS.DAILY_CHANGE, { params: { tickers: ticker } }),
+        ]);
         if (!cancelled) {
-          setIntraday((intradayResp.data.intraday || []).map(point => {
-            const value = point && point.close !== undefined ? Number(point.close) : Number(point?.last);
-            return {
-              date: point.date || point.time || '',
-              close: Number.isNaN(value) ? null : value,
-            };
-          }).filter(p => p.close !== null));
-          const prev = intradayResp.data.prevClose;
-          if (prev !== null && prev !== undefined) {
-            const parsedPrev = Number(prev);
-            setPrevClose(Number.isNaN(parsedPrev) ? null : parsedPrev);
+          if (summaryRes.status === 'fulfilled') {
+            setPrices(summaryRes.value.data.prices || []);
+          } else {
+            setPrices([]);
+          }
+          if (intradayRes.status === 'fulfilled') {
+            const intradayArr = (intradayRes.value.data.intraday || [])
+              .map(point => {
+                const value = point && point.close !== undefined ? Number(point.close) : Number(point?.last);
+                return {
+                  date: point.date || point.time || '',
+                  close: Number.isNaN(value) ? null : value,
+                };
+              })
+              .filter(p => p.close !== null);
+            setIntraday(intradayArr);
+          } else {
+            setIntraday([]);
+          }
+          if (newsRes.status === 'fulfilled') {
+            setNews(newsRes.value.data || []);
+          } else {
+            setNews([]);
+          }
+          if (changeRes.status === 'fulfilled') {
+            const changes = (changeRes.value.data && changeRes.value.data.changes) || {};
+            const info = changes[ticker] || {};
+            const prev = info.prevClose;
+            const today = info.todayClose;
+            setPrevClose(prev != null && !Number.isNaN(Number(prev)) ? Number(prev) : null);
+            setLatestClose(today != null && !Number.isNaN(Number(today)) ? Number(today) : null);
           } else {
             setPrevClose(null);
+            setLatestClose(null);
           }
         }
-        // Fetch news
-        const newsResp = await axios.get(API_ENDPOINTS.NEWS(ticker));
-        if (!cancelled) setNews(newsResp.data || []);
       } catch (e) {
         if (!cancelled) {
           setPrices([]);
           setIntraday([]);
-          setPrevClose(null);
           setNews([]);
+          setPrevClose(null);
+          setLatestClose(null);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     }
     fetchAll();
@@ -65,11 +82,9 @@ const SummaryPage = () => {
     const now = new Date();
     let fromDate;
     if (range === '1D') {
-      // Use all intraday points for 1D
       return intraday && intraday.length > 0 ? intraday : [];
     }
     if (range === '5D') {
-      // Use intraday, but downsample to match 1D tick count
       if (!intraday || intraday.length === 0) return [];
       fromDate = new Date(now);
       fromDate.setDate(now.getDate() - 5);
@@ -78,13 +93,11 @@ const SummaryPage = () => {
         const d = new Date(p.date);
         return d >= fromDate;
       });
-      // Downsample to match 1D tick count (use 1D tick count as base)
       const oneDayTicks = intraday.length;
       if (fiveDay.length <= oneDayTicks) return fiveDay;
       const step = Math.floor(fiveDay.length / oneDayTicks);
       return fiveDay.filter((_, idx) => idx % step === 0);
     }
-    // All other ranges use summary prices
     if (!prices || prices.length === 0) return [];
     switch (range) {
       case '1M':
@@ -129,20 +142,6 @@ const SummaryPage = () => {
     });
   }, [range, intraday, prices]);
 
-  const rangeOptions = [
-    { label: '1D', value: '1D' },
-    { label: '5D', value: '5D' },
-    { label: '1M', value: '1M' },
-    { label: '3M', value: '3M' },
-    { label: '6M', value: '6M' },
-    { label: 'YTD', value: 'YTD' },
-    { label: '1Y', value: '1Y' },
-    { label: '2Y', value: '2Y' },
-    { label: '5Y', value: '5Y' },
-    { label: '10Y', value: '10Y' },
-    { label: 'ALL', value: 'ALL' },
-  ];
-
 
   const chartOptions = {
     chart: { id: 'price-line' },
@@ -161,6 +160,17 @@ const SummaryPage = () => {
     },
   ];
 
+  const changeInfo = useMemo(() => {
+    if (latestClose == null || prevClose == null || prevClose === 0) return null;
+    const diff = latestClose - prevClose;
+    const pct = (diff / prevClose) * 100;
+    return {
+      diff,
+      pct,
+      up: diff >= 0,
+    };
+  }, [latestClose, prevClose]);
+
 
   return (
     <Container className="py-3">
@@ -172,7 +182,24 @@ const SummaryPage = () => {
         <Col md={8} className="mx-auto">
           <Card className="shadow-sm p-3">
             <CardBody>
-              <CardTitle tag="h3" className="mb-3">{ticker} Summary</CardTitle>
+              <CardTitle tag="h3" className="mb-1">{ticker} Summary</CardTitle>
+              <div className="mb-3" style={{ fontSize: 14, color: '#666' }}>
+                {latestClose != null && (
+                  <span>
+                    Latest Close: <strong>${latestClose.toFixed(2)}</strong>
+                  </span>
+                )}
+                {prevClose != null && (
+                  <span style={{ marginLeft: 12 }}>
+                    Prev Close: <strong>${prevClose.toFixed(2)}</strong>
+                  </span>
+                )}
+                {changeInfo && (
+                  <span style={{ marginLeft: 12, color: changeInfo.up ? '#0a7' : '#d33' }}>
+                    {changeInfo.up ? '+' : ''}{changeInfo.diff.toFixed(2)} ({changeInfo.up ? '+' : ''}{changeInfo.pct.toFixed(2)}%)
+                  </span>
+                )}
+              </div>
               <div className="mb-3">
                 <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('1D')}>1D</Button>
                 <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('5D')}>5D</Button>

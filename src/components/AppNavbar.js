@@ -45,6 +45,8 @@ const AppNavbar = () => {
   };
 
   const handleSearchTicker = ticker => {
+    setDropdownOpen(false);
+    setSearch('');
     navigate(`/${ticker}`);
   };
 

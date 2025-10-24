@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { ReactTabulator } from 'react-tabulator';
@@ -70,8 +70,8 @@ function MiniChart({ row }) {
 }
 
 const PortfolioPage = () => {
-    // Column tooltips for Tabulator
-    const columnTooltips = {
+    // Column tooltips for Tabulator (memoized for stable reference)
+    const columnTooltips = useMemo(() => ({
         ticker: 'Stock ticker symbol',
         price: 'Latest closing price (USD)',
         change: 'Percent change from previous close',
@@ -84,12 +84,23 @@ const PortfolioPage = () => {
         cfop: 'Cash flow from operations per share',
         sfcfp: 'Free cash flow per share',
         delete: 'Remove from portfolio',
-    };
+    }), []);
     // Search bar and results now handled in AppNavbar
     const [portfolio, setPortfolio] = useState(() => {
         // Try to load from localStorage, else default to []
         return JSON.parse(localStorage.getItem("portfolio")) || []
     });
+
+    // Listen for changes to localStorage (from AppNavbar or other tabs)
+    useEffect(() => {
+        function handleStorage(e) {
+            if (e.key === "portfolio") {
+                setPortfolio(JSON.parse(e.newValue) || []);
+            }
+        }
+        window.addEventListener("storage", handleStorage);
+        return () => window.removeEventListener("storage", handleStorage);
+    }, []);
     const [rows, setRows] = useState([]);
     // Memoized delete button to prevent flicker
     const MemoDeleteButton = useMemo(() => {
@@ -113,24 +124,24 @@ const PortfolioPage = () => {
 
     const columns = useMemo(() => [
         {
-            title: 'Ticker', field: 'ticker', width: 180, headerTooltip: columnTooltips.ticker, sorter: 'string', formatter: (cell) => {
+            title: 'Ticker', field: 'ticker', headerTooltip: columnTooltips.ticker, sorter: 'string', formatter: (cell) => {
                 const row = cell.getRow().getData();
                 return `<div><strong>${row.ticker}</strong>${row.company ? `<div class='text-muted'>${row.company}</div>` : ''}</div>`;
             }
         },
-        // { title: 'Chart', field: 'chartData', width: 120, headerTooltip: 'Intraday price chart', formatter: tabulatorMiniChartFormatter }, // don't remove yet
-        { title: 'Price', field: 'price', width: 100, headerTooltip: columnTooltips.price, sorter: 'string' },
-        { title: 'Change', field: 'change', width: 100, headerTooltip: columnTooltips.change },
-        { title: 'Market Cap', field: 'marketCap', width: 120, headerTooltip: columnTooltips.marketCap },
-        { title: 'SP', field: 'sp', width: 80, headerTooltip: columnTooltips.sp },
-        { title: 'EBITDA/EV', field: 'ebitdaEv', width: 100, headerTooltip: columnTooltips.ebitdaEv },
-        { title: 'TBP', field: 'tbp', width: 80, headerTooltip: columnTooltips.tbp },
-        { title: 'BP', field: 'bp', width: 80, headerTooltip: columnTooltips.bp },
-        { title: 'EP', field: 'ep', width: 80, headerTooltip: columnTooltips.ep },
-        { title: 'CFOP', field: 'cfop', width: 80, headerTooltip: columnTooltips.cfop },
-        { title: 'SFCFP', field: 'sfcfp', width: 80, headerTooltip: columnTooltips.sfcfp },
+        { title: 'Chart', field: 'chartData', width: 120, headerTooltip: 'Intraday price chart', formatter: tabulatorMiniChartFormatter }, // don't remove yet
+        { title: 'Price', field: 'price', headerTooltip: columnTooltips.price, sorter: 'string' },
+        { title: 'Change', field: 'change', headerTooltip: columnTooltips.change },
+        { title: 'Market Cap', field: 'marketCap', headerTooltip: columnTooltips.marketCap },
+        { title: 'SP', field: 'sp', headerTooltip: columnTooltips.sp },
+        { title: 'Eb/EV', field: 'ebitdaEv', headerTooltip: columnTooltips.ebitdaEv },
+        { title: 'TBP', field: 'tbp', headerTooltip: columnTooltips.tbp },
+        { title: 'BP', field: 'bp', headerTooltip: columnTooltips.bp },
+        { title: 'EP', field: 'ep', headerTooltip: columnTooltips.ep },
+        { title: 'CFOP', field: 'cfop', headerTooltip: columnTooltips.cfop },
+        { title: 'SFCFP', field: 'sfcfp', headerTooltip: columnTooltips.sfcfp },
         {
-            title: 'Delete row?', field: 'delete', width: 100, headerTooltip: columnTooltips.delete,
+            title: 'Delete row?', field: 'delete', headerTooltip: columnTooltips.delete,
             formatter: function (cell, formatterParams, onRendered) {
                 const cellElement = cell.getElement();
                 const row = cell.getRow().getData();
@@ -144,7 +155,7 @@ const PortfolioPage = () => {
                 return "";
             }
         },
-    ], [MemoDeleteButton]);
+    ], [columnTooltips]);
 
     // Handler to delete ticker from portfolio
     const handleDeleteTicker = async ticker => {
@@ -157,26 +168,32 @@ const PortfolioPage = () => {
 
     // Dropdown state now handled in AppNavbar
 
-    // Guard summary fetch against duplicate calls (Strict Mode)
-    const fetchSummaryCalled = useRef({});
+    // Guard summary fetch against duplicate calls (Strict Mode) — no longer needed after batch refactor
 
 
     useEffect(() => {
         localStorage.setItem('portfolio', JSON.stringify(portfolio));
-        // let cancelled = false;
         async function fetchPortfolioData() {
-            // Fetch all financials for tickers in one request
             let metricsMap = {};
+            let topQuotes = {};
+            let changeMap = {};
             if (portfolio.length > 0) {
-                try {
-                    const tickersStr = portfolio.join(',');
-                    const fundResp = await axios.get(`${API_ENDPOINTS.FINANCIALS}?ticker=${tickersStr}&mostRecent=true`);
-                    metricsMap = fundResp.data && fundResp.data.metrics ? fundResp.data.metrics : {};
-                } catch (e) {
-                    metricsMap = {};
+                const tickersStr = portfolio.join(',');
+                const [fundRes, topRes, changeRes] = await Promise.allSettled([
+                    axios.get(`${API_ENDPOINTS.FINANCIALS}?ticker=${tickersStr}&mostRecent=true`),
+                    axios.get(API_ENDPOINTS.TOP_OF_BOOK, { params: { tickers: tickersStr } }),
+                    axios.get(API_ENDPOINTS.DAILY_CHANGE, { params: { tickers: tickersStr } }),
+                ]);
+                if (fundRes.status === 'fulfilled') {
+                    metricsMap = fundRes.value.data && fundRes.value.data.metrics ? fundRes.value.data.metrics : {};
+                }
+                if (topRes.status === 'fulfilled') {
+                    topQuotes = (topRes.value.data && topRes.value.data.quotes) || {};
+                }
+                if (changeRes.status === 'fulfilled') {
+                    changeMap = (changeRes.value.data && changeRes.value.data.changes) || {};
                 }
             }
-            // Render grid immediately with financials data only
             const initialRows = portfolio.map((ticker, idx) => {
                 const metrics = metricsMap[ticker] || {};
                 const toNumber = key => {
@@ -194,44 +211,45 @@ const PortfolioPage = () => {
                 let cfop = '-';
                 let sfcfp = '-';
                 const marketCapValue = toNumber('marketCap');
-                if (marketCapValue !== null) {
-                    marketCap = formatUsd(marketCapValue, 0);
+                if (marketCapValue !== null) marketCap = formatUsd(marketCapValue, 0);
+                const spValue = toNumber('sp'); if (spValue !== null) sp = formatDecimal(spValue, 2);
+                const ebitdaEvValue = toNumber('ebitdaEv'); if (ebitdaEvValue !== null) ebitdaEv = formatDecimal(ebitdaEvValue, 2);
+                const tbpValue = toNumber('tbp'); if (tbpValue !== null) tbp = formatDecimal(tbpValue, 2);
+                const bpValue = toNumber('bp'); if (bpValue !== null) bp = formatDecimal(bpValue, 2);
+                const epValue = toNumber('ep'); if (epValue !== null) ep = formatDecimal(epValue, 2);
+                const cfopValue = toNumber('cfop'); if (cfopValue !== null) cfop = formatDecimal(cfopValue, 2);
+                const sfcfpValue = toNumber('sfcfp'); if (sfcfpValue !== null) sfcfp = formatDecimal(sfcfpValue, 2);
+
+                const tq = topQuotes[ticker] || {};
+                const lastCandidates = [tq.last, tq.tngoLast];
+                const lastVal = lastCandidates.find(v => v != null && !Number.isNaN(Number(v)));
+                const last = lastVal != null ? Number(lastVal) : null;
+
+                const changeInfo = changeMap[ticker] || {};
+                const prevClose = changeInfo.prevClose != null ? Number(changeInfo.prevClose) : null;
+                const todayClose = changeInfo.todayClose != null ? Number(changeInfo.todayClose) : null;
+                let change = '-';
+                if (todayClose != null && prevClose != null && !Number.isNaN(todayClose) && !Number.isNaN(prevClose) && prevClose !== 0) {
+                    const diff = todayClose - prevClose;
+                    change = formatPercent((diff / prevClose) * 100);
                 }
-                const spValue = toNumber('sp');
-                if (spValue !== null) {
-                    sp = formatDecimal(spValue, 2);
+                // Price fallback order: last -> todayClose -> prevClose -> '-'
+                let price = '-';
+                if (last != null && !Number.isNaN(last)) {
+                    price = formatUsd(last);
+                } else if (todayClose != null && !Number.isNaN(todayClose)) {
+                    price = formatUsd(todayClose);
+                } else if (prevClose != null && !Number.isNaN(prevClose)) {
+                    price = formatUsd(prevClose);
                 }
-                const ebitdaEvValue = toNumber('ebitdaEv');
-                if (ebitdaEvValue !== null) {
-                    ebitdaEv = formatDecimal(ebitdaEvValue, 2);
-                }
-                const tbpValue = toNumber('tbp');
-                if (tbpValue !== null) {
-                    tbp = formatDecimal(tbpValue, 2);
-                }
-                const bpValue = toNumber('bp');
-                if (bpValue !== null) {
-                    bp = formatDecimal(bpValue, 2);
-                }
-                const epValue = toNumber('ep');
-                if (epValue !== null) {
-                    ep = formatDecimal(epValue, 2);
-                }
-                const cfopValue = toNumber('cfop');
-                if (cfopValue !== null) {
-                    cfop = formatDecimal(cfopValue, 2);
-                }
-                const sfcfpValue = toNumber('sfcfp');
-                if (sfcfpValue !== null) {
-                    sfcfp = formatDecimal(sfcfpValue, 2);
-                }
+                const company = tq.name || ticker;
                 return {
                     id: idx,
                     ticker,
-                    company: ticker,
+                    company,
                     chartData: [],
-                    price: '-',
-                    change: '-',
+                    price,
+                    change,
                     marketCap,
                     sp,
                     ebitdaEv,
@@ -240,74 +258,37 @@ const PortfolioPage = () => {
                     ep,
                     cfop,
                     sfcfp,
-                    prevClose: null,
+                    prevClose,
                     onDelete: handleDeleteTicker
                 };
             });
             setRows(initialRows);
-            // Now asynchronously fetch summary and intraday data for each ticker and update rows
-            // Track which tickers have already been fetched to prevent double API calls
-            const fetchedTickers = {};
+            // Restore intraday fetch for charts (per-ticker)
+            const fetched = {};
             portfolio.forEach((ticker, idx) => {
-                if (fetchedTickers[ticker]) return;
-                fetchedTickers[ticker] = true;
+                if (fetched[ticker]) return;
+                fetched[ticker] = true;
                 (async () => {
-                    // ...existing code for async fetch and row update...
-                    let chartData = [];
-                    let prevClose = null;
                     try {
                         const intradayResp = await axios.get(API_ENDPOINTS.INTRADAY(ticker));
                         const intradayData = intradayResp.data;
-                        chartData = (intradayData.intraday || [])
+                        const chartData = (intradayData.intraday || [])
                             .map(point => {
                                 const value = point && point.close !== undefined ? Number(point.close) : Number(point?.last);
                                 return Number.isNaN(value) ? null : value;
                             })
                             .filter(value => value !== null);
-                        const prev = intradayData.prevClose;
-                        if (prev !== null && prev !== undefined) {
-                            const parsedPrev = Number(prev);
-                            prevClose = Number.isNaN(parsedPrev) ? null : parsedPrev;
-                        }
+                        setRows(prev => {
+                            if (!prev[idx]) return prev;
+                            const updated = { ...prev[idx], chartData };
+                            if (JSON.stringify(prev[idx]) === JSON.stringify(updated)) return prev;
+                            const copy = prev.slice();
+                            copy[idx] = updated;
+                            return copy;
+                        });
                     } catch (e) {
-                        chartData = [];
-                        prevClose = null;
+                        // ignore chart errors
                     }
-                    let price = '-';
-                    let change = '-';
-                    let company = ticker;
-                    try {
-                        const resp = await axios.get(API_ENDPOINTS.SUMMARY(ticker));
-                        const prices = resp.data.prices || [];
-                        const latest = prices[0] || {};
-                        const priceRaw = latest.close;
-                        const priceValue = (priceRaw !== null && priceRaw !== undefined) ? Number(priceRaw) : null;
-                        price = (priceValue !== null && !Number.isNaN(priceValue)) ? formatUsd(priceValue) : '-';
-                        if (priceValue !== null && !Number.isNaN(priceValue) && prevClose !== null) {
-                            const diff = priceValue - prevClose;
-                            change = formatPercent(diff / prevClose * 100);
-                        }
-                        if (resp.data && resp.data.meta && resp.data.meta.name) {
-                            company = resp.data.meta.name;
-                        }
-                    } catch (e) {
-                        // leave as default
-                    }
-                    setRows(prevRows => {
-                        if (!prevRows[idx]) return prevRows;
-                        const updatedRow = {
-                            ...prevRows[idx],
-                            price,
-                            change,
-                            company,
-                            chartData,
-                            prevClose
-                        };
-                        if (JSON.stringify(prevRows[idx]) === JSON.stringify(updatedRow)) return prevRows;
-                        const newRows = prevRows.slice();
-                        newRows[idx] = updatedRow;
-                        return newRows;
-                    });
                 })();
             });
         }
