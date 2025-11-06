@@ -21,7 +21,7 @@ const AppNavbar = () => {
     setSearch(value);
     latestSearchValue.current = value;
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    if (value.length > 1) {
+    if (value.length > 0) {
       searchTimeoutRef.current = setTimeout(async () => {
         if (latestSearchValue.current === value && value.trim() !== '') {
           const res = await axios.get(`${API_ENDPOINTS.SEARCH}?q=${value}`);

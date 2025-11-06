@@ -128,7 +128,10 @@ const PortfolioPage = () => {
             title: 'Ticker', field: 'ticker', headerTooltip: columnTooltips.ticker, sorter: 'string', formatter: (cell) => {
                 const row = cell.getRow().getData();
                 return `<div><strong>${row.ticker}</strong>${row.company ? `<div class='text-muted'>${row.company}</div>` : ''}</div>`;
-            }
+            }, tooltip: function (cell) {
+        let data = cell.getRow();
+        return "Value of " + data._row.data.company;
+      }
         },
         { title: 'Chart', field: 'chartData', width: 120, headerTooltip: 'Intraday price chart', formatter: tabulatorMiniChartFormatter }, // don't remove yet
         { title: 'Price', field: 'price', headerTooltip: columnTooltips.price, sorter: 'string', formatter: (cell) => formatUsd(cell.getValue()) },
@@ -202,14 +205,16 @@ const PortfolioPage = () => {
                     const res = intradayResArr[idx];
                     if (res && res.status === 'fulfilled') {
                         const intradayData = res.value.data;
-                        intradayMap[ticker] = (intradayData.intraday || [])
-                            .map(point => {
+                        // Store both intraday and tickerMeta
+                        intradayMap[ticker] = {
+                            intraday: (intradayData.intraday || []).map(point => {
                                 const value = point && point.close !== undefined ? Number(point.close) : Number(point?.last);
                                 return Number.isNaN(value) ? null : value;
-                            })
-                            .filter(value => value !== null);
+                            }).filter(value => value !== null),
+                            tickerMeta: intradayData.tickerMeta || null
+                        };
                     } else {
-                        intradayMap[ticker] = [];
+                        intradayMap[ticker] = { intraday: [], tickerMeta: null };
                     }
                 });
             }
@@ -252,8 +257,19 @@ const PortfolioPage = () => {
                 } else if (prevClose != null && !Number.isNaN(prevClose)) {
                     price = prevClose;
                 }
-                const company = tq.name || ticker;
-                const chartData = intradayMap[ticker] || [];
+                // Use company name from tickerMeta if available, else fallback
+                let company = ticker;
+                const meta = intradayMap[ticker] && intradayMap[ticker].tickerMeta ? intradayMap[ticker].tickerMeta : null;
+                if (meta && meta.name) {
+                    company = meta.name;
+                } else if (tq.name) {
+                    company = tq.name;
+                }
+                // chartData: always use intradayMap[ticker].intraday if present
+                let chartData = [];
+                if (intradayMap[ticker] && Array.isArray(intradayMap[ticker].intraday)) {
+                    chartData = intradayMap[ticker].intraday;
+                }
                 return {
                     id: idx,
                     ticker,

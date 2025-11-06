@@ -14,6 +14,7 @@ const SummaryPage = () => {
   const [range, setRange] = useState('1Y');
   const [latestClose, setLatestClose] = useState(null);
   const [prevClose, setPrevClose] = useState(null);
+  const [tickerMeta, setTickerMeta] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,7 +33,8 @@ const SummaryPage = () => {
             setPrices([]);
           }
           if (intradayRes.status === 'fulfilled') {
-            const intradayArr = (intradayRes.value.data.intraday || [])
+            const data = intradayRes.value.data;
+            const intradayArr = (data.intraday || [])
               .map(point => {
                 const value = point && point.close !== undefined ? Number(point.close) : Number(point?.last);
                 return {
@@ -42,8 +44,10 @@ const SummaryPage = () => {
               })
               .filter(p => p.close !== null);
             setIntraday(intradayArr);
+            setTickerMeta(data.tickerMeta || null);
           } else {
             setIntraday([]);
+            setTickerMeta(null);
           }
           if (newsRes.status === 'fulfilled') {
             setNews(newsRes.value.data || []);
@@ -69,6 +73,7 @@ const SummaryPage = () => {
           setNews([]);
           setPrevClose(null);
           setLatestClose(null);
+          setTickerMeta(null);
         }
       }
     }
@@ -182,7 +187,24 @@ const SummaryPage = () => {
         <Col md={8} className="mx-auto">
           <Card className="shadow-sm p-3">
             <CardBody>
-              <CardTitle tag="h3" className="mb-1">{ticker} Summary</CardTitle>
+              <CardTitle tag="h3" className="mb-1">{tickerMeta?.name || ticker} Summary</CardTitle>
+              {tickerMeta && (
+                <div className="mb-2" style={{ fontSize: 13, color: '#444' }}>
+                  <div><strong>Exchange:</strong> {tickerMeta.exchange}</div>
+                  <div><strong>Category:</strong> {tickerMeta.category}</div>
+                  <div><strong>Sector:</strong> {tickerMeta.sector}</div>
+                  <div><strong>Industry:</strong> {tickerMeta.industry}</div>
+                  <div><strong>Location:</strong> {tickerMeta.location}</div>
+                  <div><strong>Currency:</strong> {tickerMeta.currency}</div>
+                  <div><strong>Market Cap Scale:</strong> {tickerMeta.scalemarketcap}</div>
+                  <div><strong>Revenue Scale:</strong> {tickerMeta.scalerevenue}</div>
+                  <div><strong>First Added:</strong> {tickerMeta.firstadded}</div>
+                  <div><strong>First Price Date:</strong> {tickerMeta.firstpricedate}</div>
+                  <div><strong>Last Price Date:</strong> {tickerMeta.lastpricedate}</div>
+                  <div><strong>SEC Filings:</strong> <a href={tickerMeta.secfilings} target="_blank" rel="noopener noreferrer">Link</a></div>
+                  <div><strong>Company Site:</strong> <a href={tickerMeta.companysite} target="_blank" rel="noopener noreferrer">{tickerMeta.companysite}</a></div>
+                </div>
+              )}
               <div className="mb-3" style={{ fontSize: 14, color: '#666' }}>
                 {latestClose != null && (
                   <span>

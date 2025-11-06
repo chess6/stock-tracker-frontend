@@ -84,13 +84,16 @@ const FinancialsPage = () => {
   const METRICS_MAP = {
     income: [
       { key: 'revenue', label: 'Revenue', alt: ['revenueusd'] },
+      { key: 'cor', label: 'Cost of Revenue', alt: ['costofrevenue'] },
+      { key: 'opex', label: 'Operating Expenses', alt: ['operatingexpenses'] },
+      { key: 'sgna', label: 'SG&A' },
+      { key: 'rnd', label: 'R&D', alt: ['researchanddevelopment'] },
       { key: 'gp', label: 'Gross Profit', alt: ['grossProfit'] },
       { key: 'opinc', label: 'Operating Income', alt: ['operatingIncome'] },
       { key: 'ebit', label: 'EBIT' },
       { key: 'ebitda', label: 'EBITDA' },
       { key: 'netinc', label: 'Net Income', alt: ['netIncome', 'netinccmn'] },
       { key: 'eps', label: 'EPS' },
-      { key: 'rnd', label: 'R&D' },
       { key: 'sgna', label: 'SG&A' },
       { key: 'taxexp', label: 'Tax Expense' },
     ],
@@ -130,7 +133,12 @@ const FinancialsPage = () => {
   // Columns: Metric, then one per period
   const periods = data.map(r => (r.calendardate || r.reportperiod || r.fiscalperiod || r.endDate || r.periodEnd || '').slice(0, 10));
   const columns = [
-    { title: 'Metric', field: 'metric', frozen: true },
+    { title: 'Metric', field: 'metric', frozen: true,  tooltip: function(cell) {
+        // Show metric label as tooltip
+        const row = cell.getRow().getData();
+        console.log('dbug rowq', row);
+        return row.metric || '';
+      }, },
     ...periods.map((p, idx) => ({
       title: p || `P${idx + 1}`,
       field: `p${idx}`,
@@ -142,10 +150,14 @@ const FinancialsPage = () => {
         // Heuristic: revenue, profit, assets, etc as USD; EPS as decimal; percent if key includes 'margin' or 'percent'
         const row = cell.getRow().getData();
         const key = row.key || '';
-        if (['revenue','gp','opinc','ebit','ebitda','netinc','assets','liabilities','equity','cashneq','debt','ppnenet','inventory','receivables','payables','workingcapital','ncfo','capex','fcf','ncfi','ncff','ncfdiv','ncfdebt','ncf','rnd','sgna','taxexp'].includes(key)) {
+        if ([
+          'revenue','cor','gp','opex','opinc','ebit','ebitda','netinc','assets','liabilities','equity','cashneq','debt','ppnenet','inventory','receivables','payables','workingcapital','ncfo','capex','fcf','ncfi','ncff','ncfdiv','ncfdebt','ncf','rnd','sgna','taxexp'
+        ].includes(key)) {
           return formatUsd(val, 0);
         }
-        if (['eps','sp','tbp','bp','ep','cfop','sfcfp'].includes(key)) {
+        if ([
+          'eps','sp','tbp','bp','ep','cfop','sfcfp'
+        ].includes(key)) {
           return formatDecimal(val, 2);
         }
         if (key.includes('margin') || key.includes('percent')) {
