@@ -3,9 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import ApexCharts from 'react-apexcharts';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
-import { ReactTabulator } from 'react-tabulator';
-import 'react-tabulator/lib/styles.css';
-import 'tabulator-tables/dist/css/tabulator.min.css';
+import DataGrid from '../components/DataGrid';
 import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
 
 const yearOptions = [5, 10, 15, 'all'];
@@ -59,6 +57,7 @@ const FinancialsPage = () => {
         const res = await axios.get(url);
         let rows = [];
         if (res.data && res.data.raw && res.data.raw.datatable && Array.isArray(res.data.raw.datatable.data)) {
+          console.log('Financials raw datatable:', res.data.raw.datatable);
           const columns = res.data.raw.datatable.columns || [];
           const colNames = columns.map(c => c.name);
           rows = res.data.raw.datatable.data.map(arr => {
@@ -127,29 +126,25 @@ const FinancialsPage = () => {
     return Number.isNaN(n) ? null : n;
   };
 
-  // Build rows and columns for ReactTabulator
+  // Build rows and columns for DataGrid
   const data = financials[activeType] || [];
   const metrics = METRICS_MAP[activeType] || [];
-  // Columns: Metric, then one per period
   const periods = data.map(r => (r.calendardate || r.reportperiod || r.fiscalperiod || r.endDate || r.periodEnd || '').slice(0, 10));
   const columns = [
-    { title: 'Metric', field: 'metric', frozen: true,  tooltip: function(cell) {
-        // Show metric label as tooltip
-        const row = cell.getRow().getData();
-        console.log('dbug rowq', row);
-        return row.metric || '';
-      }, },
+    {
+      header: 'Metric',
+      accessorKey: 'metric',
+      cell: info => info.row.original.metric,
+      enableSorting: false,
+      size: 160,
+    },
     ...periods.map((p, idx) => ({
-      title: p || `P${idx + 1}`,
-      field: `p${idx}`,
-      cssClass: 'tab-mono',
-      formatter: function(cell) {
-        // Use formatters for currency/decimal if possible
-        const val = cell.getValue();
+      header: p || `P${idx + 1}`,
+      accessorKey: `p${idx}`,
+      cell: info => {
+        const val = info.getValue();
         if (val === '-' || val === null || val === undefined) return '-';
-        // Heuristic: revenue, profit, assets, etc as USD; EPS as decimal; percent if key includes 'margin' or 'percent'
-        const row = cell.getRow().getData();
-        const key = row.key || '';
+        const key = info.row.original.key || '';
         if ([
           'revenue','cor','gp','opex','opinc','ebit','ebitda','netinc','assets','liabilities','equity','cashneq','debt','ppnenet','inventory','receivables','payables','workingcapital','ncfo','capex','fcf','ncfi','ncff','ncfdiv','ncfdebt','ncf','rnd','sgna','taxexp'
         ].includes(key)) {
@@ -164,14 +159,14 @@ const FinancialsPage = () => {
           return formatPercent(val, 2);
         }
         return formatDecimal(val, 2);
-      }
+      },
+      size: 120,
     }))
   ];
   // Rows: one per metric
   const tabRows = metrics.map((m, rIdx) => {
     const row = { id: rIdx, metric: m.label, key: m.key };
     data.forEach((periodRow, idx) => {
-      // Try main key, then alt keys, then fallback to '-'
       let val = null;
       if (periodRow[m.key] !== undefined && periodRow[m.key] !== null) {
         val = safeNumber(periodRow[m.key]);
@@ -188,21 +183,35 @@ const FinancialsPage = () => {
     return row;
   });
 
+  // Deduplicate selectedMetrics for chart
   const chartSeries = useMemo(() => {
+    console.log('Building chartSeries with:', { selectedMetrics, activeType, financials });
     const data = financials[activeType] || [];
     const labelFor = (key) => {
       const m = (METRICS_MAP[activeType] || []).find(x => x.key === key);
       return m ? m.label : key;
     };
-    return selectedMetrics.map(key => ({
-      name: labelFor(key),
-      data: data.map(r => {
-        const alt = (METRICS_MAP[activeType] || []).find(m => m.key === key)?.alt;
+    const seriesArr = [];
+    selectedMetrics.forEach(key => {
+      console.log('Mapping metric key:', key);
+      const alt = (METRICS_MAP[activeType] || []).find(m => m.key === key)?.alt;
+      const seriesData = data.map(r => {
         const altKey = alt ? alt.find(k => r[k] !== undefined && r[k] !== null) : undefined;
-        return safeNumber(r[key] ?? (altKey ? r[altKey] : undefined)) ?? 0;
-      }),
-    }));
+        const value = safeNumber(r[key] ?? (altKey ? r[altKey] : undefined)) ?? 0;
+        console.log('Row for metric', key, r, 'Value:', value);
+        return value;
+      });
+      console.log('Series for', key, 'data:', seriesData);
+      seriesArr.push({
+        name: labelFor(key),
+        data: seriesData
+      });
+    });
+    console.log('Final chartSeries:', seriesArr);
+    return seriesArr;
   }, [selectedMetrics, activeType, financials]);
+  // Chart width and scroll container for ApexCharts
+  const chartWidth = Math.max(600, periods.length * 200); // 60px per bar, min 600px
 
   const barChartOptions = useMemo(() => ({
     chart: {
@@ -223,8 +232,11 @@ const FinancialsPage = () => {
       pan: { enabled: true, type: 'x', },
     },
     plotOptions: {
-      bar: {
-        columnWidth: '30%', // Make bars thinner to fit content
+        bar: {
+          columnWidth: '80%', // Make bars thinner to fit content
+          barHeight: '70%',
+          groupPadding: 0.02, // Reduce spacing between grouped bars
+          barPadding: 2, // Reduce padding between bars
       }
     },
     xaxis: {
@@ -235,6 +247,9 @@ const FinancialsPage = () => {
     legend: { position: 'top' },
     dataLabels: {
       enabled: true,
+      style: {
+        colors: ['#000']
+      },
       formatter: (val) => {
         if (typeof val !== 'number' || isNaN(val)) return '';
         const absVal = Math.abs(val);
@@ -369,8 +384,10 @@ const FinancialsPage = () => {
       </div>
 
       <div className="card shadow-sm mb-3">
-        <div className="card-body">
-          <ApexCharts options={barChartOptions} series={chartSeries} type="bar" height={320} />
+        <div className="card-body" style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: chartWidth }}>
+            <ApexCharts options={barChartOptions} series={chartSeries} type="bar" height={500} width={chartWidth} />
+          </div>
         </div>
       </div>
 
@@ -384,24 +401,20 @@ const FinancialsPage = () => {
               (tabRows.length === 0) ? (
                 <div>No data.</div>
               ) : (
-                <ReactTabulator
+                <DataGrid
                   data={tabRows}
                   columns={columns}
-                  layout="fitData"
-                  options={{
-                    movableColumns: true,
-                    tooltips: true,
-                    rowFormatter: function(row) {
-                      // Highlight selected metrics
-                      const data = row.getData();
-                      if (selectedMetrics.includes(data.key)) {
-                        row.getElement().classList.add('table-primary');
-                      } else {
-                        row.getElement().classList.remove('table-primary');
-                      }
-                    },
-                  }}
-                  rowClick={(_, row) => onMetricRowClick(row.getData())}
+                  style={{ minWidth: 600 }}
+                  enableRowSelection={false}
+                  enableSorting={false}
+                  enableGlobalFilter={false}
+                  onRowClick={onMetricRowClick}
+                  rowSelection={undefined}
+                  // Highlight selected metrics
+                  getRowId={row => String(row.id)}
+                  rowProps={row => ({
+                    className: selectedMetrics.includes(row.key) ? 'table-primary' : '',
+                  })}
                 />
               )
             )}

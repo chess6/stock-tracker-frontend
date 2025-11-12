@@ -1,0 +1,403 @@
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SEP?ticker=AAPL
+
+{"datatable":{"data":[["AAPL","2025-11-10",268.95,273.73,267.455,269.43,41240000.0,269.43,269.43,"2025-11-10"],["AAPL","2025-11-07",269.8,272.29,266.77,268.47,48204000.0,268.211,268.47,"2025-11-10"],["AAPL","2025-11-06",267.89,273.4,267.89,269.77,51157000.0,269.51,269.77,"2025-11-10"],["AAPL","2025-11-05",268.61,271.7,266.93,270.14,43632000.0,269.88,270.14,"2025-11-10"],["AAPL","2025-11-04",268.33,271.49,267.62,270.04,49168000.0,269.78,270.04,"2025-11-10"],["AAPL","2025-11-03",270.42,270.85,266.25,269.05,50139000.0,268.791,269.05,"2025-11-10"]],"columns":[{"name":"ticker","type":"text"},{"name":"date","type":"Date"},{"name":"open","type":"double"},{"name":"high","type":"double"},{"name":"low","type":"double"},{"name":"close","type":"double"},{"name":"volume","type":"double"},{"name":"closeadj","type":"double"},{"name":"closeunadj","type":"double"},{"name":"lastupdated","type":"Date"}]},"meta":{"next_cursor_id":null}}
+
+About
+Database
+
+Updated daily, this database provides End-Of-Day (EOD) company prices, corporate actions, and reference data including:
+
+    Open, high, low, close, and volume (OHLCV) data
+    Unadjusted prices, prices adjusted for stock splits, and prices adjusted for both stock splits and stock dividends
+    Detailed corporate actions information such as splits, dividends, spinoffs, acquisitions, delist reasons, and ticker changes
+    Reference information covering a variety of classifications and security identifiers
+
+Coverage represents a superset of the common stock companies covered in Sharadar's Fundamental dataset, SF1. In addition, alternative classes of stock are included as well as prefered stock and warrants.
+
+More than 21,000 active and delisted tickers are currently covered, with history to the year 1998. Coverage is continuously expanding.
+
+Favourable pricing is provided in our bundle offerings here and here.
+
+Delivery
+
+Data is updated at 17:30 and 23:30 ET every business day.
+Publisher
+
+Sharadar is an independent research and analytics firm founded in 2013. Sharadar specializes in extraction, standardization and organization of financial data from company filings. We combine people, software and process to generate accurate, professional grade data for professional investors and analysts.
+Progress
+
+This database is continuously expanding to cover more tickers, more indicators and to provide more history. Here we chart our progress in expanding the database since 2014:
+
+Getting Started
+Getting Started
+
+Let's get started with a few basic examples of how to access the data using the various tools that are available to you: the Web API, Python, R, and Excel. These simple examples can be combined to produce more complex queries.
+
+There are 5 tables associated with this database. You can see these tables visually presented here. The primary table is
+SHARADAR/SEP
+. The other tables are
+SHARADAR/ACTIONS
+,
+SHARADAR/TICKERS
+,
+SHARADAR/METRICS
+and
+SHARADAR/INDICATORS
+.
+
+In each table data are presented in tabular format with indicators represented in columns.
+
+When you query data from a particular table you can specify "filters" which limit the data that is retrieved. If you do not specify a filter the entire table, all rows and columns, will be returned but limited to 10,000 rows.
+
+There are 3 filter columns in the primary
+SHARADAR/SEP
+table that you can use to specify which data to retrieve, these are:
+ticker
+,
+date
+and
+lastupdated
+.
+
+When you integrate this API you should not assume a particular column order as additional indicators will be added in the future.
+
+Data is not sorted by default and you should sort the data upon retrieval.
+
+In these examples we will assume that you have the associated package installed where necessary. In the case of the Web API, no Nasdaq Data Link package needs to be installed. You can find installation instructions and generic documentation for each of the tools here. The data retrieval methods described here are referred to under the "tables" section of Nasdaq Data Link's generic documentation, rather than the "time-series" section.
+1. Authentication
+
+All requests must be authenticated with your API key which can be found in account settings, here.
+
+Web API: include your API key in the URL as shown in the examples to follow
+
+Python: See our python documentation for configuring your API Key.
+
+R:
+Quandl.api_key<"YOURAPIKEY">
+
+Excel: include your API key in the Quandl tab on Excel's ribbon
+2. Ticker
+
+To retrieve all data for a specified ticker:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SEP.csv?ticker=AAPL
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SEP', ticker='AAPL')
+
+R:
+Quandl.datatable('SHARADAR/SEP', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/SEP", , "ticker", "AAPL")
+3. Multiple Tickers
+
+To retrieve data for multiple specified tickers:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SEP.csv?ticker=AAPL,TSLA
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SEP', ticker=['AAPL','TSLA'])
+
+R:
+Quandl.datatable('SHARADAR/SEP', ticker=c('AAPL', 'TSLA'))
+
+Excel:
+QTABLE("SHARADAR/SEP", , "ticker", {"AAPL","TSLA"})
+4. Date
+
+To retrieve data for a specified date:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SEP.csv?date=2017-10-30
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SEP', date='2017-10-30')
+
+R:
+Quandl.datatable('SHARADAR/SEP', date='2017-10-30')
+
+Excel:
+QTABLE("SHARADAR/SEP", , "date", "2017-10-30")
+5. Date Range
+
+To retrieve data for a specified data range:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SEP.csv?date.gte=2017-01-01&date.lte=2017-10-30&ticker=AAPL
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SEP', date={'gte':'2017-01-01', 'lte':'2017-10-30'}, ticker='AAPL')
+
+R:
+Quandl.datatable('SHARADAR/SEP', date.gte='2017-01-01', date.lte='2017-10-30' ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/SEP",,"date.gte", "2017-01-01", "date.lte", "2017-10-30", "ticker","AAPL")
+6. Indicators (Columns)
+
+To retrieve only specific indicators (columns):
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SEP.csv?qopts.columns=ticker,date,open,high,low,close,volume,closeadj
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SEP', qopts={"columns":['ticker' ,'date','open','high','low','close','volume','closeadj']}, ticker='AAPL')
+
+R:
+Quandl.datatable('SHARADAR/SEP', qopts.columns=c('ticker' ,'date','open','high','low','close','volume','closeadj'), ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/SEP", {"ticker","date","open","low","close","volume","closeadj"}, "ticker", "AAPL")
+7. Recent Updates
+
+To obtain data that has been updated since a specified date:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SEP.csv?lastupdated.gte=2017-11-03
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SEP', lastupdated={'gte':'2017-11-03'}, ticker='AAPL')
+
+R:
+Quandl.datatable('SHARADAR/SEP', lastupdated.gte='2017-11-03', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/SEP", , "lastupdated", {"2017-11-03","2020-01-01"})
+8. More than 10,000 rows of data
+
+API calls are automatically truncated at 10,000 rows, which can be circumvented as follows:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SEP?qopts.export=true
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SEP', date={'gte':'2017-10-01','lte':'2017-11-03'}, paginate=True)
+
+R:
+Quandl.datatable('SHARADAR/SEP', date.gte='2017-10-01', date.lte='2017-11-03', paginate=TRUE)
+
+Excel: Not available
+9. Ticker Metadata
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/TICKERS.csv?table=SEP&ticker=AAPL
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/TICKERS', table='SEP', ticker='AAPL')
+
+R:
+Quandl.datatable('SHARADAR/TICKERS', table='SEP', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/TICKERS", , "table", "SEP", "ticker", "AAPL")
+10. Indicator Descriptions by Table
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/INDICATORS.csv?table=SEP
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/INDICATORS', table='SEP')
+
+R:
+Quandl.datatable('SHARADAR/INDICATORS', table='SEP')
+
+Excel:
+QTABLE("SHARADAR/TICKERS", , "table", "SEP")
+11. Indicator Descriptions by Indicator
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/INDICATORS.csv?indicator=close
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/INDICATORS', indicator='close')
+
+R:
+Quandl.datatable('SHARADAR/INDICATORS', indicator='close')
+
+Excel:
+QTABLE("SHARADAR/TICKERS", , "indicator", "close")
+12. Corporate Actions by Ticker
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/ACTIONS.csv?ticker=AAPL
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/ACTIONS', ticker='AAPL')
+
+R:
+Quandl.datatable('SHARADAR/ACTIONS', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/ACTIONS", , "ticker", "AAPL")
+13. Corporate Actions by Date
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/ACTIONS.csv?date.gte=2018-10-29
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/ACTIONS', date='2018-10-29')
+
+R:
+Quandl.datatable('SHARADAR/ACTIONS', date='2018-10-29')
+
+Excel:
+QTABLE("SHARADAR/ACTIONS", , "date.gte", "2018-10-29")
+14. Corporate Actions by Type
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/ACTIONS.csv?action=split
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/ACTIONS', action='split')
+
+R:
+Quandl.datatable('SHARADAR/ACTIONS', action='split')
+
+Excel:
+QTABLE("SHARADAR/ACTIONS", , "action", "split")
+15. Metrics by Ticker
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/METRICS.csv?ticker=AAPL
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/METRICS', ticker='AAPL')
+
+R:
+Quandl.datatable('SHARADAR/METRICS', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/METRICS", , "ticker", "AAPL")
+16. Table Configuration Metadata
+
+Web API(only):
+https://www.quandl.com/api/v3/datatables/SHARADAR/SEP/metadata.json
+17. Other data formats
+
+JSON:
+
+Web API (only):
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SEP.json?ticker=AAPL
+
+XML:
+
+Web API (only):
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SEP.xml?ticker=AAPL
+Coverage
+Tickers
+
+This data feed currently covers 20,000+ US companies. The complete list of tickers included in this feed, along with other reference information such as company name, exchange, listing status, industry, location, etc can be found using the following API call:
+
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/TICKERS?table=SEP&qopts.export=true
+
+For more information on how to query this table programmatically, please refer to the Tables API docs.
+Indicators
+
+This data feed currently covers 9 indicators. The complete list of indicators included in this feed, along with other information such as name, description and units can be found using the following API call:
+
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/INDICATORS?table=SEP&qopts.export=true
+
+For more information on how to query this table programmatically, please refer to the Tables API docs.
+Knowledge Base
+Adjustment Overview
+
+The indicator "closedadj" is backward-adjusted. This means today's adjusted price will always equal the price traded in the market. Adjustments apply only to historical data; the further back you go into the past, the greater the cumulative adjustments are likely to be, as corporate actions accumulate. See the Notes section for more information on adjustments.
+
+The following sections describe the adjustments made for various corporate actions.
+Cash Dividends
+
+Adjustment Ratio = (Close Price + Dividend Amount) / (Close Price)
+
+Example: AAPL had a dividend of $0.47 on 2014-08-07. The close price on that day was $94.48. The unadjusted close price for the previous day was $94.96. The adjusted historical prices are calculated like this:
+
+dividend_amount = 0.47
+
+current_close = 94.48
+
+adjustment_ratio
+  = (current_close + dividend_amount) / current_close
+  = (94.48 + 0.47) / 94.48
+  = 1.0049745977984759
+
+previous_close = 94.96
+
+adjusted_previous_close
+  = previous_close / adjustment_ratio
+  = 94.96 / 1.0049745977984759
+  = 94.490
+
+and the same adjustment propagates all through the stock's history.
+Stock Dividends
+
+Adjustment Ratio = (New Float) / (Old Float)
+
+Example: BIOL had a 0.5% stock dividend on 2014-03-12. Shareholders were given 1 new share per 200 shares of BIOL already held.
+
+new_float = 1.005 * old_float  by definition
+
+adjustment_ratio
+  = new_float / old_float
+  = 1.005
+
+current_close = 2.9
+
+previous_close = 2.83
+
+adjusted_previous_close
+  = previous_close / adjustment_ratio
+  = 2.83 / 1.005
+  = 2.8159
+
+Splits
+
+Adjustment Ratio = (New Float) / (Old Float)
+
+For example, CPK had a 3 for 2 split on 2014-09-09. Shareholders were given 3 shares per 2 shares previously held of CPK.
+
+2 * new_float = 3 * old_float
+
+adjustment_ratio
+  = new_float / old_float
+  = 3/2
+  = 1.5
+
+current_close = 45.11
+
+previous_close = 69.41
+
+adjusted_previous_close
+  = previous_close / adjustment_ratio
+  = 69.41 / 1.5
+  = 46.273
+
+Spinoffs
+
+For spinoffs, we assume that you sell the spin-off stock at its open price, and use the proceeds to buy back the parent stock at its open price. This is the methodology used by most stock data providers.
+
+A few stock data providers assume that you sell the spin-off stock at the close price, and buy back the parent stock at its close price. The difference between the two methods is usually minimal but it's non-zero.
+
+Adjustment Ratio = 1 + (Spinoff Open Price * Spinoff Shares) / (Parent Open Price * Parent Shares)
+
+For example, ADP spun off CDK on 2014-10-01. ADP shareholders were given 1 share of CDK for every 3 shares of ADP they held.
+
+parent_open_price = 73.03   <-- ADP
+
+spinoff_open_price = 30.13  <-- CDK
+
+spinoff_shares / parent_shares = 1 / 3  per the terms of the spinoff
+
+adjustment_ratio
+  = 1 + (spinoff_open_price / parent_open_price) * (spinoff_shares / parent_shares)
+  = 1 + (30.13 / 73.03) * (1 / 3)
+  = 1 + 0.13752
+  = 1.13752
+
+parent_previous_close = 83.08
+
+parent_adjusted_previous_close
+  = parent_previous_close / adjustment_ratio
+  = 83.08 / 1.13752
+  = 73.036

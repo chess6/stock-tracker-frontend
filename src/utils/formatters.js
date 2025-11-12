@@ -3,7 +3,8 @@ export function formatShares(value) {
     const num = Number(value);
     if (!isFinite(num)) return '';
     return num.toLocaleString('en-US', { maximumFractionDigits: 0 });
-}
+};
+
 // Common formatting utilities for currency, decimals, and percent
 export const formatUsd = (value, fractionDigits = 2) => {
     const num = Number(value);

@@ -1,0 +1,604 @@
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1?calendarDate.gte=2024-10-19&dimension=ARY&ticker=AAPL
+
+{"datatable":{"data":[["AAPL","ARY","2025-12-31","2025-10-31","2025-09-27","2025-FY","2025-10-31",-5571000000,359241000000,341513500000,147957000000,211284000000,1.219,4.932,-12715000000,35934000000,35934000000,220960000000,112010000000,0.893,3.872,98657000000,20329000000,78328000000,98657000000,9055000000,11698000000,0,0.004,1.02,132729000000,144427000000,0.347,144427000000,132729000000,132729000000,7.49,7.46,7.49,73733000000,68279250000,73733000000,4057805560610,31,28.096,98767000000,6.607,1.0,195201000000,0.469,0,0,256333000000,258760750000,5718000000,96486000000,18763000000,77723000000,285508000000,165631000000,119877000000,3995082560610,5991000000,0,-90711000000,-8483000000,-15421000000,-120686000000,15195000000,29390000000,111482000000,0,112010000000,112010000000,112010000000,0,0,0.269,62151000000,133050000000,69860000000,0.136,54.183,35.667,36.097,49834000000,0,270.37,9.6,9.712,72957000000,-14264000000,416161000000,416161000000,34550000000,0.328,1.64,0.513,0.319,12863000000,27601000000,1.0,14776353000,14948500000,15004697000,27.84,359241000000,0,20719000000,0,24.032,-17674000000],["AAPL","ARY","2024-12-31","2024-11-01","2024-09-28","2024-FY","2025-10-31",-7172000000,364980000000,346879250000,152987000000,211993000000,1.127,3.712,-9447000000,29943000000,29943000000,210352000000,93736000000,0.867,5.409,106629000000,20879000000,85750000000,106629000000,8249000000,11445000000,0,0.004,0.98,123485000000,134930000000,0.345,134930000000,123485000000,123485000000,6.11,6.08,6.11,56950000000,67988000000,56950000000,3446154104930,28,25.54,108807000000,7.091,1.0,180683000000,0.462,0,0,265274000000,278326500000,7286000000,126707000000,35228000000,91479000000,308030000000,176392000000,131638000000,3369468104930,-794000000,0,-94949000000,-5998000000,-15234000000,-121983000000,2935000000,13690000000,118254000000,0,93736000000,93736000000,93736000000,0,0,0.24,57467000000,123216000000,68960000000,0.16,59.165,35.946,36.483,45680000000,0,222.91,8.617,8.747,66243000000,-19154000000,391035000000,391035000000,31370000000,0.27,1.379,0.444,0.316,11688000000,26097000000,1.0,15115823000,15343783000,15408095000,25.485,364980000000,0,29749000000,0,23.787,-23405000000]],"columns":[{"name":"ticker","type":"text"},{"name":"dimension","type":"text"},{"name":"calendardate","type":"Date"},{"name":"datekey","type":"Date"},{"name":"reportperiod","type":"Date"},{"name":"fiscalperiod","type":"text"},{"name":"lastupdated","type":"Date"},{"name":"accoci","type":"Integer"},{"name":"assets","type":"Integer"},{"name":"assetsavg","type":"Integer"},{"name":"assetsc","type":"Integer"},{"name":"assetsnc","type":"Integer"},{"name":"assetturnover","type":"double"},{"name":"bvps","type":"double"},{"name":"capex","type":"Integer"},{"name":"cashneq","type":"Integer"},{"name":"cashnequsd","type":"Integer"},{"name":"cor","type":"Integer"},{"name":"consolinc","type":"Integer"},{"name":"currentratio","type":"double"},{"name":"de","type":"double"},{"name":"debt","type":"Integer"},{"name":"debtc","type":"Integer"},{"name":"debtnc","type":"Integer"},{"name":"debtusd","type":"Integer"},{"name":"deferredrev","type":"Integer"},{"name":"depamor","type":"Integer"},{"name":"deposits","type":"Integer"},{"name":"divyield","type":"double"},{"name":"dps","type":"double"},{"name":"ebit","type":"Integer"},{"name":"ebitda","type":"Integer"},{"name":"ebitdamargin","type":"double"},{"name":"ebitdausd","type":"Integer"},{"name":"ebitusd","type":"Integer"},{"name":"ebt","type":"Integer"},{"name":"eps","type":"double"},{"name":"epsdil","type":"double"},{"name":"epsusd","type":"double"},{"name":"equity","type":"Integer"},{"name":"equityavg","type":"Integer"},{"name":"equityusd","type":"Integer"},{"name":"ev","type":"Integer"},{"name":"evebit","type":"Integer"},{"name":"evebitda","type":"double"},{"name":"fcf","type":"Integer"},{"name":"fcfps","type":"double"},{"name":"fxusd","type":"double"},{"name":"gp","type":"Integer"},{"name":"grossmargin","type":"double"},{"name":"intangibles","type":"Integer"},{"name":"intexp","type":"Integer"},{"name":"invcap","type":"Integer"},{"name":"invcapavg","type":"Integer"},{"name":"inventory","type":"Integer"},{"name":"investments","type":"Integer"},{"name":"investmentsc","type":"Integer"},{"name":"investmentsnc","type":"Integer"},{"name":"liabilities","type":"Integer"},{"name":"liabilitiesc","type":"Integer"},{"name":"liabilitiesnc","type":"Integer"},{"name":"marketcap","type":"Integer"},{"name":"ncf","type":"Integer"},{"name":"ncfbus","type":"Integer"},{"name":"ncfcommon","type":"Integer"},{"name":"ncfdebt","type":"Integer"},{"name":"ncfdiv","type":"Integer"},{"name":"ncff","type":"Integer"},{"name":"ncfi","type":"Integer"},{"name":"ncfinv","type":"Integer"},{"name":"ncfo","type":"Integer"},{"name":"ncfx","type":"Integer"},{"name":"netinc","type":"Integer"},{"name":"netinccmn","type":"Integer"},{"name":"netinccmnusd","type":"Integer"},{"name":"netincdis","type":"Integer"},{"name":"netincnci","type":"Integer"},{"name":"netmargin","type":"double"},{"name":"opex","type":"Integer"},{"name":"opinc","type":"Integer"},{"name":"payables","type":"Integer"},{"name":"payoutratio","type":"double"},{"name":"pb","type":"double"},{"name":"pe","type":"double"},{"name":"pe1","type":"double"},{"name":"ppnenet","type":"Integer"},{"name":"prefdivis","type":"Integer"},{"name":"price","type":"double"},{"name":"ps","type":"double"},{"name":"ps1","type":"double"},{"name":"receivables","type":"Integer"},{"name":"retearn","type":"Integer"},{"name":"revenue","type":"Integer"},{"name":"revenueusd","type":"Integer"},{"name":"rnd","type":"Integer"},{"name":"roa","type":"double"},{"name":"roe","type":"double"},{"name":"roic","type":"double"},{"name":"ros","type":"double"},{"name":"sbcomp","type":"Integer"},{"name":"sgna","type":"Integer"},{"name":"sharefactor","type":"double"},{"name":"sharesbas","type":"Integer"},{"name":"shareswa","type":"Integer"},{"name":"shareswadil","type":"Integer"},{"name":"sps","type":"double"},{"name":"tangibles","type":"Integer"},{"name":"taxassets","type":"Integer"},{"name":"taxexp","type":"Integer"},{"name":"taxliabilities","type":"Integer"},{"name":"tbvps","type":"double"},{"name":"workingcapital","type":"Integer"}]},"meta":{"next_cursor_id":null}}
+
+About
+Database
+
+Updated daily, this database provides up to 24 years of history, for 150 essential fundamental indicators and financial ratios, for more than 16,000 US public companies. Includes detailed corporate actions data. This is reference grade fundamental stock data.
+
+Key features:
+
+    More than 6,000 active and 10,000 delisted companies.
+    Continuously expanding ticker and indicator coverage, and history extensions (more here).
+    Data including or excluding restatements.
+    Point-in-time dimension to data with time-indexing to the filing date or the fiscal/report period.
+    Includes foreign issuers (ADRs and Canadian) that trade publicly on US markets.
+    Annual, Trailing Twelve month, and Quarterly (domestic-only) datasets available.
+    Personalised support with direct contact with the principal data curator.
+    Lowest cost single user and developer licenses for professional fundamental data in the world.
+    Free preview access; use this data right now.
+    Works with the Nasdaq Data Link API and all Nasdaq Data Link libraries
+
+Delivery
+
+    SF1 Table is updated every 17:30 ET and 23:30 ET.
+
+Publisher
+
+Sharadar is an independent research and analytics firm founded in 2013. Sharadar specializes in extraction, standardization and organization of financial data from company filings. We combine people, software and processes to generate accurate, professional grade data for professional investors and analysts.
+Progress
+
+This database is continuously expanding to cover more tickers, more indicators and to provide more history. Here we chart our progress in expanding the database:
+
+Getting Started
+Getting Started
+
+Let's get started with a few basic examples of how to access the data using the various tools that are available to you: the Web API, Python, R, and Excel.
+
+There are 7 tables associated with this database. You can see these tables presented here. The primary table is
+SHARADAR/SF1
+. The other tables are
+SHARADAR/DAILY
+,
+SHARADAR/TICKERS
+,
+SHARADAR/INDICATORS
+,
+SHARADAR/ACTIONS
+,
+SHARADAR/SP500
+and
+SHARADAR/EVENTS
+.
+
+In each table data are presented in tabular format with indicators represented in columns.
+
+When you query data from a particular table you can specify "filters" which limit the data that is retrieved. If you do not specify a filter the entire table, all rows and columns, will be returned but limited to 10,000 rows.
+
+There are 5 filter columns in the primary
+SHARADAR/SF1
+table that you can use to specify which data to retrieve, these are:
+ticker
+,
+calendardate
+,
+lastupdated
+,
+dimension
+, and
+datekey
+.
+
+When you integrate this API you should not assume a particular column order as additional indicators will be added in the future.
+
+Data is not sorted by default and you should sort the data upon retrieval.
+
+In these examples we will assume that you have the associated Quandl package installed where necessary. In the case of the Web API no Quandl package needs to be installed. You can find installation instructions and generic documentation for each of the tools here. The data retrieval methods described here are referred to under the "tables" section of Nasdaq Data Link's generic documentation, rather than the "time-series" section.
+
+We'll now demonstrate how to access the database and use the filters in the series of basic examples which follow below. These examples can also be combined to produce more complex queries.
+1. Authentication
+
+All requests must be authenticated with your API key which can be found in account settings, here.
+
+Web API: include your API key in the URL as shown in the examples to follow
+
+Python: See our python documentation for configuring your API Key.
+
+R:
+NasdaqDataLink.api_key("your_nasdaq_api_key")
+
+Excel: include your API key in the Quandl tab on Excel's ribbon
+2. Ticker
+
+To retrieve all data for a specified ticker:
+
+API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1.csv?ticker=AAPL&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SF1', ticker='AAPL')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/SF1', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/SF1", , "ticker", "AAPL")
+3. Dimension
+
+To retrieve all data for a specified dimension:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1.csv?dimension=MRY&ticker=AAPL&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SF1', dimension='MRY', ticker='AAPL')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/SF1', dimension='MRY', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/SF1", , "dimension", "MRY", "ticker", "AAPL")
+4. Multiple Tickers
+
+To retrieve data for multiple specified tickers:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1.csv?ticker=AAPL,TSLA&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SF1', ticker=['AAPL','TSLA'])
+
+R:
+NasdaqDataLink.datatable('SHARADAR/SF1', ticker=c('AAPL', 'TSLA'))
+
+Excel:
+QTABLE("SHARADAR/SF1", , "ticker", {"AAPL","TSLA"})
+5. Date
+
+To retrieve data for a specified CalendarDate:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1.csv?calendardate=2015-12-31&ticker=AAPL&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SF1', calendardate='2015-12-31', ticker='AAPL')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/SF1', calendardate='2015-12-31', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/SF1", , "calendardate", "2015-12-31", "ticker", "AAPL")
+6. Operators
+
+Data can retrieved based on greater than (gt), less than (lt), greater than or equal to (gte) or less than or equal to (lte) operators.
+
+For example, the following request retrieves all specified ticker data where the calendar date is greater than or equal to 2013-12-31:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1.csv?ticker=AAPL&calendardate.gte=2013-12-31&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SF1', calendardate={'gte':'2013-12-31'}, ticker='AAPL')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/SF1', calendardate.gte='2013-12-31', ticker='AAPL')
+
+Excel: not available
+
+The operators can be applied to the filter columns:
+calendardate
+,
+ticker
+,
+dimension
+and
+lastupdated
+.
+7. Indicators
+
+To retrieve data for specified indicators (columns):
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1.csv?ticker=AAPL&qopts.columns=ticker,dimension,datekey,revenue&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SF1', qopts={"columns":['ticker' ,'dimension','datekey','revenue']}, ticker='AAPL')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/SF1', qopts.columns=c('ticker' ,'dimension','datekey','revenue'), ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/SF1", {"ticker","dimension","datekey","revenue"}, "ticker", "AAPL")
+8. More than 10,000 Rows of Data
+
+API calls are automatically truncated at 10,000 rows, which can be circumvented as follows:
+
+Web API (in browser:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1?qopts.export=true&api_key=your_nasdaq_api_key
+
+Web API (out of browser:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1.csv?qopts.export=true&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SF1', calendardate={'gte':'2017-09-01','lte':'2018-01-10'}, paginate=True)
+
+R:
+NasdaqDataLink.datatable('SHARADAR/SF1', calendardate.gte='2017-09-01', date.lte='2018-01-10', paginate=TRUE)
+
+Excel: Not available
+9. Recently updated data
+
+To obtain data that has been updated since a specified date:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1.csv?lastupdated.gte=2017-11-08&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SF1', lastupdated={'gte':'2017-11-03'}, ticker='AAPL')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/SF1', lastupdated.gte='2017-11-03', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/SF1", , "lastupdated", {"2017-11-03","2020-01-01"})
+10. Events by Ticker
+
+To retrieve events data for a specified ticker:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/EVENTS.csv?ticker=AAPL&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/EVENTS', ticker='AAPL')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/EVENTS', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/EVENTS", , "ticker", "AAPL")
+11. Events by Date
+
+To retrieve events data for a specified date:
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/EVENTS.csv?date=2016-04-18&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/EVENTS', date='2016-04-18')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/EVENTS', date='2016-04-18')
+
+Excel:
+QTABLE("SHARADAR/EVENTS", , "date", "2016-04-18")
+12. Ticker Metadata
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/TICKERS.csv?table=SF1&ticker=AAPL&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/TICKERS', table='SF1', ticker='AAPL')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/TICKERS', table='SF1', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/TICKERS", , "table", "SF1", "ticker", "AAPL")
+13. Indicator Descriptions by Table
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/INDICATORS.csv?table=SF1&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/INDICATORS', table='SF1')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/INDICATORS', table='SF1')
+
+Excel:
+QTABLE("SHARADAR/TICKERS", , "table", "SF1")
+14. Indicator Descriptions by Indicator
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/INDICATORS.csv?indicator=revenue&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/INDICATORS', indicator='revenue')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/INDICATORS', indicator='revenue')
+
+Excel:
+QTABLE("SHARADAR/TICKERS", , "indicator", "revenue")
+15. Daily Metrics by Ticker
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/DAILY.csv?ticker=AAPL&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/DAILY', ticker='AAPL')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/DAILY', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/DAILY", , "ticker", "AAPL")
+16. Daily Metrics by Date
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/DAILY.csv?date=2018-10-29&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/DAILY', date='2018-10-29')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/DAILY', date='2018-10-29')
+
+Excel:
+QTABLE("SHARADAR/DAILY", , "date", "2018-10-29")
+17. Corporate Actions by Ticker
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/ACTIONS.csv?ticker=AAPL&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/ACTIONS', ticker='AAPL')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/ACTIONS', ticker='AAPL')
+
+Excel:
+QTABLE("SHARADAR/ACTIONS", , "ticker", "AAPL")
+18. Corporate Actions by Date
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/ACTIONS.csv?date.gte=2018-10-29&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/ACTIONS', date='2018-10-29')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/ACTIONS', date='2018-10-29')
+
+Excel:
+QTABLE("SHARADAR/ACTIONS", , "date.gte", "2018-10-29")
+19. Corporate Actions by Type
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/ACTIONS.csv?action=split&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/ACTIONS', action='split')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/ACTIONS', action='split')
+
+Excel:
+QTABLE("SHARADAR/ACTIONS", , "action", "split")
+20. Current S&P500 Constituents
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SP500.csv?action=current&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SP500', action='current')
+
+R:
+NasdaqDataLink.datatable('SHARADAR/SP500', action='current')
+
+Excel:
+QTABLE("SHARADAR/SP500", , "action", "current")
+21. Changes to S&P500 Constituents
+
+Web API:
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SP500.csv?action=added,removed&date.gte=2018-01-01&api_key=your_nasdaq_api_key
+
+Python:
+nasdaqdatalink.get_table('SHARADAR/SP500', action=['added','removed'], date={'gte':'2018-01-01'})
+
+R:
+NasdaqDataLink.datatable('SHARADAR/SP500', action=c('added','removed'), date.gte='2018-01-01')
+
+Excel:
+QTABLE("SHARADAR/SP500", , "action", {"added","removed"}, "date.gte", "2018-01-01")
+22. Other data formats
+
+JSON:
+
+Web API (only):
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1.json?ticker=AAPL&api_key=your_nasdaq_api_key
+
+XML:
+
+Web API (only):
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1.xml?ticker=AAPL&api_key=your_nasdaq_api_key
+Coverage
+Tickers
+
+This data feed currently covers 14,000+ US companies. The complete list of tickers included in this feed, along with other information such as company name, exchange, listing status, industry, location, etc can be found using the following API call:
+
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/TICKERS?table=SF1&api_key=your_nasdaq_api_key&qopts.export=true
+
+For more information on how to query this table programmatically, please refer to the Tables API docs.
+Indicators
+
+This data feed currently covers 150 indicators. The complete list of indicators included in this feed, along with other information such as name, description and units can be found using the following API call:
+
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/INDICATORS?table=SF1,TICKERS,DAILY,SP500,ACTIONS,EVENTS&api_key=your_nasdaq_api_key&qopts.export=true
+
+For more information on how to query this table programmatically, please refer to the Tables API docs.
+Sample Data
+
+Free sample data is provided to all Nasdaq Data Link users. The sample includes all most-recently reported annual data (
+dimension = MRY
+) for the following tickers for calendar date starting from 2012-01-01 to 2018-12-31.
+Ticker	Company Name
+AAPL	APPLE INC
+AXP	AMER EXPRESS CO
+BA	BOEING CO
+CAT	CATERPILLAR INC
+CSCO	CISCO SYSTEMS
+CVX	CHEVRON CORP
+DD	DU PONT (EI) DE
+DIS	DISNEY WALT
+GE	GENL ELECTRIC
+GS	GOLDMAN SACHS
+HD	HOME DEPOT
+IBM	INTL BUS MACH
+INTC	INTEL CORP
+JNJ	JOHNSON & JOHNS
+JPM	JPMORGAN CHASE
+KO	COCA COLA CO
+MCD	MCDONALDS CORP
+MMM	3M CO
+MRK	MERCK & CO INC
+MSFT	MICROSOFT CORP
+NKE	NIKE INC-B
+PFE	PFIZER INC
+PG	PROCTER & GAMBL
+TRV	TRAVELERS COS
+UNH	UNITEDHEALTH GP
+UTX	UTD TECHS CORP
+V	VISA INC-A
+VZ	VERIZON COMM
+WMT	WALMART INC
+XOM	EXXON MOBIL CRP
+
+See the Getting Started for usable examples.
+Dimensions
+
+There are several different ways to look at company financials over time. We cater for this by offering multiple
+dimensions
+to the database.
+
+The two primary dimensions to the database are the
+As Reported (AR)
+and
+Most-Recent Reported (MR)
+dimensions:
+
+As Reported view (AR):
+
+    excludes restatements
+    point-in-time view with data time-indexed to the date the form 10 regulatory filing was submitted to the SEC
+    presents data for the latest reporting period at that filing date
+    may include multiple observations in a quarter if more than one filing is made during the quarter
+    on limited occassion may not have any observations in a particular quarter. Sometimes companies are delayed in reporting for up to 18 months. On such occassions they may report multiple documents on the same date to catch up, in which case these datasets will only provide date for the most recent reporting period.
+    typically suitable for back-testing
+
+Most-Recent Reported view (MR):
+
+    includes restatements
+    time indexed to the financial/report period
+    presents the most recently reported data for that reporting period
+    typically suitable for assessing business performance after restatements for mergers/divestitures
+
+In addition there are 3 time dimensions:
+
+    Annual (Y): Annual observations of one year duration
+    Trailing Twelve Months (T): Quarterly observations of one year duration
+    Quarterly (Q): Quarterly observations of quarterly duration (available only for US domestic companies, unavailable for foreign companies)
+
+Dimensions	As Reported	Most-Recent Reported
+Annual	ARY	MRY
+Quarterly	ARQ	MRQ
+Trailing Twelve Months	ART	MRT
+Methodology
+Handling Restatements
+
+We can review the methodology applied in calculating restated financials by way of example. In recent years Abbott Laboratories (ticker ABT) restated its prior year financials. The impact to revenue is depicted here and is identifiable by the vertical distance between AR and MR dimensions:
+
+The other important observation to make is that the restatement has resulted in one quarter of negative revenue for the MRQ dimension at the end of 2011. This is because while Abbott has provided restated annual financials for this year, it has not provided restated quarterlies for the year. Therefore the negative quarter has been calculated by Sharadar by utilising the most recently reported information. This is in order to ensure that the quarterly and annual financials are aligned. For clarity we can reperform this calculation by referring to the underlying data as follows:
+Description	Value
+MRY 2011-12-31	$21.4bn
+less MRQ 30/09/2011	($9.8bn)
+less MRQ 30/06/2011	($9.6bn)
+less MRQ 31/03/2011	($9.0bn)
+equals MRQ 2011-12-31	($7.1bn)
+
+This effectively assigns the impact of the full year's restatement to a single quarter. Argubly it would be more representative that it was spread amongst the other quarters of the year, however this calculation would be arbitrary unless performed and reported by the company itself. Should the company report this information at a future point this database will be updated accordingly.
+
+As a corollary it should be noted that datapoints under the ART dimension (As Reported, Trailing Twelve Months), do not necessarily reflect the sum of the prior four ARQ (As Reported, Quarterly) datapoints. As a reminder, the As Reported dimension presents data for the latest reporting period at that filing date. Therefore, if an earlier reporting period is restated it will not be reported as a quarterly ARQ datapoint since it is does not cover the latest reporting period. However, this restated quarter will still be considered in the calculation of a corresponding Trailing Twelve Month datapoint if the restatement occurs within that twelve month timeframe.
+Time-Indexing
+
+As previously noted, the As-Reported dimensions present a
+point-in-time
+view with data time-indexed to the date of the form 10 regulatory filing to the SEC. This is in order to more closely align with the date that information was disseminated to the market, and the corresponding market impact. This is is a more accurate measure than the reporting period which the Most-Recent Reported dimensions utilize, which are typically months before the information reaches the market, and subject to restatement. However, it must be noted that the information contained in the form 10 may have been separately disclosed to the market days (or on rare occassion - weeks) earlier under separate form 8 regulatory filing. It is safe to assume that the information would have been available the day after the As-Reported date (at the latest). In addition, you can identify the date of the form 8 filing by referring to the
+EVENT
+indicator. We source our data from a company's form 10 filing rather than their form 8 filing since the form 8 filings do not consistently contain full consolidated financial statements.
+Negative P/E Ratios
+
+Where a company reports negative earnings it's calculated
+PE
+(or
+PE1
+) ratio will be negative - please be aware of this when filtering for low P/E ratios.
+Batch Download
+
+Subscribers can download the entire table in browser at anytime as follows:
+
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1?qopts.export=true&api_key=your_nasdaq_api_key
+
+In addition you can change the table to be downloaded (for exmple to
+SHARADAR/DAILY
+) and add other arguments to filter the data that is retrieved through this batch process, as described in the Getting Started section of the docs.
+
+For a machine-readable representation of this route add ".csv" or ".json" to the url as follows:
+
+https://data.nasdaq.com/api/v3/datatables/SHARADAR/SF1.json?qopts.export=true&api_key=your_nasdaq_api_key
+
+You can find sample Python code for automated retrieval via the batch download function here.
+Exception Handling
+
+    SHARESWADIL
+    and
+    EPSDIL
+    are not consistently reported by all companies, and there is a higher incidence of non-availability of both these indicators, and the
+    DILUTIONRATIO
+    indicator which is subsequently derived.
+
+    Ratios which have zero in the denominator cannot be calculated and will be blank. For example, where a company's trailing twelve month
+    EPS
+    sums to 0.0 the subsequently derived
+    PE1
+    indicator cannot be calculated. This also applies to
+    ROS
+    ,
+    NETMARGIN
+    ,
+    PS
+    ,
+    PS1
+    ,
+    GROSSMARGIN
+    and
+    EBITDAMARGIN
+    for companies that have zero
+    REVENUE
+    . Companies that have zero revenue are generally, but not exclusively, early stage Biotech firms.
+
+    Not all companies operate a classified Balance Sheet - approximately 20% of the companies in the database do not, most of which are financial firms. As such:
+    ASSETSC
+    (Current Assets) &
+    LIABILITIESC
+    (Current Liabilities), and the subsequently derived
+    ASSETSNC
+    ,
+    LIABILITIESNC
+    ,
+    CURRENTRATIO
+    and
+    WORKINGCAPITAL
+    , are not reported for all companies. In addition, companies can change their financial statement presentation and start or stop operating a classified Balance Sheet, therefore there may be gaps in the availability of these indicators.
+
+    Newly listed companies may not have the four quarters of reporting history required to calculate the trailing twelve month dimension, therefore the dataset may be blank until this history is available.
+
+    On limited occassion Annual and Quarterly financial statement presentation does not conform. For example, sometimes companies only report
+    DEPAMOR
+    ,
+    INTEXP
+    and/or
+    TAXEXP
+    annually and not quarterly. In these instances the quarterly values will not sum to the annual values.
+
+As always, we welcome your further comments.
+FAQs
+Frequently Asked Questions
+How soon after a company reports will the database be updated?
+
+The database is updated within 24 hours of the form 10 SEC filing, often within 12 hours. Note that companies may report abbreviated financial statements via a separate form 8 SEC filing days or on occassion weeks before the form 10 filing. We do not source our data from the form 8 filing since it does not reliably contain full consolidated financial statements (income statement, balance sheet & cash flow statement).
+Can "this" ticker or "that" indicator be added to the database?
+
+If there's something that you want to see in the database, then please drop us an [email](mailto:vincent@sharadar.com?subject=Can "this" be added to the database?).
+How are "N/A" values (non-reported items) treated?
+
+Great question - the answer depends on the indicator. For example, if a company has no
+DEBT
+on it's balance sheet then this means the value is zero. If a company doesn't report
+ASSETSC
+(Current Assets) on it's balance sheet - this does not mean that the value is zero. In this instance the appropriate value is
+"N/A"
+, however,
+"N/A"
+is not presently supported on the platform and therefore nothing is reported on this date.

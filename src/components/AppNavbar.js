@@ -1,6 +1,6 @@
 
 import { useState, useRef } from 'react';
-import { Container, Navbar, NavbarBrand, Input, Button } from 'reactstrap';
+import { Container, Navbar, NavbarBrand, Input, Button, Dropdown, DropdownToggle, DropdownMenu, DropdownItem } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,6 +15,7 @@ const AppNavbar = () => {
   const searchTimeoutRef = useRef();
   const latestSearchValue = useRef('');
   const navigate = useNavigate();
+  const searchBarRef = useRef();
 
   const handleSearchChange = e => {
     const value = e.target.value;
@@ -22,13 +23,19 @@ const AppNavbar = () => {
     latestSearchValue.current = value;
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     if (value.length > 0) {
+      const searchValueAtTimeout = value;
       searchTimeoutRef.current = setTimeout(async () => {
-        if (latestSearchValue.current === value && value.trim() !== '') {
-          const res = await axios.get(`${API_ENDPOINTS.SEARCH}?q=${value}`);
-          setSearchResults(res.data);
-          setDropdownOpen(true);
+        if (latestSearchValue.current === searchValueAtTimeout && searchValueAtTimeout.trim() !== '') {
+          try {
+            const res = await axios.get(`${API_ENDPOINTS.SEARCH}?q=${searchValueAtTimeout}`);
+            // Only update if still latest
+            if (latestSearchValue.current === searchValueAtTimeout) {
+              setSearchResults(res.data);
+              setDropdownOpen(true);
+            }
+          } catch {}
         }
-      }, 100);
+      }, 150);
     } else {
       setDropdownOpen(false);
       setSearchResults([]);
@@ -50,46 +57,65 @@ const AppNavbar = () => {
     navigate(`/${ticker}`);
   };
 
+  // Remove custom click-outside logic; Reactstrap Dropdown will handle it
+
   return (
     <Navbar color="dark" dark expand="lg" className="mb-4 position-relative" style={{ minHeight: 64 }}>
-      <Container fluid className="d-flex justify-content-between">
-        <div className="d-flex align-items-center">
-          <NavbarBrand tag={Link} to="/" className="fw-bold fs-4" style={{ cursor: 'pointer' }}>
-            Stock Portfolio
-          </NavbarBrand>
-          <Link to="/nasdaq-columns" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
-            NASDAQ Reference
-          </Link>
-        </div>
-        <div className="d-flex position-relative" style={{ }}>
-          <Input
-            type="text"
-            bsSize="sm"
-            className="me-2"
-            style={{ width: "45rem", fontSize: 14 }}
-            value={search}
-            onChange={handleSearchChange}
-            placeholder="Search ticker"
-          />
-          {dropdownOpen && searchResults.length > 0 && (
-            <div
-              className="list-group shadow position-absolute mt-5 z-3 navbar-search-dropdown"
-            >
-              {searchResults.map((item, idx) => (
-                <div key={idx} className="list-group-item d-flex justify-content-between" style={{ width: "45rem" }}>
-                  <span><strong>{item.ticker}</strong> <small className="text-muted">{item.name}</small></span>
-                  <span>
-                    <Button size="sm" color="success" className="me-2" onClick={() => handleAddToPortfolio(item.ticker)} title="Add to Portfolio">
-                      <FontAwesomeIcon icon={faPlus} />
-                    </Button>
-                    <Button size="sm" color="primary" onClick={() => handleSearchTicker(item.ticker)} title="Search">
-                      <FontAwesomeIcon icon={faSearch} />
-                    </Button>
-                  </span>
-                </div>
-              ))}
+      <Container fluid>
+        <div className="d-flex justify-content-between align-items-center w-100">
+          <div className="d-flex align-items-center">
+            <NavbarBrand tag={Link} to="/" className="fw-bold fs-4" style={{ cursor: 'pointer' }}>
+              Stock Portfolio
+            </NavbarBrand>
+            <Link to="/nasdaq-columns" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
+              NASDAQ Reference
+            </Link>
+          </div>
+          <div className="d-flex position-relative" style={{ minWidth: "45rem", justifyContent: "flex-end" }}>
+            <div style={{ position: 'relative', width: '45rem' }} ref={searchBarRef}>
+              <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                <Input
+                  type="text"
+                  bsSize="sm"
+                  style={{ width: "100%", fontSize: 14 }}
+                  value={search}
+                  onChange={handleSearchChange}
+                  placeholder="Search ticker"
+                  onFocus={() => searchResults.length > 0 && setDropdownOpen(true)}
+                />
+                {search && (
+                  <Button
+                    size="sm"
+                    color="secondary"
+                    style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', zIndex: 11, padding: '0 8px', fontSize: 16, borderRadius: '50%' }}
+                    onClick={() => { setSearch(''); setSearchResults([]); setDropdownOpen(false); }}
+                    aria-label="Clear search"
+                    tabIndex={0}
+                  >
+                    &times;
+                  </Button>
+                )}
+              </div>
+              <Dropdown isOpen={dropdownOpen && searchResults.length > 0} toggle={() => setDropdownOpen(!dropdownOpen)} style={{ width: '100%' }} direction="down">
+                <DropdownToggle tag="span" style={{ display: 'none' }} />
+                <DropdownMenu className="w-100 navbar-search-dropdown shadow" style={{  }}>
+                  {searchResults.map((item, idx) => (
+                    <div key={idx} className="d-flex justify-content-between align-items-center dropdown-item" style={{ width: "100%", cursor: 'pointer' }} role="menuitem" tabIndex={0}>
+                      <span><strong>{item.ticker}</strong> <small className="text-muted">{item.name}</small></span>
+                      <span>
+                        <Button size="sm" color="success" className="me-2" onMouseDown={e => e.preventDefault()} onClick={() => handleAddToPortfolio(item.ticker)} title="Add to Portfolio">
+                          <FontAwesomeIcon icon={faPlus} />
+                        </Button>
+                        <Button size="sm" color="primary" onMouseDown={e => e.preventDefault()} onClick={() => handleSearchTicker(item.ticker)} title="Search">
+                          <FontAwesomeIcon icon={faSearch} />
+                        </Button>
+                      </span>
+                    </div>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
             </div>
-          )}
+          </div>
         </div>
       </Container>
     </Navbar>

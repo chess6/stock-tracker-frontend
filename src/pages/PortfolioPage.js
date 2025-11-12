@@ -1,16 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import ReactDOM from 'react-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
-import { ReactTabulator } from 'react-tabulator';
-import 'react-tabulator/lib/styles.css';
-import 'tabulator-tables/dist/css/tabulator.min.css';
+import {
+    createColumnHelper
+} from '@tanstack/react-table';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import ApexCharts from 'react-apexcharts';
 import { createRoot } from 'react-dom/client';
 import { Container, Card, CardBody, CardTitle } from 'reactstrap';
 import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
+import DataGrid from '../components/DataGrid';
 
 // Tabulator custom formatter for MiniChart React component
 function tabulatorMiniChartFormatter(cell, formatterParams, onRendered) { // don't remove yet
@@ -103,64 +101,103 @@ const PortfolioPage = () => {
         return () => window.removeEventListener("storage", handleStorage);
     }, []);
     const [rows, setRows] = useState([]);
-    // Memoized delete button to prevent flicker
-    const MemoDeleteButton = useMemo(() => {
-        return function DeleteButton({ ticker }) {
-            return (
-                <button
-                    className="btn btn-sm btn-danger"
-                    style={{ marginLeft: 8 }}
-                    onClick={e => {
-                        e.stopPropagation();
-                        if (window.confirm(`Remove ${ticker} from portfolio?`)) {
-                            handleDeleteTicker(ticker);
-                        }
-                    }}
-                >
-                    <FontAwesomeIcon icon={faTrash} />
-                </button>
-            );
-        };
-    }, []);
+    const [rowSelection, setRowSelection] = useState({});
+    const [isPageLoading, setIsPageLoading] = useState(false);
 
+    const columnHelper = useMemo(() => createColumnHelper(), []);
     const columns = useMemo(() => [
-        {
-            title: 'Ticker', field: 'ticker', headerTooltip: columnTooltips.ticker, sorter: 'string', formatter: (cell) => {
-                const row = cell.getRow().getData();
-                return `<div><strong>${row.ticker}</strong>${row.company ? `<div class='text-muted'>${row.company}</div>` : ''}</div>`;
-            }, tooltip: function (cell) {
-        let data = cell.getRow();
-        return "Value of " + data._row.data.company;
-      }
-        },
-        { title: 'Chart', field: 'chartData', width: 120, headerTooltip: 'Intraday price chart', formatter: tabulatorMiniChartFormatter }, // don't remove yet
-        { title: 'Price', field: 'price', headerTooltip: columnTooltips.price, sorter: 'string', formatter: (cell) => formatUsd(cell.getValue()) },
-        { title: 'Change', field: 'change', headerTooltip: columnTooltips.change, formatter: (cell) => formatPercent(cell.getValue()) },
-        { title: 'Market Cap', field: 'marketCap', headerTooltip: columnTooltips.marketCap, formatter: (cell) => formatUsd(cell.getValue(), 0) },
-        { title: 'SP', field: 'sp', headerTooltip: columnTooltips.sp, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
-        { title: 'Eb/EV', field: 'ebitdaEv', headerTooltip: columnTooltips.ebitdaEv, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
-        { title: 'TBP', field: 'tbp', headerTooltip: columnTooltips.tbp, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
-        { title: 'BP', field: 'bp', headerTooltip: columnTooltips.bp, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
-        { title: 'EP', field: 'ep', headerTooltip: columnTooltips.ep, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
-        { title: 'CFOP', field: 'cfop', headerTooltip: columnTooltips.cfop, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
-        { title: 'SFCFP', field: 'sfcfp', headerTooltip: columnTooltips.sfcfp, formatter: (cell) => formatDecimal(cell.getValue(), 2) },
-        {
-            title: 'Delete row?', field: 'delete', headerTooltip: columnTooltips.delete,
-            formatter: function (cell, formatterParams, onRendered) {
-                const cellElement = cell.getElement();
-                const row = cell.getRow().getData();
-                onRendered(() => {
-                    if (cellElement._reactRoot) {
-                        cellElement._reactRoot.unmount();
-                    }
-                    const root = createRoot(cellElement);
-                    cellElement._reactRoot = root;
-                    root.render(<MemoDeleteButton ticker={row.ticker} onDelete={row.onDelete} />);
-                });
-                return "";
-            }
-        },
-    ], [columnTooltips]);
+        columnHelper.display({
+            id: 'select',
+            header: ({ table }) => (
+                <input
+                    type="checkbox"
+                    checked={table.getIsAllPageRowsSelected()}
+                    ref={el => el && (el.indeterminate = table.getIsSomePageRowsSelected())}
+                    onChange={table.getToggleAllPageRowsSelectedHandler()}
+                    title="Select all rows"
+                />
+            ),
+            cell: ({ row }) => (
+                <input
+                    type="checkbox"
+                    checked={row.getIsSelected()}
+                    onChange={(e) => {
+                        e.stopPropagation();
+                        row.toggleSelected();
+                    }}
+                    title="Select row"
+                />
+            ),
+            size: 32,
+        }),
+        columnHelper.accessor('ticker', {
+            header: () => <span title={columnTooltips.ticker}>Ticker</span>,
+            cell: ({ row, getValue }) => {
+                const ticker = getValue();
+                const company = row.original.company;
+                // const showCompany = company && company !== ticker; // don't remove yet
+                return (
+                    <div style={{ maxHeight: 40, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ lineHeight: '1.2', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}><strong>{ticker}</strong></div>
+                        {/* // don't remove yet */}
+                        {/* {showCompany ? <div className='text-muted' style={{ lineHeight: '1.2', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{company}</div> : null} */}
+                    </div>
+                );
+            },
+        }),
+        // columnHelper.accessor('chartData', { header: 'Chart', cell: () => null }),
+        columnHelper.accessor('price', {
+            header: () => <span title={columnTooltips.price}>Price</span>,
+            cell: ({ getValue }) => <span>{formatUsd(getValue())}</span>,
+        }),
+        columnHelper.accessor('change', {
+            header: () => <span title={columnTooltips.change}>Change</span>,
+            cell: ({ getValue, row }) => {
+                const pending = row.original?._pending?.change;
+                const val = getValue();
+                if (pending && (val == null || Number.isNaN(val))) {
+                    return (
+                        <span title="Loading change..." className="text-muted">
+                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                        </span>
+                    );
+                }
+                return <span>{formatPercent(val)}</span>;
+            },
+        }),
+        columnHelper.accessor('marketCap', {
+            header: () => <span title={columnTooltips.marketCap}>Market Cap</span>,
+            cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
+        }),
+        columnHelper.accessor('sp', {
+            header: () => <span title={columnTooltips.sp}>SP</span>,
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('ebitdaEv', {
+            header: () => <span title={columnTooltips.ebitdaEv}>Eb/EV</span>,
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('tbp', {
+            header: () => <span title={columnTooltips.tbp}>TBP</span>,
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('bp', {
+            header: () => <span title={columnTooltips.bp}>BP</span>,
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('ep', {
+            header: () => <span title={columnTooltips.ep}>EP</span>,
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('cfop', {
+            header: () => <span title={columnTooltips.cfop}>CFOP</span>,
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('sfcfp', {
+            header: () => <span title={columnTooltips.sfcfp}>SFCFP</span>,
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+    ], [columnTooltips, columnHelper]);
 
     // Handler to delete ticker from portfolio
     const handleDeleteTicker = async ticker => {
@@ -171,149 +208,219 @@ const PortfolioPage = () => {
         });
     };
 
-    // Dropdown state now handled in AppNavbar
-
-    // Guard summary fetch against duplicate calls (Strict Mode) — no longer needed after batch refactor
-
-
     useEffect(() => {
         localStorage.setItem('portfolio', JSON.stringify(portfolio));
-        async function fetchPortfolioData() {
-            let metricsMap = {};
-            let topQuotes = {};
-            let changeMap = {};
-            let intradayMap = {};
-            if (portfolio.length > 0) {
-                const tickersStr = portfolio.join(',');
-                const [fundRes, topRes, changeRes, ...intradayResArr] = await Promise.allSettled([
-                    axios.get(`${API_ENDPOINTS.FINANCIALS}?ticker=${tickersStr}&mostRecent=true`),
-                    axios.get(API_ENDPOINTS.TOP_OF_BOOK, { params: { tickers: tickersStr } }),
-                    axios.get(API_ENDPOINTS.DAILY_CHANGE, { params: { tickers: tickersStr } }),
-                    ...portfolio.map(ticker => axios.get(API_ENDPOINTS.INTRADAY(ticker)))
-                ]);
-                if (fundRes.status === 'fulfilled') {
-                    metricsMap = fundRes.value.data && fundRes.value.data.metrics ? fundRes.value.data.metrics : {};
-                }
-                if (topRes.status === 'fulfilled') {
-                    topQuotes = (topRes.value.data && topRes.value.data.quotes) || {};
-                }
-                if (changeRes.status === 'fulfilled') {
-                    changeMap = (changeRes.value.data && changeRes.value.data.changes) || {};
-                }
-                // Collect intraday data for each ticker
-                portfolio.forEach((ticker, idx) => {
-                    const res = intradayResArr[idx];
-                    if (res && res.status === 'fulfilled') {
-                        const intradayData = res.value.data;
-                        // Store both intraday and tickerMeta
-                        intradayMap[ticker] = {
-                            intraday: (intradayData.intraday || []).map(point => {
-                                const value = point && point.close !== undefined ? Number(point.close) : Number(point?.last);
-                                return Number.isNaN(value) ? null : value;
-                            }).filter(value => value !== null),
-                            tickerMeta: intradayData.tickerMeta || null
-                        };
-                    } else {
-                        intradayMap[ticker] = { intraday: [], tickerMeta: null };
-                    }
-                });
-            }
-            const initialRows = portfolio.map((ticker, idx) => {
-                const metrics = metricsMap[ticker] || {};
-                const toNumber = key => {
-                    const value = metrics[key];
-                    if (value === null || value === undefined) return null;
-                    const parsed = Number(value);
-                    return Number.isNaN(parsed) ? null : parsed;
-                };
-                const marketCap = toNumber('marketCap');
-                const sp = toNumber('sp');
-                const ebitdaEv = toNumber('ebitdaEv');
-                const tbp = toNumber('tbp');
-                const bp = toNumber('bp');
-                const ep = toNumber('ep');
-                const cfop = toNumber('cfop');
-                const sfcfp = toNumber('sfcfp');
+        // Get current tickers in rows
+        const currentTickers = new Set(rows.map(r => r.ticker));
+        const portfolioSet = new Set(portfolio);
+        // Find added and removed tickers
+        const added = portfolio.filter(t => !currentTickers.has(t));
+        const removed = rows.filter(r => !portfolioSet.has(r.ticker)).map(r => r.ticker);
 
-                const tq = topQuotes[ticker] || {};
-                const lastCandidates = [tq.last, tq.tngoLast];
-                const lastVal = lastCandidates.find(v => v != null && !Number.isNaN(Number(v)));
-                const last = lastVal != null ? Number(lastVal) : null;
-
-                const changeInfo = changeMap[ticker] || {};
-                const prevClose = changeInfo.prevClose != null ? Number(changeInfo.prevClose) : null;
-                const todayClose = changeInfo.todayClose != null ? Number(changeInfo.todayClose) : null;
-                let change = null;
-                if (todayClose != null && prevClose != null && !Number.isNaN(todayClose) && !Number.isNaN(prevClose) && prevClose !== 0) {
-                    const diff = todayClose - prevClose;
-                    change = (diff / prevClose) * 100;
-                }
-                // Price fallback order: last -> todayClose -> prevClose -> null
-                let price = null;
-                if (last != null && !Number.isNaN(last)) {
-                    price = last;
-                } else if (todayClose != null && !Number.isNaN(todayClose)) {
-                    price = todayClose;
-                } else if (prevClose != null && !Number.isNaN(prevClose)) {
-                    price = prevClose;
-                }
-                // Use company name from tickerMeta if available, else fallback
-                let company = ticker;
-                const meta = intradayMap[ticker] && intradayMap[ticker].tickerMeta ? intradayMap[ticker].tickerMeta : null;
-                if (meta && meta.name) {
-                    company = meta.name;
-                } else if (tq.name) {
-                    company = tq.name;
-                }
-                // chartData: always use intradayMap[ticker].intraday if present
-                let chartData = [];
-                if (intradayMap[ticker] && Array.isArray(intradayMap[ticker].intraday)) {
-                    chartData = intradayMap[ticker].intraday;
-                }
-                return {
-                    id: idx,
-                    ticker,
-                    company,
-                    chartData,
-                    price,
-                    change,
-                    marketCap,
-                    sp,
-                    ebitdaEv,
-                    tbp,
-                    bp,
-                    ep,
-                    cfop,
-                    sfcfp,
-                    prevClose,
-                    onDelete: handleDeleteTicker
-                };
-            });
-            setRows(initialRows);
-        }
-        if (portfolio.length > 0) {
-            fetchPortfolioData();
-        } else {
+        // If portfolio is empty, clear rows
+        if (portfolio.length === 0) {
             setRows([]);
+            return;
+        }
+
+        // Remove rows for deleted tickers
+        if (removed.length) {
+            setRows(prevRows => prevRows.filter(r => portfolioSet.has(r.ticker)));
+        }
+
+        // Initial load or only additions
+        if (rows.length === 0 || added.length) {
+            setIsPageLoading(true);
+            const fetchTickers = rows.length === 0 ? portfolio : added;
+            (async () => {
+                try {
+                    const tickersStr = fetchTickers.join(',');
+                    // Stage 1: financials + top-of-book
+                    const [fundRes, topRes] = await Promise.allSettled([
+                        axios.get(`${API_ENDPOINTS.FINANCIALS}?ticker=${tickersStr}&mostRecent=true`),
+                        axios.get(API_ENDPOINTS.TOP_OF_BOOK, { params: { tickers: tickersStr } }),
+                    ]);
+                    const metricsMap = fundRes.status === 'fulfilled' ? (fundRes.value.data?.metrics || {}) : {};
+                    const topQuotes = topRes.status === 'fulfilled' ? (topRes.value.data?.quotes || {}) : {};
+
+                    const newRows = fetchTickers.map((ticker) => {
+                        const metrics = metricsMap[ticker] || {};
+                        const toNumber = key => {
+                            const value = metrics[key];
+                            if (value === null || value === undefined) return null;
+                            const parsed = Number(value);
+                            return Number.isNaN(parsed) ? null : parsed;
+                        };
+                        const marketCap = toNumber('marketCap');
+                        const sp = toNumber('sp');
+                        const ebitdaEv = toNumber('ebitdaEv');
+                        const tbp = toNumber('tbp');
+                        const bp = toNumber('bp');
+                        const ep = toNumber('ep');
+                        const cfop = toNumber('cfop');
+                        const sfcfp = toNumber('sfcfp');
+
+                        const tq = topQuotes[ticker] || {};
+                        const lastCandidates = [tq.last, tq.tngoLast];
+                        const lastVal = lastCandidates.find(v => v != null && !Number.isNaN(Number(v)));
+                        const last = lastVal != null ? Number(lastVal) : null;
+
+                        const price = last != null && !Number.isNaN(last) ? last : null;
+                        const company = tq.name || null;
+                        const chartData = [];
+                        return {
+                            id: ticker,
+                            ticker,
+                            company,
+                            chartData,
+                            price,
+                            change: null,
+                            marketCap,
+                            sp,
+                            ebitdaEv,
+                            tbp,
+                            bp,
+                            ep,
+                            cfop,
+                            sfcfp,
+                            prevClose: null,
+                            _pending: { change: true },
+                            onDelete: handleDeleteTicker,
+                        };
+                    });
+                    setRows(prevRows => {
+                        // On initial load, replace all
+                        if (prevRows.length === 0) return newRows;
+                        // Otherwise, append only new rows
+                        const existing = new Set(prevRows.map(r => r.ticker));
+                        const dedupNew = newRows.filter(r => !existing.has(r.ticker));
+                        return [...prevRows, ...dedupNew];
+                    });
+
+                    // Intraday enrichment for fetchTickers
+                    // try { // commented out, don't remove yet
+                    //     const intradayResults = await Promise.allSettled(
+                    //         fetchTickers.map((ticker) => axios.get(API_ENDPOINTS.INTRADAY(ticker)))
+                    //     );
+                    //     const companyByTicker = {};
+                    //     intradayResults.forEach((res, idx) => {
+                    //         if (res.status === 'fulfilled') {
+                    //             const data = res.value?.data;
+                    //             const name = data?.tickerMeta?.name;
+                    //             if (name) companyByTicker[fetchTickers[idx]] = name;
+                    //         }
+                    //     });
+                    //     if (Object.keys(companyByTicker).length > 0) {
+                    //         setRows(prev => prev.map(row => (
+                    //             fetchTickers.includes(row.ticker)
+                    //                 ? { ...row, company: companyByTicker[row.ticker] || row.company }
+                    //                 : row
+                    //         )));
+                    //     }
+                    // } catch { }
+
+                } finally {
+                    setIsPageLoading(false);
+                }
+
+                // Stage 2: daily change for only fetchTickers
+                try {
+                    const changeRes = await axios.get(API_ENDPOINTS.DAILY_CHANGE, { params: { tickers: fetchTickers.join(',') } });
+                    const changeMap = changeRes.data?.changes || {};
+                    setRows(prev => prev.map(row => {
+                        if (!fetchTickers.includes(row.ticker)) return row;
+                        const changeInfo = changeMap[row.ticker] || {};
+                        const prevClose = changeInfo.prevClose != null ? Number(changeInfo.prevClose) : null;
+                        const todayClose = changeInfo.todayClose != null ? Number(changeInfo.todayClose) : null;
+                        let change = row.change;
+                        if (todayClose != null && prevClose != null && !Number.isNaN(todayClose) && !Number.isNaN(prevClose) && prevClose !== 0) {
+                            const diff = todayClose - prevClose;
+                            change = (diff / prevClose) * 100;
+                        }
+                        let price = row.price;
+                        if (price == null && todayClose != null && !Number.isNaN(todayClose)) {
+                            price = todayClose;
+                        } else if (price == null && prevClose != null && !Number.isNaN(prevClose)) {
+                            price = prevClose;
+                        }
+                        return { ...row, price, change, prevClose, _pending: { ...(row._pending || {}), change: false } };
+                    }));
+                } catch {
+                    setRows(prev => prev.map(row => (
+                        fetchTickers.includes(row.ticker)
+                            ? { ...row, _pending: { ...(row._pending || {}), change: false } }
+                            : row
+                    )));
+                }
+            })();
         }
     }, [portfolio]);
 
-    // Search handlers now handled in AppNavbar
+    // Same-tab portfolio sync (storage event doesn't fire in same tab)
+    useEffect(() => {
+        const sync = () => {
+            try {
+                const raw = localStorage.getItem('portfolio');
+                const parsed = raw ? JSON.parse(raw) : [];
+                const current = JSON.stringify(portfolio);
+                const next = JSON.stringify(parsed);
+                if (current !== next) setPortfolio(parsed);
+            } catch { }
+        };
+        const onFocus = () => sync();
+        window.addEventListener('focus', onFocus);
+        const id = setInterval(sync, 1500);
+        return () => {
+            window.removeEventListener('focus', onFocus);
+            clearInterval(id);
+        };
+    }, [portfolio]);
 
     return (
-        <Container className="py-3"> {/* remove container if want to max out width of the grid */}
+        <Container className="py-3">
             <Card className="shadow-sm p-3">
                 <CardBody>
                     <CardTitle tag="h3" className="mb-3">Portfolio</CardTitle>
-                    <ReactTabulator
-                        data={rows}
-                        columns={columns}
-                        layout="fitData"
-                        options={{
-                            movableColumns: true,
-                            tooltips: true
-                        }}
-                    />
+                    <div className="mb-2 d-flex gap-2 align-items-center">
+                        <button
+                            className="btn btn-danger"
+                            disabled={Object.keys(rowSelection).length === 0}
+                            onClick={() => {
+                                setIsPageLoading(true);
+                                setTimeout(() => {
+                                    const selected = Object.keys(rowSelection);
+                                    setPortfolio(prev => {
+                                        const updated = prev.filter(t => !selected.includes(t));
+                                        localStorage.setItem('portfolio', JSON.stringify(updated));
+                                        return updated;
+                                    });
+                                    setRowSelection({});
+                                    setIsPageLoading(false);
+                                }, 0);
+                            }}
+                        >
+                            Delete Selected
+                        </button>
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                        {isPageLoading && (
+                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                                <div className="spinner-border" role="status" aria-hidden="true" />
+                            </div>
+                        )}
+                        <DataGrid
+                            data={rows}
+                            columns={columns}
+                            getRowId={row => String(row.id ?? row.ticker)}
+                            enableRowSelection={true}
+                            enableMultiRowSelection={true}
+                            enableSorting={true}
+                            enableGlobalFilter={true}
+                            style={{ tableLayout: 'auto' }}
+                            rowSelection={rowSelection}
+                            onRowSelectionChange={setRowSelection}
+                        />
+                    </div>
                 </CardBody>
             </Card>
         </Container>

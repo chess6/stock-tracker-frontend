@@ -1,0 +1,9 @@
+/* Shade even rows by styling the table cells, not the row element,
+   to override Bootstrap's cell backgrounds. */
+.table tbody tr:nth-child(even) > * {
+    background-color: #f0f0f0; /* Light gray for even rows */
+}
+
+.nasdaq-columns-grid-table > :not(caption) > * > * {
+    padding: .1rem .25rem !important;
+}
