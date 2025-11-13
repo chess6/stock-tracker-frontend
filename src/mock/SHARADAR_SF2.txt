@@ -167,3 +167,37 @@ Notes and Issues
     data is currently not adjusted for stock splits.
 
     where a filing has been subsequently restated the FormType field of the restated filing will be prepended with "RESTATED".
+
+---
+
+https://data.nasdaq.com/data/SF2-core-us-insiders-data/documentation
+Security Acquisition Disposition Codes (SecurityADCode)
+SecurityADCode	Description
+D	Derivative, No Transaction
+DA	Derivative Acquisition
+DD	Derivative Disposition
+N	Non-Derivative, No Transaction
+NA	Non-Derivative Acquisition
+ND	Non-Derivative Disposition
+Transaction Codes
+Transaction Code	Category	Description
+P	General	Open market or private purchase of non-derivative or derivative security
+S	General	Open market or private sale of non-derivative or derivative security
+V	General	Transaction voluntarily reported earlier than required
+A	Rule 16b-3	Grant, award or other acquisition pursuant to Rule 16b-3(d)
+D	Rule 16b-3	Disposition to the issuer of issuer equity securities pursuant to Rule 16b-3(e)
+F	Rule 16b-3	Payment of exercise price or tax liability by delivering or withholding securities
+I	Rule 16b-3	Discretionary transaction in accordance with Rule 16b-3(f)
+M	Rule 16b-3	Exercise or conversion of derivative security exempted pursuant to Rule 16b-3
+C	Derivative Codes	Conversion of derivative security
+E	Derivative Codes	Expiration of short derivative position
+H	Derivative Codes	Expiration (or cancellation) of long derivative position with value received
+O	Derivative Codes	Exercise of out-of-the-money derivative security
+X	Derivative Codes	Exercise of in-the-money or at-the-money derivative security
+G	Other Section 16(b) Exempt	Bona fide gift
+L	Other Section 16(b) Exempt	Small acquisition under Rule 16a-6
+W	Other Section 16(b) Exempt	Acquisition or disposition by will or the laws of descent and distribution
+Z	Other Section 16(b) Exempt	Deposit into or withdrawal from voting trust
+J	Other	Other acquisition or disposition
+K	Other	Transaction in equity swap or instrument with similar characteristics
+U	Other	Disposition pursuant to a tender of shares in a change of control transaction

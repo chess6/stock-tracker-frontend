@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
   INTRADAY: ticker => `${API_BASE}/ticker/${ticker}/intraday`,
   TOP_OF_BOOK: `${API_BASE}/tickers/top`,
   DAILY_CHANGE: `${API_BASE}/tickers/daily-change`,
+  INSIDER_BUYING_SUMS: `${API_BASE}/insiders/buying-sums`,
 };
 
 export default API_ENDPOINTS;

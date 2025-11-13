@@ -8,6 +8,7 @@ import './App.css';
 import "@svar-ui/react-grid/all.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import AppNavbar from './components/AppNavbar';
+import StockScreenerPage from './pages/StockScreenerPage';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path=":ticker/financials" element={<FinancialsPage />} />
         <Route path="nasdaq-columns" element={<NasdaqColumnsGrid />} />
         <Route path="grid-demo" element={<GridDemoPage />} />
+        <Route path="screener" element={<StockScreenerPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

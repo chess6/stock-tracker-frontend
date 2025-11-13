@@ -46,6 +46,8 @@ function NasdaqColumnsGrid() {
         const data = indicatorData.datatable.data;
         const columnsInfo = indicatorData.datatable.columns;
 
+        console.log('Columns Info:', indicatorData);
+
         const colObjects = data.map(row => {
             const obj = {};
             columnsInfo.forEach((col, i) => {

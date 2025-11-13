@@ -22,6 +22,9 @@ export default function DataGrid({
   rowSelection: controlledRowSelection,
   onRowSelectionChange,
   fixedColumnWidth = false,
+  // Virtualization/lazy options
+  pageChunkSize = 300,
+  maxHeight,
   // New controlled props for global behavior
   columnVisibility: controlledColumnVisibility,
   onColumnVisibilityChange,
@@ -33,12 +36,13 @@ export default function DataGrid({
   const [internalRowSelection, setInternalRowSelection] = useState({});
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [columnSizing, setColumnSizing] = useState({});
   const [columnSizingInfo, setColumnSizingInfo] = useState({});
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(pageChunkSize);
   const defaultVisible = columns.map(col => col.accessorKey ?? col.id).filter(Boolean);
   const [internalVisibleColumns, setInternalVisibleColumns] = useState(controlledColumnVisibility ?? defaultVisible);
   const dropdownRef = useRef(null);
+  const scrollRef = useRef(null);
 
   const rowSelection = controlledRowSelection ?? internalRowSelection;
   const handleRowSelectionChange = onRowSelectionChange ?? setInternalRowSelection;
@@ -62,8 +66,9 @@ export default function DataGrid({
     enableRowSelection,
     enableMultiRowSelection,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    // Always use built-in sorted row model; manual sorting disabled for now
+    getSortedRowModel: getSortedRowModel(),
     onRowSelectionChange: handleRowSelectionChange,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
@@ -101,10 +106,41 @@ export default function DataGrid({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showColumnDropdown]);
 
+  // Reset visible rows when data/sorting/filter changes
+  useEffect(() => {
+    setVisibleCount(pageChunkSize);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [data, pageChunkSize, sorting, globalFilter]);
+
+  // Infinite scroll handler
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // Trigger earlier: when within one viewport height (or at least 600px) from bottom
+    const threshold = Math.max(600, el.clientHeight);
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - threshold) {
+      setVisibleCount((prev) => Math.min(prev + pageChunkSize, table.getRowModel().rows.length));
+    }
+  };
+
+  // Build the list of rows to render (filtered and sorted by table, then sliced)
+  const allRows = table.getRowModel().rows;
+  const totalCount = allRows.length;
+  const rowsToRender = allRows.slice(0, visibleCount);
+
   return (
     <div style={{ position: 'relative', maxWidth: '100%', ...style }}>
       {/* Scroll container wraps controls and table so controls align with table width */}
-      <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        style={{
+          overflowX: 'auto',
+          overflowY: 'auto',
+          maxWidth: '100%',
+          maxHeight: maxHeight || undefined,
+        }}
+      >
         <div className="d-inline-block" style={{ minWidth: '100%' }}>
           {/* Controls aligned to the right edge of the table area */}
           <div className="d-flex justify-content-end align-items-center mb-2" style={{ gap: '0.5rem' }}>
@@ -231,7 +267,7 @@ export default function DataGrid({
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
+          {rowsToRender.map((row) => (
             <tr
               key={row.id}
               className={row.getIsSelected() ? 'table-active' : undefined}
@@ -269,6 +305,11 @@ export default function DataGrid({
           ))}
         </tbody>
           </table>
+        {totalCount > rowsToRender.length && (
+          <div className="text-center text-muted py-2" style={{ fontSize: 12 }}>
+            Showing {rowsToRender.length} of {totalCount} rows. Scroll to load more…
+          </div>
+        )}
         </div>
       </div>
     </div>

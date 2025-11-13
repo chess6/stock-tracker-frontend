@@ -134,7 +134,9 @@ const FinancialsPage = () => {
     {
       header: 'Metric',
       accessorKey: 'metric',
-      cell: info => info.row.original.metric,
+      cell: info => (
+        <span style={{ whiteSpace: 'nowrap' }}>{info.row.original.metric}</span>
+      ),
       enableSorting: false,
       size: 160,
     },
@@ -404,7 +406,6 @@ const FinancialsPage = () => {
                 <DataGrid
                   data={tabRows}
                   columns={columns}
-                  style={{ minWidth: 600 }}
                   enableRowSelection={false}
                   enableSorting={false}
                   enableGlobalFilter={false}

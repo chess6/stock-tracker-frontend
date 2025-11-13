@@ -60,7 +60,7 @@ const AppNavbar = () => {
   // Remove custom click-outside logic; Reactstrap Dropdown will handle it
 
   return (
-    <Navbar color="dark" dark expand="lg" className="mb-4 position-relative" style={{ minHeight: 64 }}>
+    <Navbar color="dark" dark expand="lg" className="mb-1 position-relative" style={{ minHeight: 64 }}>
       <Container fluid>
         <div className="d-flex justify-content-between align-items-center w-100">
           <div className="d-flex align-items-center">
@@ -69,6 +69,9 @@ const AppNavbar = () => {
             </NavbarBrand>
             <Link to="/nasdaq-columns" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
               NASDAQ Reference
+            </Link>
+            <Link to="/screener" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
+              Screener
             </Link>
           </div>
           <div className="d-flex position-relative" style={{ minWidth: "45rem", justifyContent: "flex-end" }}>

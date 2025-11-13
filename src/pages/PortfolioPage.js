@@ -82,6 +82,9 @@ const PortfolioPage = () => {
         ep: 'Earnings per share',
         cfop: 'Cash flow from operations per share',
         sfcfp: 'Free cash flow per share',
+        insiderBuy6m: 'Sum of insider buying (last 6 months)',
+        insiderBuy3m: 'Sum of insider buying (last 3 months)',
+        insiderBuy1m: 'Sum of insider buying (last 1 month)',
         delete: 'Remove from portfolio',
     }), []);
     // Search bar and results now handled in AppNavbar
@@ -196,6 +199,18 @@ const PortfolioPage = () => {
         columnHelper.accessor('sfcfp', {
             header: () => <span title={columnTooltips.sfcfp}>SFCFP</span>,
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('insiderBuy6m', {
+            header: () => <span title={columnTooltips.insiderBuy6m}>Insider Buy 6M</span>,
+            cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
+        }),
+        columnHelper.accessor('insiderBuy3m', {
+            header: () => <span title={columnTooltips.insiderBuy3m}>Insider Buy 3M</span>,
+            cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
+        }),
+        columnHelper.accessor('insiderBuy1m', {
+            header: () => <span title={columnTooltips.insiderBuy1m}>Insider Buy 1M</span>,
+            cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
         }),
     ], [columnTooltips, columnHelper]);
 
@@ -351,6 +366,30 @@ const PortfolioPage = () => {
                             ? { ...row, _pending: { ...(row._pending || {}), change: false } }
                             : row
                     )));
+                }
+
+                // Stage 3: insider buying sums for fetchTickers
+                try {
+                    const insiderRes = await axios.get(API_ENDPOINTS.INSIDER_BUYING_SUMS, { params: { tickers: fetchTickers.join(',') } });
+                    let payload = insiderRes?.data;
+                    let map = {};
+                    if (Array.isArray(payload?.rows)) {
+                        payload.rows.forEach(r => { if (r && r.ticker) map[r.ticker] = r; });
+                    } else if (Array.isArray(payload)) {
+                        payload.forEach(r => { if (r && r.ticker) map[r.ticker] = r; });
+                    } else if (payload && typeof payload === 'object') {
+                        // assume keyed by ticker
+                        map = payload.sums || payload;
+                    }
+                    setRows(prev => prev.map(row => {
+                        const s = map[row.ticker] || {};
+                        const buy6m = Number(s.buy6m ?? s.insiderBuy6m ?? 0);
+                        const buy3m = Number(s.buy3m ?? s.insiderBuy3m ?? 0);
+                        const buy1m = Number(s.buy1m ?? s.insiderBuy1m ?? 0);
+                        return { ...row, insiderBuy6m: buy6m, insiderBuy3m: buy3m, insiderBuy1m: buy1m };
+                    }));
+                } catch {
+                    // ignore
                 }
             })();
         }
