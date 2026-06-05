@@ -1,70 +1,72 @@
-# Getting Started with Create React App
+# Stock Tracker
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A full-stack web application for managing stock portfolios, screening stocks, analyzing insider buying, and viewing detailed financial data. Built with React (frontend) and Flask (backend), using SQLite, SEC EDGAR CompanyFacts, RSS feeds, and optional Nasdaq Data Link compatibility endpoints.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **Stock Screener**: View insider buying analytics, sortable and filterable by ticker, company, and time window (6M, 3M, 1M).
+- **Insider Buying Analytics**: Aggregates insider purchases, highlights tickers with significant activity, and shows unique owner counts.
+- **Ticker Details Page**: View all financial data for a selected ticker, with readable formatting and easy navigation.
+- **Portfolio Management**: Add tickers to your portfolio and receive notifications for new insider buys.
+- **Responsive DataGrid**: Fast, virtualized grid with sticky headers, column resizing, and infinite scroll.
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Frontend**: React, Redux Toolkit, @tanstack/react-table, Bootstrap
+- **Backend**: Flask, pandas, requests, pandas_market_calendars
+- **APIs and Sources**: SEC EDGAR CompanyFacts, RSS feeds, optional Nasdaq Data Link (SHARADAR/SF2, SEP)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Setup
 
-### `npm test`
+### Backend
+1. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Set up `.env` with your API keys:
+   ```
+   NASDAQ_API_KEY=your_nasdaq_key
+   SEC_USER_AGENT=you@example.com
+   ```
+3. Run the backend:
+   ```bash
+   cd stock_tracker_backend
+   python api.py
+   ```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Frontend
+1. Install dependencies:
+   ```bash
+   cd stock_tracker_frontend
+   npm install
+   ```
+2. Start the frontend:
+   ```bash
+   npm start
+   ```
 
-### `npm run build`
+## Usage
+- Open the frontend in your browser (usually at `http://localhost:3000`).
+- Use the screener to explore insider buying trends.
+- Click a ticker to view detailed financials.
+- Add tickers to your portfolio.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## API Endpoints
+- `/api/insiders/buying-sums`: Insider buying aggregation
+- `/api/ticker/<ticker>/sf2`: All SHARADAR/SF2 columns for a ticker
+- `/api/ticker/financials`: SHARADAR/SF1 financials
+- `/api/tickers/daily-change`: Previous and current close prices
+- `/api/ticker/<ticker>/news`: Latest news for a ticker
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Customization
+- Adjust DataGrid columns, formatting, and analytics in `src/pages/StockScreenerPage.js` and `src/pages/TickerDetailsPage.js`.
+- Backend logic and endpoints in `backend/api.py`.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## License
+MIT
 
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Credits
+- [Nasdaq Data Link](https://data.nasdaq.com/)
+- [SEC EDGAR CompanyFacts](https://www.sec.gov/search-filings/edgar-application-programming-interfaces)
+- [React](https://react.dev/)
+- [Flask](https://flask.palletsprojects.com/)

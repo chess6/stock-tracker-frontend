@@ -419,7 +419,7 @@ const PortfolioPage = () => {
         <Container className="py-3">
             <Card className="shadow-sm p-3">
                 <CardBody>
-                    <CardTitle tag="h3" className="mb-3">Portfolio</CardTitle>
+                    <CardTitle tag="h3" className="mb-1">Portfolio</CardTitle>
                     <div className="mb-2 d-flex gap-2 align-items-center">
                         <button
                             className="btn btn-danger"

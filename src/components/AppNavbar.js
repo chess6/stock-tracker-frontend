@@ -1,5 +1,7 @@
 
+
 import { useState, useRef } from 'react';
+import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
 import { Container, Navbar, NavbarBrand, Input, Button, Dropdown, DropdownToggle, DropdownMenu, DropdownItem } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
@@ -12,10 +14,10 @@ const AppNavbar = () => {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notification, setNotification] = useState(null);
   const searchTimeoutRef = useRef();
   const latestSearchValue = useRef('');
   const navigate = useNavigate();
-  const searchBarRef = useRef();
 
   const handleSearchChange = e => {
     const value = e.target.value;
@@ -43,10 +45,9 @@ const AppNavbar = () => {
   };
 
   const handleAddToPortfolio = ticker => {
-    // Add to localstorage
-    const prev = JSON.parse(localStorage.getItem('portfolio')) || [];
-    const updated = [...new Set([...prev, ticker])];
-    localStorage.setItem('portfolio', JSON.stringify(updated));
+    // Add to localstorage with notification logic from utils
+    const notif = addToPortfolioWithNotification(ticker);
+    setNotification(notif);
     setDropdownOpen(false);
     setSearch('');
   };
@@ -57,27 +58,35 @@ const AppNavbar = () => {
     navigate(`/${ticker}`);
   };
 
-  // Remove custom click-outside logic; Reactstrap Dropdown will handle it
-
   return (
-    <Navbar color="dark" dark expand="lg" className="mb-1 position-relative" style={{ minHeight: 64 }}>
-      <Container fluid>
-        <div className="d-flex justify-content-between align-items-center w-100">
-          <div className="d-flex align-items-center">
-            <NavbarBrand tag={Link} to="/" className="fw-bold fs-4" style={{ cursor: 'pointer' }}>
-              Stock Portfolio
-            </NavbarBrand>
-            <Link to="/nasdaq-columns" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
-              NASDAQ Reference
-            </Link>
-            <Link to="/screener" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
-              Screener
-            </Link>
-          </div>
-          <div className="d-flex position-relative" style={{ minWidth: "45rem", justifyContent: "flex-end" }}>
-            <div style={{ position: 'relative', width: '45rem' }} ref={searchBarRef}>
-              <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                <Input
+    <>
+      {notification && (
+        <div className={`alert alert-${notification.type} alert-dismissible fade show`} role="alert" style={{ position: 'fixed', top: 70, right: 30, zIndex: 9999, minWidth: 280 }}>
+          {notification.message}
+          <button type="button" className="btn-close" aria-label="Close" onClick={() => setNotification(null)}></button>
+        </div>
+      )}
+      <Navbar color="dark" dark expand="lg" className="mb-1 position-relative" style={{ minHeight: 64 }}>
+        <Container fluid>
+          <div className="d-flex justify-content-between align-items-center w-100">
+            <div className="d-flex align-items-center">
+              <NavbarBrand tag={Link} to="/" className="fw-bold fs-4" style={{ cursor: 'pointer' }}>
+                Stock Portfolio
+              </NavbarBrand>
+              <Link to="/nasdaq-columns" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
+                NASDAQ Reference
+              </Link>
+              <Link to="/screener" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
+                Screener
+              </Link>
+              <Link to="/admin" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
+                Admin
+              </Link>
+            </div>
+            <div className="d-flex position-relative" style={{ minWidth: "45rem", justifyContent: "flex-end" }}>
+              <div style={{ position: 'relative', width: '45rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                  <Input
                   type="text"
                   bsSize="sm"
                   style={{ width: "100%", fontSize: 14 }}
@@ -106,7 +115,15 @@ const AppNavbar = () => {
                     <div key={idx} className="d-flex justify-content-between align-items-center dropdown-item" style={{ width: "100%", cursor: 'pointer' }} role="menuitem" tabIndex={0}>
                       <span><strong>{item.ticker}</strong> <small className="text-muted">{item.name}</small></span>
                       <span>
-                        <Button size="sm" color="success" className="me-2" onMouseDown={e => e.preventDefault()} onClick={() => handleAddToPortfolio(item.ticker)} title="Add to Portfolio">
+                        <Button
+                          size="sm"
+                          color={isInPortfolio(item.ticker) ? 'secondary' : 'success'}
+                          className="me-2"
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => handleAddToPortfolio(item.ticker)}
+                          title={isInPortfolio(item.ticker) ? 'Already in Portfolio' : 'Add to Portfolio'}
+                          disabled={isInPortfolio(item.ticker)}
+                        >
                           <FontAwesomeIcon icon={faPlus} />
                         </Button>
                         <Button size="sm" color="primary" onMouseDown={e => e.preventDefault()} onClick={() => handleSearchTicker(item.ticker)} title="Search">
@@ -122,7 +139,8 @@ const AppNavbar = () => {
         </div>
       </Container>
     </Navbar>
+    </>
   );
-};
+}
 
 export default AppNavbar;

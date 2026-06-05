@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { getPortfolio, isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
 import { useParams, Link } from 'react-router-dom';
 import ApexCharts from 'react-apexcharts';
 import axios from 'axios';
@@ -24,6 +25,13 @@ const reportOptions = [
 
 const FinancialsPage = () => {
   const { ticker } = useParams();
+  const [notification, setNotification] = useState(null);
+  // Add to portfolio with notification and duplicate check
+  const handleAddToPortfolio = () => {
+    if (!ticker) return;
+    const notif = addToPortfolioWithNotification(ticker);
+    setNotification(notif);
+  };
   const [financials, setFinancials] = useState({ income: [], balanceSheet: [], cashFlow: [] });
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('annual');
@@ -336,18 +344,32 @@ const FinancialsPage = () => {
   };
 
   return (
-    <div className="container py-3">
-      <div className="row mb-3">
+  <div className="container py-3">
+      {notification && (
+        <div className={`alert alert-${notification.type} alert-dismissible fade show`} role="alert" style={{ position: 'fixed', top: 70, right: 30, zIndex: 9999, minWidth: 280 }}>
+          {notification.message}
+          <button type="button" className="btn-close" aria-label="Close" onClick={() => setNotification(null)}></button>
+        </div>
+      )}
+      <div className="row mb-1">
         <div className="col">
           <nav className="mb-2">
             <Link to={`/${ticker}`}>Summary</Link> |{' '}
             <Link to={`/${ticker}/financials`}>Financials</Link>
           </nav>
           <h1 className="h3 mb-0">{ticker} Financials</h1>
+          <button
+            className={`btn btn-sm ms-2 ${isInPortfolio(ticker) ? 'btn-secondary' : 'btn-success'}`}
+            onClick={handleAddToPortfolio}
+            style={{ verticalAlign: 'middle' }}
+            disabled={isInPortfolio(ticker)}
+          >
+          Add to Portfolio
+          </button>
         </div>
       </div>
 
-      <div className="card shadow-sm mb-3">
+      <div className="card shadow-sm mb-1">
         <div className="card-body">
           <div className="row g-3 align-items-end">
             <div className="col-auto">
@@ -385,7 +407,7 @@ const FinancialsPage = () => {
         </div>
       </div>
 
-      <div className="card shadow-sm mb-3">
+      <div className="card shadow-sm mb-1">
         <div className="card-body" style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: chartWidth }}>
             <ApexCharts options={barChartOptions} series={chartSeries} type="bar" height={500} width={chartWidth} />
@@ -405,7 +427,10 @@ const FinancialsPage = () => {
               ) : (
                 <DataGrid
                   data={tabRows}
-                  columns={columns}
+                  columns={columns.map(col => ({
+                    ...col,
+                    cellStyle: { whiteSpace: 'nowrap' },
+                  }))}
                   enableRowSelection={false}
                   enableSorting={false}
                   enableGlobalFilter={false}

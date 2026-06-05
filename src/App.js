@@ -9,21 +9,29 @@ import "@svar-ui/react-grid/all.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import AppNavbar from './components/AppNavbar';
 import StockScreenerPage from './pages/StockScreenerPage';
+import { Provider } from 'react-redux';
+import store from './store';
+import TickerDetailsPage from './pages/TickerDetailsPage';
+import AdminConsolePage from './pages/AdminConsolePage';
 
 function App() {
   return (
-    <Router>
-      <AppNavbar />
-      <Routes>
-        <Route path="/" element={<PortfolioPage />} />
-        <Route path=":ticker" element={<SummaryPage />} />
-        <Route path=":ticker/financials" element={<FinancialsPage />} />
-        <Route path="nasdaq-columns" element={<NasdaqColumnsGrid />} />
-        <Route path="grid-demo" element={<GridDemoPage />} />
-        <Route path="screener" element={<StockScreenerPage />} />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Router>
+    <Provider store={store}>
+      <Router>
+        <AppNavbar />
+        <Routes>
+          <Route path="/" element={<PortfolioPage />} />
+          <Route path=":ticker" element={<SummaryPage />} />
+          <Route path=":ticker/financials" element={<FinancialsPage />} />
+          <Route path="nasdaq-columns" element={<NasdaqColumnsGrid />} />
+          <Route path="grid-demo" element={<GridDemoPage />} />
+          <Route path="screener" element={<StockScreenerPage />} />
+          <Route path="admin" element={<AdminConsolePage />} />
+          <Route path="ticker/:ticker" element={<TickerDetailsPage />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </Provider>
   );
 }
 

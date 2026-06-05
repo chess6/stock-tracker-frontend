@@ -130,20 +130,8 @@ export default function DataGrid({
 
   return (
     <div style={{ position: 'relative', maxWidth: '100%', ...style }}>
-      {/* Scroll container wraps controls and table so controls align with table width */}
-      <div
-        ref={scrollRef}
-        onScroll={onScroll}
-        style={{
-          overflowX: 'auto',
-          overflowY: 'auto',
-          maxWidth: '100%',
-          maxHeight: maxHeight || undefined,
-        }}
-      >
-        <div className="d-inline-block" style={{ minWidth: '100%' }}>
-          {/* Controls aligned to the right edge of the table area */}
-          <div className="d-flex justify-content-end align-items-center mb-2" style={{ gap: '0.5rem' }}>
+      {/* Controls aligned to the right edge of the table area (stay fixed while grid scrolls) */}
+      <div className="d-flex justify-content-end align-items-center mb-2" style={{ gap: '0.5rem' }}>
         <div className="position-relative">
           <button
             type="button"
@@ -170,7 +158,7 @@ export default function DataGrid({
                       className="form-check-input"
                       type="checkbox"
                       id={`col-toggle-${colKey}`}
-                          checked={effectiveVisibleColumns.includes(colKey)}
+                      checked={effectiveVisibleColumns.includes(colKey)}
                       onChange={() => handleToggleColumn(colKey)}
                     />
                     <label className="form-check-label" htmlFor={`col-toggle-${colKey}`} style={{ fontSize: 14 }}>
@@ -191,125 +179,144 @@ export default function DataGrid({
             onChange={(e) => setGlobalFilter(e.target.value)}
           />
         )}
-          </div>
+      </div>
+
+      {/* Grid scroll container with sticky header */}
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        style={{
+          overflowY: 'auto',
+          overflowX: 'auto',
+          maxHeight: maxHeight || undefined,
+          maxWidth: '100%',
+        }}
+      >
+        <div className="d-inline-block" style={{ minWidth: '100%' }}>
           <table
-          className={tableClassName}
-          style={{
-            tableLayout: fixedColumnWidth ? 'fixed' : 'auto',
-            width: 'auto',
-            maxWidth: '100%',
-          }}
-        >
-        <thead>
-          {table.getHeaderGroups().map(headerGroup => (
-            <tr key={headerGroup.id} style={headerStyle}>
-              {headerGroup.headers.map(header => {
-                const canSort = enableSorting && header.column.getCanSort();
-                const sortDir = header.column.getIsSorted();
-                const isResizable = header.column.getCanResize();
-                let thStyle = { ...headerStyle };
-                // Always position relative for proper resizer anchor
-                if (isResizable) {
-                  thStyle.position = 'relative';
-                }
-                // Prefer dynamic column sizing when available
-                const colSize = table.getState().columnSizing?.[header.column.id];
-                if (colSize) {
-                  thStyle.width = colSize;
-                  thStyle.maxWidth = colSize;
-                } else if (fixedColumnWidth) {
-                  const colDef = header.column.columnDef;
-                  if (colDef.size) {
-                    thStyle.width = colDef.size;
-                    thStyle.maxWidth = colDef.size;
-                  }
-                }
-                return (
-                  <th
-                    key={header.id}
-                    style={thStyle}
-                  >
-                    {header.isPlaceholder ? null : (
-                      <div
-                        role={canSort ? 'button' : undefined}
-                        onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                        // title={canSort ? 'Click to sort' : undefined}
+            className={tableClassName}
+            style={{
+              tableLayout: fixedColumnWidth ? 'fixed' : 'auto',
+              width: 'auto',
+              maxWidth: '100%',
+              marginBottom: 0,
+            }}
+          >
+            <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
+              {table.getHeaderGroups().map(headerGroup => (
+                <tr key={headerGroup.id} style={headerStyle}>
+                  {headerGroup.headers.map(header => {
+                    const canSort = enableSorting && header.column.getCanSort();
+                    const sortDir = header.column.getIsSorted();
+                    const isResizable = header.column.getCanResize();
+                    let thStyle = { ...headerStyle };
+                    // Always position relative for proper resizer anchor
+                    if (isResizable) {
+                      thStyle.position = 'relative';
+                    }
+                    // Prefer dynamic column sizing when available
+                    const colSize = table.getState().columnSizing?.[header.column.id];
+                    if (colSize) {
+                      thStyle.width = colSize;
+                      thStyle.maxWidth = colSize;
+                    } else if (fixedColumnWidth) {
+                      const colDef = header.column.columnDef;
+                      if (colDef.size) {
+                        thStyle.width = colDef.size;
+                        thStyle.maxWidth = colDef.size;
+                      }
+                    }
+                    return (
+                      <th
+                        key={header.id}
+                        style={thStyle}
                       >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {canSort && (
-                          <span style={{ fontSize: 12, opacity: 0.7 }}>
-                            {sortDir === 'asc' ? <>&uarr;</> : sortDir === 'desc' ? <>&darr;</> : <>&#8597;</>}
-                          </span>
+                        {header.isPlaceholder ? null : (
+                          <div
+                            role={canSort ? 'button' : undefined}
+                            onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {canSort && (
+                              <span style={{ fontSize: 12, opacity: 0.7 }}>
+                                {sortDir === 'asc' ? <>&uarr;</> : sortDir === 'desc' ? <>&darr;</> : <>&#8597;</>}
+                              </span>
+                            )}
+                          </div>
                         )}
-                      </div>
-                    )}
-                    {isResizable && (
-                      <div
-                        onMouseDown={header.getResizeHandler()}
-                        style={{
-                          position: 'absolute',
-                          right: 0,
-                          top: 0,
-                          height: '100%',
-                          width: 6,
-                          cursor: 'col-resize',
-                          userSelect: 'none',
-                          zIndex: 1,
-                        }}
-                        title="Drag to resize column"
-                      />
-                    )}
-                  </th>
-                );
-              })}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {rowsToRender.map((row) => (
-            <tr
-              key={row.id}
-              className={row.getIsSelected() ? 'table-active' : undefined}
-              style={{
-                cursor: onRowClick ? 'pointer' : 'default',
-              }}
-              onClick={() => onRowClick && onRowClick(row)}
-            >
-              {row.getVisibleCells().map(cell => {
-                let cellStyle = {};
-                // Prefer dynamic column sizing when available
-                const cSize = table.getState().columnSizing?.[cell.column.id];
-                if (cSize) {
-                  cellStyle.width = cSize;
-                  cellStyle.maxWidth = cSize;
-                } else if (fixedColumnWidth) {
-                  const colDef = cell.column.columnDef;
-                  if (colDef.size) {
-                    cellStyle.width = colDef.size;
-                    cellStyle.maxWidth = colDef.size;
-                  }
-                }
-                // Ensure wrapping for fixed layouts
-                if (fixedColumnWidth) {
-                  cellStyle.whiteSpace = 'normal';
-                  cellStyle.wordBreak = 'break-word';
-                }
-                return (
-                  <td key={cell.id} style={cellStyle}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
+                        {isResizable && (
+                          <div
+                            onMouseDown={header.getResizeHandler()}
+                            style={{
+                              position: 'absolute',
+                              right: 0,
+                              top: 0,
+                              height: '100%',
+                              width: 6,
+                              cursor: 'col-resize',
+                              userSelect: 'none',
+                              zIndex: 1,
+                            }}
+                            title="Drag to resize column"
+                          />
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {rowsToRender.map((row) => (
+                <tr
+                  key={row.id}
+                  className={row.getIsSelected() ? 'table-active' : undefined}
+                  style={{
+                    cursor: onRowClick ? 'pointer' : 'default',
+                  }}
+                  onClick={() => onRowClick && onRowClick(row)}
+                >
+                  {row.getVisibleCells().map(cell => {
+                    let cellStyle = {};
+                    // Prefer dynamic column sizing when available
+                    const cSize = table.getState().columnSizing?.[cell.column.id];
+                    if (cSize) {
+                      cellStyle.width = cSize;
+                      cellStyle.maxWidth = cSize;
+                    } else if (fixedColumnWidth) {
+                      const colDef = cell.column.columnDef;
+                      if (colDef.size) {
+                        cellStyle.width = colDef.size;
+                        cellStyle.maxWidth = colDef.size;
+                      }
+                    }
+                    // Ensure wrapping for fixed layouts
+                    if (fixedColumnWidth) {
+                      cellStyle.whiteSpace = 'normal';
+                      cellStyle.wordBreak = 'break-word';
+                    }
+                    // Merge cellStyle from column definition if present
+                    if (typeof cell.column.columnDef.cellStyle === 'function') {
+                      Object.assign(cellStyle, cell.column.columnDef.cellStyle(cell.getContext()));
+                    } else if (cell.column.columnDef.cellStyle) {
+                      Object.assign(cellStyle, cell.column.columnDef.cellStyle);
+                    }
+                    return (
+                      <td key={cell.id} style={cellStyle}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
           </table>
-        {totalCount > rowsToRender.length && (
-          <div className="text-center text-muted py-2" style={{ fontSize: 12 }}>
-            Showing {rowsToRender.length} of {totalCount} rows. Scroll to load more…
-          </div>
-        )}
+          {totalCount > rowsToRender.length && (
+            <div className="text-center text-muted py-2" style={{ fontSize: 12 }}>
+              Showing {rowsToRender.length} of {totalCount} rows. Scroll to load more…
+            </div>
+          )}
         </div>
       </div>
     </div>

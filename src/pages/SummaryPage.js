@@ -205,7 +205,7 @@ const SummaryPage = () => {
                   <div><strong>Company Site:</strong> <a href={tickerMeta.companysite} target="_blank" rel="noopener noreferrer">{tickerMeta.companysite}</a></div>
                 </div>
               )}
-              <div className="mb-3" style={{ fontSize: 14, color: '#666' }}>
+              <div className="mb-1" style={{ fontSize: 14, color: '#666' }}>
                 {latestClose != null && (
                   <span>
                     Latest Close: <strong>${latestClose.toFixed(2)}</strong>
@@ -222,7 +222,7 @@ const SummaryPage = () => {
                   </span>
                 )}
               </div>
-              <div className="mb-3">
+              <div className="mb-1">
                 <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('1D')}>1D</Button>
                 <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('5D')}>5D</Button>
                 <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('1M')}>1M</Button>

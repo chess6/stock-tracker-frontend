@@ -11,6 +11,13 @@ export const API_ENDPOINTS = {
   TOP_OF_BOOK: `${API_BASE}/tickers/top`,
   DAILY_CHANGE: `${API_BASE}/tickers/daily-change`,
   INSIDER_BUYING_SUMS: `${API_BASE}/insiders/buying-sums`,
+  SF2: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
+  ADMIN_STATUS: `${API_BASE}/admin/status`,
+  ADMIN_DEFAULT_FEEDS: `${API_BASE}/admin/default-feeds`,
+  ADMIN_SYNC_COMPANIES: `${API_BASE}/admin/sync-companies`,
+  ADMIN_REFRESH_FUNDAMENTALS: `${API_BASE}/admin/refresh-fundamentals`,
+  ADMIN_INGEST_DEFAULT_FEEDS: `${API_BASE}/admin/ingest-default-feeds`,
+  ADMIN_BOOTSTRAP: `${API_BASE}/admin/bootstrap`,
 };
 
 export default API_ENDPOINTS;
