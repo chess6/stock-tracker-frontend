@@ -31,7 +31,13 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:check": "CI=true react-scripts build",
     "test": "react-scripts test",
+    "lint": "eslint \"src/**/*.{js,jsx}\" --max-warnings 15",
+    "test:e2e": "playwright test",
+    "test:visual": "playwright test e2e/visual-regression.spec.js",
+    "test:visual:update": "playwright test e2e/visual-regression.spec.js --update-snapshots",
+    "qa:frontend": "npm run lint && CI=true npm test -- --watchAll=false --runInBand && npm run test:visual",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -52,5 +58,10 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:5000"
+  "proxy": "http://localhost:5000",
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "eslint": "^8.57.1",
+    "serve": "^14.2.4"
+  }
 }

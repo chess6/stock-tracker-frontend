@@ -105,11 +105,19 @@ src/
 └── apiConfig.js     API endpoint constants
 ```
 
-## Tests
+## Tests & QA
 
 ```bash
+npm run lint
 CI=true npm test -- --watchAll=false --runInBand
+npm run test:visual              # Playwright screenshot regression (desktop/tablet/mobile)
+npm run test:visual:update       # accept new baselines after intentional UI changes
+npm run qa:frontend              # lint + unit + visual
 ```
+
+First-time Playwright setup: `npm install && npx playwright install chromium`
+
+Agent instructions: `AGENTS.md` and `.cursor/rules/frontend-qa.mdc`
 
 ## Known UI gaps
 

@@ -5,7 +5,6 @@ import {
   formatShares,
   formatUsd,
   formatDecimal,
-  formatPercent,
 } from '../utils/formatters';
 import { useNavigate } from 'react-router-dom';
 import API_ENDPOINTS from '../apiConfig';

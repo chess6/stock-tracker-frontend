@@ -6,6 +6,8 @@ alwaysApply: false
 
 # Frontend React
 
+See `AGENTS.md` and `.cursor/rules/frontend-qa.mdc` for the full QA gate.
+
 ## API
 
 - Endpoints only in `src/apiConfig.js` — never hardcode `/api/...`
@@ -16,18 +18,21 @@ alwaysApply: false
 | Route | Page |
 |-------|------|
 | `/` | PortfolioPage |
-| `/:ticker` | SummaryPage |
-| `/:ticker/financials` | FinancialsPage |
+| `/dashboard` | DashboardPage |
+| `/news` | NewsPage |
 | `/screener` | StockScreenerPage |
 | `/admin` | AdminConsolePage |
+| `/:ticker` | SummaryPage |
+| `/:ticker/financials` | FinancialsPage |
 | `/ticker/:ticker` | TickerDetailsPage (insiders) |
 
 ## Free-first UX
 
-- Empty states should say "Run bootstrap from Admin" when cache is empty.
+- Empty states should link to `/admin` when cache or portfolio is empty.
 - Show `meta.source` when present (`sqlite`, `sec_edgar`, `nasdaq`, `disabled`).
-- Bootstrap/Reactstrap + ApexCharts; Redux only for screener state.
+- Bootstrap/Reactstrap + DataGrid + ApexCharts; Redux only for screener state.
 
 ## Tests
 
-- Run: `npm test -- --watchAll=false`
+- Unit: `npm test -- --watchAll=false`
+- Full QA: `npm run qa:frontend`

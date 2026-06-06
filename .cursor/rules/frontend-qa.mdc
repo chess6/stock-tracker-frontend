@@ -1,0 +1,21 @@
+---
+description: Frontend QA gate — run before finalizing any UI change
+alwaysApply: true
+---
+
+# Frontend QA gate
+
+Full checklist: `AGENTS.md`. Before marking a frontend task done:
+
+1. **Review** — overflow, spacing, responsiveness, a11y, loading/error/empty states, layout shift
+2. **Run** — `npm run qa:frontend` (or `lint`, `build:check`, `test`, `test:visual` separately)
+3. **Screenshots** — Playwright compares desktop / tablet / mobile baselines in `e2e/snapshots/`
+4. **On diff failure** — explain, fix, re-run; use `npm run test:visual:update` only for intentional changes
+
+## Design constraints
+
+- Use **DataGrid**, Reactstrap, Bootstrap grid, **heatMap.js** — no new layout systems
+- Spacing: Bootstrap utilities only (`m-*`, `p-*`, `gap-*`)
+- Colors: Bootstrap palette + heatMap ramps — no arbitrary hex in new code
+- Tables/charts must scroll on small screens
+- API paths only in `apiConfig.js`

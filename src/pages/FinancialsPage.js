@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getPortfolio, isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
+import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
 import { useParams, Link } from 'react-router-dom';
 import ApexCharts from 'react-apexcharts';
 import axios from 'axios';
