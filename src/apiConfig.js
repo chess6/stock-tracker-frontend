@@ -22,6 +22,7 @@ export const API_ENDPOINTS = {
   ADMIN_REFRESH_PRICES: `${API_BASE}/admin/refresh-prices`,
   ADMIN_REFRESH_INSIDERS: `${API_BASE}/admin/refresh-insiders`,
   ADMIN_ENQUEUE_JOB: `${API_BASE}/admin/enqueue-job`,
+  ADMIN_DEDUP_ARTICLES: `${API_BASE}/admin/dedup-articles`,
   ADMIN_BOOTSTRAP: `${API_BASE}/admin/bootstrap`,
 };
 

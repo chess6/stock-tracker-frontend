@@ -333,6 +333,26 @@ const PortfolioPage = () => {
         return () => { window.removeEventListener('focus', sync); clearInterval(id); };
     }, [portfolio]);
 
+    if (portfolio.length === 0) {
+        return (
+            <Container className="py-3">
+                <Card className="shadow-sm">
+                    <CardBody className="text-center py-5">
+                        <CardTitle tag="h3" className="mb-3">Your portfolio is empty</CardTitle>
+                        <p className="text-muted mb-4">
+                            Search for a ticker in the navbar and click <strong>+</strong> to add it.
+                            After adding tickers, load fundamentals and prices from the admin console.
+                        </p>
+                        <div className="d-flex gap-2 justify-content-center flex-wrap">
+                            <Link to="/admin" className="btn btn-primary">Open Admin Console</Link>
+                            <Link to="/screener" className="btn btn-outline-secondary">Browse Insider Screener</Link>
+                        </div>
+                    </CardBody>
+                </Card>
+            </Container>
+        );
+    }
+
     return (
         <Container className="py-3">
             <Card className="shadow-sm p-3">

@@ -6,6 +6,7 @@ import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import DataGrid from '../components/DataGrid';
 import { formatUsd } from '../utils/formatters';
+import { insiderDollarStyle } from '../utils/heatMap';
 
 const StockScreenerPage = () => {
   const rows = useSelector(state => state.screener.rows);
@@ -95,7 +96,14 @@ const StockScreenerPage = () => {
     { header: 'Company', accessorKey: 'company', cell: info => (
       <span style={{ whiteSpace: 'nowrap' }}>{info.getValue()}</span>
     ), size: 240 },
-  { header: 'Insider Buy 6M', accessorKey: 'buy6m', cell: info => formatUsd(info.getValue(), 0), size: 140 },
+  {
+      header: 'Insider Buy 6M',
+      accessorKey: 'buy6m',
+      meta: { numeric: true },
+      cellStyle: info => insiderDollarStyle(info.getValue()),
+      cell: info => formatUsd(info.getValue(), 0),
+      size: 140,
+    },
     { 
       header: '6m # owners', 
       accessorKey: 'owners6m', 
@@ -115,8 +123,22 @@ const StockScreenerPage = () => {
       },
       size: 120 
     },
-    { header: 'Insider Buy 3M', accessorKey: 'buy3m', cell: info => formatUsd(info.getValue(), 0), size: 140 },
-    { header: 'Insider Buy 1M', accessorKey: 'buy1m', cell: info => formatUsd(info.getValue(), 0), size: 140 },
+    {
+      header: 'Insider Buy 3M',
+      accessorKey: 'buy3m',
+      meta: { numeric: true },
+      cellStyle: info => insiderDollarStyle(info.getValue()),
+      cell: info => formatUsd(info.getValue(), 0),
+      size: 140,
+    },
+    {
+      header: 'Insider Buy 1M',
+      accessorKey: 'buy1m',
+      meta: { numeric: true },
+      cellStyle: info => insiderDollarStyle(info.getValue()),
+      cell: info => formatUsd(info.getValue(), 0),
+      size: 140,
+    },
     {
         header: 'OpenInsider',
         accessorKey: 'openInsider',

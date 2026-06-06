@@ -1,6 +1,6 @@
 
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
 import { Container, Navbar, NavbarBrand, Input, Button, Dropdown, DropdownToggle, DropdownMenu, DropdownItem } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -8,6 +8,7 @@ import { faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
+import { summarizeFreshness } from '../utils/dataFreshness';
 import '../navbar-search-dropdown.css';
 
 const AppNavbar = () => {
@@ -15,9 +16,27 @@ const AppNavbar = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [staleLabel, setStaleLabel] = useState(null);
   const searchTimeoutRef = useRef();
   const latestSearchValue = useRef('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadFreshness = async () => {
+      try {
+        const res = await axios.get(API_ENDPOINTS.ADMIN_STATUS);
+        if (cancelled) return;
+        const { label } = summarizeFreshness(res.data?.freshness);
+        setStaleLabel(label);
+      } catch {
+        if (!cancelled) setStaleLabel(null);
+      }
+    };
+    loadFreshness();
+    const id = setInterval(loadFreshness, 5 * 60 * 1000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
   const handleSearchChange = e => {
     const value = e.target.value;
@@ -88,6 +107,15 @@ const AppNavbar = () => {
               <Link to="/admin" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
                 Admin
               </Link>
+              {staleLabel && (
+                <Link
+                  to="/admin"
+                  className="ms-3 badge rounded-pill text-bg-warning text-decoration-none"
+                  title="Local cache may be out of date — open Admin to refresh"
+                >
+                  {staleLabel}
+                </Link>
+              )}
             </div>
             <div className="d-flex position-relative" style={{ minWidth: "45rem", justifyContent: "flex-end" }}>
               <div style={{ position: 'relative', width: '45rem' }}>

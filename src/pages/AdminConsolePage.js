@@ -124,6 +124,23 @@ export default function AdminConsolePage() {
             >
               {busyAction === 'Insider refresh' ? 'Running...' : 'Refresh Insiders'}
             </button>
+            <button
+              className="btn btn-outline-warning"
+              disabled={busyAction !== null}
+              onClick={() => runAction('Article dedup', () => axios.post(API_ENDPOINTS.ADMIN_DEDUP_ARTICLES))}
+            >
+              {busyAction === 'Article dedup' ? 'Running...' : 'Dedup Articles'}
+            </button>
+            <button
+              className="btn btn-outline-secondary"
+              disabled={busyAction !== null}
+              onClick={() => runAction('Queue RSS poll', () => axios.post(API_ENDPOINTS.ADMIN_ENQUEUE_JOB, {
+                job_type: 'ingest_default_feeds',
+                payload: { force_refresh: true },
+              }))}
+            >
+              {busyAction === 'Queue RSS poll' ? 'Running...' : 'Queue RSS Poll'}
+            </button>
           </div>
         </div>
       </div>
