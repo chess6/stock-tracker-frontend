@@ -7,8 +7,17 @@ import API_ENDPOINTS from '../apiConfig';
 import ApexCharts from 'react-apexcharts';
 import { createRoot } from 'react-dom/client';
 import { Container, Card, CardBody, CardTitle } from 'reactstrap';
-import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
+import { formatUsd, formatDecimal, formatPercent, changePercentStyle } from '../utils/formatters';
+import { PORTFOLIO_COLUMN_META } from '../config/portfolioColumns';
 import DataGrid from '../components/DataGrid';
+
+const toNullableNumber = (value) => {
+    if (value === null || value === undefined) return null;
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
+};
+
+const columnMeta = (key) => PORTFOLIO_COLUMN_META[key] || { label: key, tooltip: key };
 
 // Tabulator custom formatter for MiniChart React component
 function tabulatorMiniChartFormatter(cell, formatterParams, onRendered) { // don't remove yet
@@ -69,24 +78,6 @@ function MiniChart({ row }) {
 }
 
 const PortfolioPage = () => {
-    // Column tooltips for Tabulator (memoized for stable reference)
-    const columnTooltips = useMemo(() => ({
-        ticker: 'Stock ticker symbol',
-        price: 'Latest closing price (USD)',
-        change: 'Percent change from previous close',
-        marketCap: 'Market capitalization (USD)',
-        sp: 'Sales per share',
-        ebitdaEv: 'EBITDA/Enterprise Value',
-        tbp: 'Tangible book value per share',
-        bp: 'Book value per share',
-        ep: 'Earnings per share',
-        cfop: 'Cash flow from operations per share',
-        sfcfp: 'Free cash flow per share',
-        insiderBuy6m: 'Sum of insider buying (last 6 months)',
-        insiderBuy3m: 'Sum of insider buying (last 3 months)',
-        insiderBuy1m: 'Sum of insider buying (last 1 month)',
-        delete: 'Remove from portfolio',
-    }), []);
     // Search bar and results now handled in AppNavbar
     const [portfolio, setPortfolio] = useState(() => {
         // Try to load from localStorage, else default to []
@@ -134,7 +125,8 @@ const PortfolioPage = () => {
             size: 32,
         }),
         columnHelper.accessor('ticker', {
-            header: () => <span title={columnTooltips.ticker}>Ticker</span>,
+            meta: columnMeta('ticker'),
+            header: () => <span title={columnMeta('ticker').tooltip}>Ticker</span>,
             cell: ({ row, getValue }) => {
                 const ticker = getValue();
                 const company = row.original.company;
@@ -150,11 +142,14 @@ const PortfolioPage = () => {
         }),
         // columnHelper.accessor('chartData', { header: 'Chart', cell: () => null }),
         columnHelper.accessor('price', {
-            header: () => <span title={columnTooltips.price}>Price</span>,
+            meta: columnMeta('price'),
+            header: () => <span title={columnMeta('price').tooltip}>Price</span>,
             cell: ({ getValue }) => <span>{formatUsd(getValue())}</span>,
         }),
         columnHelper.accessor('change', {
-            header: () => <span title={columnTooltips.change}>Change</span>,
+            meta: columnMeta('change'),
+            header: () => <span title={columnMeta('change').tooltip}>Change</span>,
+            cellStyle: ({ row }) => changePercentStyle(row.original?.change),
             cell: ({ getValue, row }) => {
                 const pending = row.original?._pending?.change;
                 const val = getValue();
@@ -169,50 +164,61 @@ const PortfolioPage = () => {
             },
         }),
         columnHelper.accessor('marketCap', {
-            header: () => <span title={columnTooltips.marketCap}>Market Cap</span>,
+            meta: columnMeta('marketCap'),
+            header: () => <span title={columnMeta('marketCap').tooltip}>Market Cap</span>,
             cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
         }),
         columnHelper.accessor('sp', {
-            header: () => <span title={columnTooltips.sp}>SP</span>,
+            meta: columnMeta('sp'),
+            header: () => <span title={columnMeta('sp').tooltip}>SP</span>,
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('ebitdaEv', {
-            header: () => <span title={columnTooltips.ebitdaEv}>Eb/EV</span>,
+            meta: columnMeta('ebitdaEv'),
+            header: () => <span title={`${columnMeta('ebitdaEv').tooltip}. ${columnMeta('ebitdaEv').formula || ''}`}>Eb/EV</span>,
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('tbp', {
-            header: () => <span title={columnTooltips.tbp}>TBP</span>,
+            meta: columnMeta('tbp'),
+            header: () => <span title={columnMeta('tbp').tooltip}>TBP</span>,
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('bp', {
-            header: () => <span title={columnTooltips.bp}>BP</span>,
+            meta: columnMeta('bp'),
+            header: () => <span title={columnMeta('bp').tooltip}>BP</span>,
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('ep', {
-            header: () => <span title={columnTooltips.ep}>EP</span>,
+            meta: columnMeta('ep'),
+            header: () => <span title={columnMeta('ep').tooltip}>EP</span>,
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('cfop', {
-            header: () => <span title={columnTooltips.cfop}>CFOP</span>,
+            meta: columnMeta('cfop'),
+            header: () => <span title={columnMeta('cfop').tooltip}>CFOP</span>,
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('sfcfp', {
-            header: () => <span title={columnTooltips.sfcfp}>SFCFP</span>,
+            meta: columnMeta('sfcfp'),
+            header: () => <span title={columnMeta('sfcfp').tooltip}>SFCFP</span>,
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('insiderBuy6m', {
-            header: () => <span title={columnTooltips.insiderBuy6m}>Insider Buy 6M</span>,
+            meta: columnMeta('insiderBuy6m'),
+            header: () => <span title={columnMeta('insiderBuy6m').tooltip}>Insider Buy 6M</span>,
             cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
         }),
         columnHelper.accessor('insiderBuy3m', {
-            header: () => <span title={columnTooltips.insiderBuy3m}>Insider Buy 3M</span>,
+            meta: columnMeta('insiderBuy3m'),
+            header: () => <span title={columnMeta('insiderBuy3m').tooltip}>Insider Buy 3M</span>,
             cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
         }),
         columnHelper.accessor('insiderBuy1m', {
-            header: () => <span title={columnTooltips.insiderBuy1m}>Insider Buy 1M</span>,
+            meta: columnMeta('insiderBuy1m'),
+            header: () => <span title={columnMeta('insiderBuy1m').tooltip}>Insider Buy 1M</span>,
             cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
         }),
-    ], [columnTooltips, columnHelper]);
+    ], [columnHelper]);
 
     // Handler to delete ticker from portfolio
     const handleDeleteTicker = async ticker => {
@@ -260,12 +266,7 @@ const PortfolioPage = () => {
 
                     const newRows = fetchTickers.map((ticker) => {
                         const metrics = metricsMap[ticker] || {};
-                        const toNumber = key => {
-                            const value = metrics[key];
-                            if (value === null || value === undefined) return null;
-                            const parsed = Number(value);
-                            return Number.isNaN(parsed) ? null : parsed;
-                        };
+                        const toNumber = (key) => toNullableNumber(metrics[key]);
                         const marketCap = toNumber('marketCap');
                         const sp = toNumber('sp');
                         const ebitdaEv = toNumber('ebitdaEv');
@@ -382,11 +383,14 @@ const PortfolioPage = () => {
                         map = payload.sums || payload;
                     }
                     setRows(prev => prev.map(row => {
-                        const s = map[row.ticker] || {};
-                        const buy6m = Number(s.buy6m ?? s.insiderBuy6m ?? 0);
-                        const buy3m = Number(s.buy3m ?? s.insiderBuy3m ?? 0);
-                        const buy1m = Number(s.buy1m ?? s.insiderBuy1m ?? 0);
-                        return { ...row, insiderBuy6m: buy6m, insiderBuy3m: buy3m, insiderBuy1m: buy1m };
+                        const s = map[row.ticker];
+                        if (!s) return row;
+                        return {
+                            ...row,
+                            insiderBuy6m: toNullableNumber(s.buy6m ?? s.insiderBuy6m),
+                            insiderBuy3m: toNullableNumber(s.buy3m ?? s.insiderBuy3m),
+                            insiderBuy1m: toNullableNumber(s.buy1m ?? s.insiderBuy1m),
+                        };
                     }));
                 } catch {
                     // ignore

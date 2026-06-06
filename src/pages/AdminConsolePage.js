@@ -110,6 +110,20 @@ export default function AdminConsolePage() {
             >
               {busyAction === 'Feed ingest' ? 'Running...' : 'Ingest Default Feeds'}
             </button>
+            <button
+              className="btn btn-outline-primary"
+              disabled={busyAction !== null}
+              onClick={() => runAction('Price refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_PRICES}?tickers=${encodeURIComponent(tickers)}`))}
+            >
+              {busyAction === 'Price refresh' ? 'Running...' : 'Refresh Prices'}
+            </button>
+            <button
+              className="btn btn-outline-primary"
+              disabled={busyAction !== null}
+              onClick={() => runAction('Insider refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_INSIDERS}?tickers=${encodeURIComponent(tickers)}`))}
+            >
+              {busyAction === 'Insider refresh' ? 'Running...' : 'Refresh Insiders'}
+            </button>
           </div>
         </div>
       </div>
@@ -124,7 +138,9 @@ export default function AdminConsolePage() {
                 <li>Feeds: {status.counts?.feeds ?? 0}</li>
                 <li>Articles: {status.counts?.articles ?? 0}</li>
                 <li>Fundamentals: {status.counts?.fundamentals ?? 0}</li>
-                <li>Jobs: {status.counts?.ingestion_jobs ?? 0}</li>
+                <li>Prices: {status.counts?.prices ?? 0}</li>
+                <li>Insider transactions: {status.counts?.insider_transactions ?? 0}</li>
+                <li>Jobs queued: {status.jobs?.queued ?? 0}</li>
               </ul>
             </div>
           </div>
@@ -137,6 +153,8 @@ export default function AdminConsolePage() {
                 <li>Companies updated: {formatDate(status.freshness?.companiesUpdatedAt)}</li>
                 <li>Fundamentals updated: {formatDate(status.freshness?.fundamentalsUpdatedAt)}</li>
                 <li>Feeds last polled: {formatDate(status.freshness?.feedsLastPolledAt)}</li>
+                <li>Prices updated: {formatDate(status.freshness?.pricesUpdatedAt)}</li>
+                <li>Insiders updated: {formatDate(status.freshness?.insidersUpdatedAt)}</li>
                 <li>Latest article published: {formatDate(status.freshness?.latestArticlePublishedAt)}</li>
                 <li>Latest article fetched: {formatDate(status.freshness?.latestArticleFetchedAt)}</li>
               </ul>

@@ -1,0 +1,33 @@
+---
+description: React frontend conventions and API usage
+globs: "src/**/*"
+alwaysApply: false
+---
+
+# Frontend React
+
+## API
+
+- Endpoints only in `src/apiConfig.js` — never hardcode `/api/...`
+- Dev proxy: `package.json` → `"proxy": "http://localhost:5000"`
+
+## Key routes
+
+| Route | Page |
+|-------|------|
+| `/` | PortfolioPage |
+| `/:ticker` | SummaryPage |
+| `/:ticker/financials` | FinancialsPage |
+| `/screener` | StockScreenerPage |
+| `/admin` | AdminConsolePage |
+| `/ticker/:ticker` | TickerDetailsPage (insiders) |
+
+## Free-first UX
+
+- Empty states should say "Run bootstrap from Admin" when cache is empty.
+- Show `meta.source` when present (`sqlite`, `sec_edgar`, `nasdaq`, `disabled`).
+- Bootstrap/Reactstrap + ApexCharts; Redux only for screener state.
+
+## Tests
+
+- Run: `npm test -- --watchAll=false`

@@ -162,7 +162,7 @@ export default function DataGrid({
                       onChange={() => handleToggleColumn(colKey)}
                     />
                     <label className="form-check-label" htmlFor={`col-toggle-${colKey}`} style={{ fontSize: 14 }}>
-                      {col.header || colKey}
+                      {col.meta?.label ?? (typeof col.header === 'string' ? col.header : colKey)}
                     </label>
                   </div>
                 );

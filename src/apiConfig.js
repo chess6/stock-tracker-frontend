@@ -17,6 +17,9 @@ export const API_ENDPOINTS = {
   ADMIN_SYNC_COMPANIES: `${API_BASE}/admin/sync-companies`,
   ADMIN_REFRESH_FUNDAMENTALS: `${API_BASE}/admin/refresh-fundamentals`,
   ADMIN_INGEST_DEFAULT_FEEDS: `${API_BASE}/admin/ingest-default-feeds`,
+  ADMIN_REFRESH_PRICES: `${API_BASE}/admin/refresh-prices`,
+  ADMIN_REFRESH_INSIDERS: `${API_BASE}/admin/refresh-insiders`,
+  ADMIN_ENQUEUE_JOB: `${API_BASE}/admin/enqueue-job`,
   ADMIN_BOOTSTRAP: `${API_BASE}/admin/bootstrap`,
 };
 
