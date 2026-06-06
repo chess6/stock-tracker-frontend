@@ -38,6 +38,8 @@
     "test:visual": "playwright test e2e/visual-regression.spec.js",
     "test:visual:update": "playwright test e2e/visual-regression.spec.js --update-snapshots",
     "qa:frontend": "npm run lint && CI=true npm test -- --watchAll=false --runInBand && npm run test:visual",
+    "test:health": "playwright test e2e/health-scan.spec.js",
+    "agent:loop": "PYTHONUNBUFFERED=1 python3 -m orchestrator.autonomous_loop",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

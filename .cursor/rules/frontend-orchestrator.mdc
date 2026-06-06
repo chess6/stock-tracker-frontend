@@ -1,0 +1,14 @@
+---
+description: Autonomous frontend repair orchestrator conventions
+alwaysApply: false
+globs: "orchestrator/**/*"
+---
+
+# Frontend Orchestrator
+
+- Task JSON lives in `agent_tasks/{pending,active,completed,failed}/`
+- Each repair task uses branch `agent/fix-{id}-{slug}`
+- Never exceed 20 file edits or 5 retries per task
+- Always run `npm run qa:frontend` before marking complete
+- Prefer rule-based + LLM fixes; write Cursor brief if ambiguous
+- Follow-up tasks scan adjacent directories after success

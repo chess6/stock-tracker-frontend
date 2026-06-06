@@ -119,6 +119,15 @@ First-time Playwright setup: `npm install && npx playwright install chromium`
 
 Agent instructions: `AGENTS.md` and `.cursor/rules/frontend-qa.mdc`
 
+### Autonomous repair loop
+
+```bash
+npm run agent:loop    # scan, repair, QA, commit on agent/fix-* branches
+npm run test:health # console errors, API failures, overflow checks
+```
+
+See `orchestrator/README.md`.
+
 ## Known UI gaps
 
 - Sparklines and multi-horizon % change (W%/4W%/16W%/6M%) not yet implemented

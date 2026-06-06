@@ -87,8 +87,8 @@ const AppNavbar = () => {
       )}
       <Navbar color="dark" dark expand="lg" className="mb-1 position-relative" style={{ minHeight: 64 }}>
         <Container fluid>
-          <div className="d-flex justify-content-between align-items-center w-100">
-            <div className="d-flex align-items-center">
+          <div className="d-flex flex-column flex-xl-row justify-content-between align-items-stretch align-items-xl-center w-100 gap-2">
+            <div className="d-flex align-items-center flex-wrap gap-1 gap-md-2">
               <NavbarBrand tag={Link} to="/" className="fw-bold fs-4" style={{ cursor: 'pointer' }}>
                 Stock Portfolio
               </NavbarBrand>
@@ -117,8 +117,8 @@ const AppNavbar = () => {
                 </Link>
               )}
             </div>
-            <div className="d-flex position-relative" style={{ minWidth: "45rem", justifyContent: "flex-end" }}>
-              <div style={{ position: 'relative', width: '45rem' }}>
+            <div className="d-flex position-relative w-100 flex-xl-grow-0" style={{ minWidth: 0, maxWidth: '45rem' }}>
+              <div className="position-relative w-100">
                 <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                   <Input
                   type="text"

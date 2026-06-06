@@ -1,5 +1,8 @@
 .frontend.pid
 frontend.out
+__pycache__/
+*.pyc
+.cursor/agent_tasks/
 node_modules/
 build/
 .env
@@ -7,3 +10,9 @@ build/
 test-results/
 playwright-report/
 playwright/.cache/
+orchestrator/logs/
+agent_tasks/pending/*.json
+agent_tasks/active/*.json
+agent_tasks/completed/*.json
+agent_tasks/failed/*.json
+agent_tasks/health-scan-report.json

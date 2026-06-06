@@ -103,8 +103,24 @@ Every data-fetching page **must** have:
 | `/:ticker` | SummaryPage |
 | `/:ticker/financials` | FinancialsPage |
 
+## Autonomous repair orchestrator
+
+Continuous loop: scan → task → repair → `npm run qa:frontend` → commit on `agent/fix-*` branch.
+
+```bash
+npm run agent:loop
+```
+
+- Tasks: `agent_tasks/{pending,active,completed,failed}/`
+- Cursor briefs: `.cursor/agent_tasks/{id}.md`
+- Logs: `orchestrator/logs/*.jsonl`
+- Budgets: 5 retries, 20 file edits, 30 min timeout per task
+
+The loop stops on repeated QA failure, architectural ambiguity, or exhausted repair budget.
+
 ## Related docs
 
 - `README.md` — setup and admin console
+- `orchestrator/README.md` — repair orchestrator details
 - `.cursor/rules/frontend-react.mdc` — API and routing conventions
 - `.cursor/rules/frontend-qa.mdc` — QA gate summary (always apply)
