@@ -6,6 +6,7 @@ import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import DataGrid from '../components/DataGrid';
 import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
+import { signedHeatStyle } from '../utils/heatMap';
 
 const yearOptions = [5, 10, 15, 'all'];
 const statementTypes = [
@@ -139,6 +140,22 @@ const FinancialsPage = () => {
   const data = financials[activeType] || [];
   const metrics = METRICS_MAP[activeType] || [];
   const periods = data.map(r => (r.calendardate || r.reportperiod || r.fiscalperiod || r.endDate || r.periodEnd || '').slice(0, 10));
+  const formatMetricValue = (val, key) => {
+    if (val === '-' || val === null || val === undefined) return '-';
+    if ([
+      'revenue','cor','gp','opex','opinc','ebit','ebitda','netinc','assets','liabilities','equity','cashneq','debt','ppnenet','inventory','receivables','payables','workingcapital','ncfo','capex','fcf','ncfi','ncff','ncfdiv','ncfdebt','ncf','rnd','sgna','taxexp'
+    ].includes(key)) {
+      return formatUsd(val, 0);
+    }
+    if (['eps','sp','tbp','bp','ep','cfop','sfcfp'].includes(key)) {
+      return formatDecimal(val, 2);
+    }
+    if (key.includes('margin') || key.includes('percent')) {
+      return formatPercent(val, 2);
+    }
+    return formatDecimal(val, 2);
+  };
+
   const columns = [
     {
       header: 'Metric',
@@ -152,27 +169,20 @@ const FinancialsPage = () => {
     ...periods.map((p, idx) => ({
       header: p || `P${idx + 1}`,
       accessorKey: `p${idx}`,
+      cell: info => formatMetricValue(info.getValue(), info.row.original.key || ''),
+      size: 120,
+    })),
+    ...(periods.length >= 2 ? [{
+      header: 'YoY %',
+      accessorKey: 'yoy',
+      meta: { numeric: true },
+      cellStyle: ({ row }) => signedHeatStyle(row.original?.yoy, 8),
       cell: info => {
         const val = info.getValue();
-        if (val === '-' || val === null || val === undefined) return '-';
-        const key = info.row.original.key || '';
-        if ([
-          'revenue','cor','gp','opex','opinc','ebit','ebitda','netinc','assets','liabilities','equity','cashneq','debt','ppnenet','inventory','receivables','payables','workingcapital','ncfo','capex','fcf','ncfi','ncff','ncfdiv','ncfdebt','ncf','rnd','sgna','taxexp'
-        ].includes(key)) {
-          return formatUsd(val, 0);
-        }
-        if ([
-          'eps','sp','tbp','bp','ep','cfop','sfcfp'
-        ].includes(key)) {
-          return formatDecimal(val, 2);
-        }
-        if (key.includes('margin') || key.includes('percent')) {
-          return formatPercent(val, 2);
-        }
-        return formatDecimal(val, 2);
+        return val == null || val === '-' ? '-' : formatPercent(val, 1);
       },
-      size: 120,
-    }))
+      size: 90,
+    }] : []),
   ];
   // Rows: one per metric
   const tabRows = useMemo(() => {
@@ -192,6 +202,13 @@ const FinancialsPage = () => {
         }
         row[`p${idx}`] = val === null ? '-' : val;
       });
+      const current = row.p0;
+      const prior = row.p1;
+      if (typeof current === 'number' && typeof prior === 'number' && prior !== 0) {
+        row.yoy = ((current - prior) / Math.abs(prior)) * 100;
+      } else {
+        row.yoy = null;
+      }
       return row;
     });
     if (!hideEmptyRows) return built;

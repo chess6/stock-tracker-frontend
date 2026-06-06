@@ -73,8 +73,11 @@ const AppNavbar = () => {
               <NavbarBrand tag={Link} to="/" className="fw-bold fs-4" style={{ cursor: 'pointer' }}>
                 Stock Portfolio
               </NavbarBrand>
+              <Link to="/dashboard" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
+                Dashboard
+              </Link>
               <Link to="/nasdaq-columns" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
-                NASDAQ Reference
+                Columns
               </Link>
               <Link to="/news" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
                 News

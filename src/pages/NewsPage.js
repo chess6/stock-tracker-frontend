@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Badge, Button, Col, Container, Form, FormGroup, Input, Label, Row, Spinner } from 'reactstrap';
 import API_ENDPOINTS from '../apiConfig';
@@ -29,7 +29,18 @@ function snippet(text, maxLen = 220) {
   return clean.length <= maxLen ? clean : `${clean.slice(0, maxLen)}…`;
 }
 
+function sentimentBadge(label) {
+  if (!label || label === 'neutral') return null;
+  const color = label === 'positive' ? 'success' : label === 'negative' ? 'danger' : 'secondary';
+  return <Badge color={color} pill className="ms-2">{label}</Badge>;
+}
+
 export default function NewsPage() {
+  const [searchParams] = useSearchParams();
+  const initialTickers = useMemo(
+    () => (searchParams.get('tickers') || '').split(',').map((t) => t.trim().toUpperCase()).filter(Boolean),
+    [searchParams],
+  );
   const [articles, setArticles] = useState([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -38,7 +49,22 @@ export default function NewsPage() {
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [sourceDomain, setSourceDomain] = useState('');
-  const [appliedFilters, setAppliedFilters] = useState({ q: '', category: '', sourceDomain: '' });
+  const [portfolioOnly, setPortfolioOnly] = useState(initialTickers.length > 0);
+  const [appliedFilters, setAppliedFilters] = useState({
+    q: '',
+    category: '',
+    sourceDomain: '',
+    tickers: initialTickers.join(','),
+    portfolioOnly: initialTickers.length > 0,
+  });
+
+  const portfolioTickers = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('portfolio') || '[]');
+    } catch {
+      return [];
+    }
+  }, []);
 
   const loadNews = useCallback(async (nextOffset, filters) => {
     setLoading(true);
@@ -48,6 +74,11 @@ export default function NewsPage() {
       if (filters.q) params.q = filters.q;
       if (filters.category) params.category = filters.category;
       if (filters.sourceDomain) params.sourceDomain = filters.sourceDomain;
+      if (filters.portfolioOnly && portfolioTickers.length > 0) {
+        params.tickers = portfolioTickers.join(',');
+      } else if (filters.tickers) {
+        params.tickers = filters.tickers;
+      }
       const res = await axios.get(API_ENDPOINTS.NEWS_FEED, { params });
       setArticles(res.data?.articles || []);
       setTotal(res.data?.total || 0);
@@ -59,7 +90,7 @@ export default function NewsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [portfolioTickers]);
 
   useEffect(() => {
     loadNews(0, appliedFilters);
@@ -67,14 +98,21 @@ export default function NewsPage() {
 
   const applyFilters = (e) => {
     e.preventDefault();
-    setAppliedFilters({ q: q.trim(), category, sourceDomain: sourceDomain.trim() });
+    setAppliedFilters({
+      q: q.trim(),
+      category,
+      sourceDomain: sourceDomain.trim(),
+      tickers: initialTickers.join(','),
+      portfolioOnly,
+    });
   };
 
   const clearFilters = () => {
     setQ('');
     setCategory('');
     setSourceDomain('');
-    setAppliedFilters({ q: '', category: '', sourceDomain: '' });
+    setPortfolioOnly(false);
+    setAppliedFilters({ q: '', category: '', sourceDomain: '', tickers: '', portfolioOnly: false });
   };
 
   const pageStart = total === 0 ? 0 : offset + 1;
@@ -137,7 +175,18 @@ export default function NewsPage() {
               />
             </FormGroup>
           </Col>
-          <Col md={2} className="d-flex gap-2">
+          <Col md={2}>
+            <FormGroup check className="mt-4">
+              <Input
+                type="checkbox"
+                id="portfolioOnlyNews"
+                checked={portfolioOnly}
+                onChange={(e) => setPortfolioOnly(e.target.checked)}
+              />
+              <Label check htmlFor="portfolioOnlyNews">Portfolio only</Label>
+            </FormGroup>
+          </Col>
+          <Col md={2} className="d-flex gap-2 align-items-end">
             <Button color="primary" type="submit" size="sm">Apply</Button>
             <Button color="secondary" type="button" size="sm" outline onClick={clearFilters}>Clear</Button>
           </Col>
@@ -169,6 +218,7 @@ export default function NewsPage() {
                     className="fw-semibold text-decoration-none"
                   >
                     {item.title}
+                    {sentimentBadge(item.sentimentLabel)}
                   </a>
                   <small className="text-muted text-nowrap">{formatPublished(item.publishedDate)}</small>
                 </div>

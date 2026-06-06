@@ -5,8 +5,10 @@ import API_ENDPOINTS from '../apiConfig';
 import { Container, Card, CardBody, CardTitle } from 'reactstrap';
 import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
 import { signedHeatStyle, insiderDollarStyle, columnHeatStyle, columnMinMax } from '../utils/heatMap';
-import { PORTFOLIO_COLUMN_META } from '../config/portfolioColumns';
+import { PORTFOLIO_COLUMN_META, PORTFOLIO_COLUMN_GROUPS } from '../config/portfolioColumns';
 import DataGrid from '../components/DataGrid';
+import { Link } from 'react-router-dom';
+import { secEdgarUrl, whaleWisdomUrl, seekingAlphaUrl, tickerNewsUrl } from '../utils/tickerLinks';
 
 const toNullableNumber = (value) => {
     if (value === null || value === undefined) return null;
@@ -150,7 +152,50 @@ const PortfolioPage = () => {
             cellStyle: ({ row }) => insiderDollarStyle(row.original?.insiderBuy1m),
             cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
         }),
+        columnHelper.display({
+            id: 'secLink',
+            meta: meta('secLink'),
+            header: 'SEC',
+            cell: ({ row }) => (
+                <a href={secEdgarUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">SEC</a>
+            ),
+            size: 44,
+        }),
+        columnHelper.display({
+            id: 'wwLink',
+            meta: meta('wwLink'),
+            header: 'WW',
+            cell: ({ row }) => (
+                <a href={whaleWisdomUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">WW</a>
+            ),
+            size: 40,
+        }),
+        columnHelper.display({
+            id: 'saLink',
+            meta: meta('saLink'),
+            header: 'SA',
+            cell: ({ row }) => (
+                <a href={seekingAlphaUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">SA</a>
+            ),
+            size: 36,
+        }),
+        columnHelper.display({
+            id: 'newsLink',
+            meta: meta('newsLink'),
+            header: 'News',
+            cell: ({ row }) => (
+                <Link to={tickerNewsUrl(row.original.ticker)}>News</Link>
+            ),
+            size: 48,
+        }),
     ], [columnHelper, heatRanges]);
+
+    const columnGroups = useMemo(() => PORTFOLIO_COLUMN_GROUPS.map((group) => ({
+        ...group,
+        columnIds: columns
+            .map((col) => col.accessorKey ?? col.id)
+            .filter((colId) => colId && PORTFOLIO_COLUMN_META[colId]?.group === group.id),
+    })).filter((group) => group.columnIds.length > 0), [columns]);
 
     const handleDeleteTicker = (ticker) => {
         setPortfolio(prev => {
@@ -327,6 +372,7 @@ const PortfolioPage = () => {
                             rowSelection={rowSelection}
                             onRowSelectionChange={setRowSelection}
                             stickyColumnIds={['select', 'ticker', 'price']}
+                            columnGroups={columnGroups}
                         />
                     </div>
                 </CardBody>

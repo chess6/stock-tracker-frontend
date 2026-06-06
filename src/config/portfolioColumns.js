@@ -5,6 +5,7 @@ export const PORTFOLIO_COLUMN_GROUPS = [
   { id: 'valuation', label: 'Valuation' },
   { id: 'cashflow', label: 'Cash Flow' },
   { id: 'insider', label: 'Insider' },
+  { id: 'links', label: 'Links' },
 ];
 
 export const PORTFOLIO_COLUMN_META = {
@@ -146,4 +147,8 @@ export const PORTFOLIO_COLUMN_META = {
     group: 'insider',
     heat: 'insider',
   },
+  secLink: { label: 'SEC', shortLabel: 'SEC', group: 'links' },
+  wwLink: { label: 'WW', shortLabel: 'WW', group: 'links' },
+  saLink: { label: 'SA', shortLabel: 'SA', group: 'links' },
+  newsLink: { label: 'News', shortLabel: 'News', group: 'links' },
 };

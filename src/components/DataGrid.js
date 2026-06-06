@@ -34,6 +34,7 @@ export default function DataGrid({
   // Toggle to opt-in to using the passed controlled visibility/sizing (shared across page)
   useSharedColumnState = false,
   stickyColumnIds = [],
+  columnGroups = [],
   tableExtraClassName = '',
 }) {
   const [internalRowSelection, setInternalRowSelection] = useState({});
@@ -208,6 +209,40 @@ export default function DataGrid({
             }}
           >
             <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
+              {columnGroups.length > 0 && (
+                <tr style={{ ...headerStyle, background: 'rgba(70, 70, 70, 1)' }}>
+                  {(() => {
+                    const visibleHeaders = table.getHeaderGroups()[0]?.headers || [];
+                    const cells = [];
+                    let idx = 0;
+                    while (idx < visibleHeaders.length) {
+                      const header = visibleHeaders[idx];
+                      const colId = header.column.id;
+                      const group = columnGroups.find((item) => item.columnIds.includes(colId));
+                      if (!group) {
+                        cells.push(
+                          <th key={`group-${colId}`} style={headerStyle} rowSpan={2} />
+                        );
+                        idx += 1;
+                        continue;
+                      }
+                      let span = 0;
+                      while (idx + span < visibleHeaders.length) {
+                        const nextId = visibleHeaders[idx + span].column.id;
+                        if (!group.columnIds.includes(nextId)) break;
+                        span += 1;
+                      }
+                      cells.push(
+                        <th key={`group-${group.id}`} colSpan={span} style={{ ...headerStyle, textAlign: 'center', fontSize: 12 }}>
+                          {group.label}
+                        </th>
+                      );
+                      idx += span;
+                    }
+                    return cells;
+                  })()}
+                </tr>
+              )}
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id} style={headerStyle}>
                   {headerGroup.headers.map((header, headerIdx) => {

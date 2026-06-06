@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
   SUMMARY: ticker => `${API_BASE}/ticker/${ticker}/summary`,
   NEWS: ticker => `${API_BASE}/ticker/${ticker}/news`,
   NEWS_FEED: `${API_BASE}/news`,
+  MACRO_SNAPSHOT: `${API_BASE}/macro/snapshot`,
   FINANCIALS: `${API_BASE}/ticker/financials`,
   INTRADAY: ticker => `${API_BASE}/ticker/${ticker}/intraday`,
   TOP_OF_BOOK: `${API_BASE}/tickers/top`,

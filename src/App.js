@@ -14,6 +14,7 @@ import store from './store';
 import TickerDetailsPage from './pages/TickerDetailsPage';
 import AdminConsolePage from './pages/AdminConsolePage';
 import NewsPage from './pages/NewsPage';
+import DashboardPage from './pages/DashboardPage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <AppNavbar />
         <Routes>
           <Route path="/" element={<PortfolioPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/news" element={<NewsPage />} />
           <Route path=":ticker" element={<SummaryPage />} />
           <Route path=":ticker/financials" element={<FinancialsPage />} />
