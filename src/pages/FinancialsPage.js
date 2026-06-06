@@ -39,6 +39,7 @@ const FinancialsPage = () => {
   const [report, setReport] = useState('AR');
   const [activeType, setActiveType] = useState('income');
   const [selectedMetrics, setSelectedMetrics] = useState(['revenue', 'gp', 'opinc', 'netinc']);
+  const [hideEmptyRows, setHideEmptyRows] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -174,24 +175,28 @@ const FinancialsPage = () => {
     }))
   ];
   // Rows: one per metric
-  const tabRows = metrics.map((m, rIdx) => {
-    const row = { id: rIdx, metric: m.label, key: m.key };
-    data.forEach((periodRow, idx) => {
-      let val = null;
-      if (periodRow[m.key] !== undefined && periodRow[m.key] !== null) {
-        val = safeNumber(periodRow[m.key]);
-      } else if (m.alt && Array.isArray(m.alt)) {
-        for (const altKey of m.alt) {
-          if (periodRow[altKey] !== undefined && periodRow[altKey] !== null) {
-            val = safeNumber(periodRow[altKey]);
-            if (val !== null) break;
+  const tabRows = useMemo(() => {
+    const built = metrics.map((m, rIdx) => {
+      const row = { id: rIdx, metric: m.label, key: m.key };
+      data.forEach((periodRow, idx) => {
+        let val = null;
+        if (periodRow[m.key] !== undefined && periodRow[m.key] !== null) {
+          val = safeNumber(periodRow[m.key]);
+        } else if (m.alt && Array.isArray(m.alt)) {
+          for (const altKey of m.alt) {
+            if (periodRow[altKey] !== undefined && periodRow[altKey] !== null) {
+              val = safeNumber(periodRow[altKey]);
+              if (val !== null) break;
+            }
           }
         }
-      }
-      row[`p${idx}`] = val === null ? '-' : val;
+        row[`p${idx}`] = val === null ? '-' : val;
+      });
+      return row;
     });
-    return row;
-  });
+    if (!hideEmptyRows) return built;
+    return built.filter(row => periods.some((_, idx) => row[`p${idx}`] !== '-'));
+  }, [metrics, data, periods, hideEmptyRows]);
 
   // Deduplicate selectedMetrics for chart
   const chartSeries = useMemo(() => {
@@ -395,6 +400,19 @@ const FinancialsPage = () => {
                   <option key={opt} value={opt}>{opt === 'all' ? 'All Years' : `Last ${opt} Years`}</option>
                 ))}
               </select>
+            </div>
+            <div className="col-auto">
+              <label className="form-label d-block">&nbsp;</label>
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="hideEmptyRows"
+                  checked={hideEmptyRows}
+                  onChange={(e) => setHideEmptyRows(e.target.checked)}
+                />
+                <label className="form-check-label" htmlFor="hideEmptyRows">Hide empty rows</label>
+              </div>
             </div>
             <div className="col-auto ms-auto">
               <div className="btn-group" role="group">

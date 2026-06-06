@@ -13,6 +13,7 @@ import { Provider } from 'react-redux';
 import store from './store';
 import TickerDetailsPage from './pages/TickerDetailsPage';
 import AdminConsolePage from './pages/AdminConsolePage';
+import NewsPage from './pages/NewsPage';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <AppNavbar />
         <Routes>
           <Route path="/" element={<PortfolioPage />} />
+          <Route path="/news" element={<NewsPage />} />
           <Route path=":ticker" element={<SummaryPage />} />
           <Route path=":ticker/financials" element={<FinancialsPage />} />
           <Route path="nasdaq-columns" element={<NasdaqColumnsGrid />} />

@@ -1,7 +1,33 @@
-/* Shade even rows by styling the table cells, not the row element,
-   to override Bootstrap's cell backgrounds. */
-.table tbody tr:nth-child(even) > * {
-    background-color: #f0f0f0; /* Light gray for even rows */
+/* Shade even rows — heat-map inline styles take precedence on formatted cells */
+.table tbody tr:nth-child(even) > *:not([style*="background"]) {
+    background-color: #f8f9fa;
+}
+
+.data-grid-table {
+    font-variant-numeric: tabular-nums;
+}
+
+.data-grid-table th,
+.data-grid-table td {
+    padding: 0.2rem 0.45rem !important;
+    vertical-align: middle;
+}
+
+.data-grid-table td.numeric-cell {
+    text-align: right;
+}
+
+.data-grid-sticky {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: inherit;
+}
+
+.data-grid-sticky-header {
+    position: sticky;
+    left: 0;
+    z-index: 4;
 }
 
 .nasdaq-columns-grid-table > :not(caption) > * > * {

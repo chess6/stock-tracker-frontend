@@ -76,6 +76,9 @@ const AppNavbar = () => {
               <Link to="/nasdaq-columns" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
                 NASDAQ Reference
               </Link>
+              <Link to="/news" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
+                News
+              </Link>
               <Link to="/screener" className="ms-3 text-light text-decoration-none fw-semibold" style={{ fontSize: 16 }}>
                 Screener
               </Link>

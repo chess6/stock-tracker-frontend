@@ -1,5 +1,6 @@
 import './DataGrid.css';
 import { useState, useRef, useEffect } from 'react';
+import ColumnHeader from './ColumnHeader';
 import {
   useReactTable,
   getCoreRowModel,
@@ -32,6 +33,8 @@ export default function DataGrid({
   onColumnSizingChange,
   // Toggle to opt-in to using the passed controlled visibility/sizing (shared across page)
   useSharedColumnState = false,
+  stickyColumnIds = [],
+  tableExtraClassName = '',
 }) {
   const [internalRowSelection, setInternalRowSelection] = useState({});
   const [sorting, setSorting] = useState([]);
@@ -151,7 +154,8 @@ export default function DataGrid({
               <div className="fw-bold mb-2">Columns</div>
               {columns.map(col => {
                 const colKey = col.accessorKey ?? col.id;
-                if (!colKey) return null;
+                if (!colKey || colKey === 'select') return null;
+                const groupLabel = col.meta?.group;
                 return (
                   <div key={colKey} className="form-check mb-1">
                     <input
@@ -161,8 +165,9 @@ export default function DataGrid({
                       checked={effectiveVisibleColumns.includes(colKey)}
                       onChange={() => handleToggleColumn(colKey)}
                     />
-                    <label className="form-check-label" htmlFor={`col-toggle-${colKey}`} style={{ fontSize: 14 }}>
+                    <label className="form-check-label" htmlFor={`col-toggle-${colKey}`} style={{ fontSize: 13 }}>
                       {col.meta?.label ?? (typeof col.header === 'string' ? col.header : colKey)}
+                      {groupLabel && <span className="text-muted ms-1" style={{ fontSize: 11 }}>({groupLabel})</span>}
                     </label>
                   </div>
                 );
@@ -194,7 +199,7 @@ export default function DataGrid({
       >
         <div className="d-inline-block" style={{ minWidth: '100%' }}>
           <table
-            className={tableClassName}
+            className={`${tableClassName} data-grid-table ${tableExtraClassName}`.trim()}
             style={{
               tableLayout: fixedColumnWidth ? 'fixed' : 'auto',
               width: 'auto',
@@ -205,11 +210,18 @@ export default function DataGrid({
             <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id} style={headerStyle}>
-                  {headerGroup.headers.map(header => {
+                  {headerGroup.headers.map((header, headerIdx) => {
                     const canSort = enableSorting && header.column.getCanSort();
                     const sortDir = header.column.getIsSorted();
                     const isResizable = header.column.getCanResize();
+                    const colId = header.column.id;
+                    const isSticky = stickyColumnIds.includes(colId);
                     let thStyle = { ...headerStyle };
+                    if (isSticky) {
+                      thStyle.position = 'sticky';
+                      thStyle.left = headerIdx === 0 ? 0 : stickyColumnIds.indexOf(colId) === 1 ? 72 : 0;
+                      thStyle.zIndex = 5;
+                    }
                     // Always position relative for proper resizer anchor
                     if (isResizable) {
                       thStyle.position = 'relative';
@@ -232,18 +244,28 @@ export default function DataGrid({
                         style={thStyle}
                       >
                         {header.isPlaceholder ? null : (
-                          <div
-                            role={canSort ? 'button' : undefined}
-                            onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                            {canSort && (
-                              <span style={{ fontSize: 12, opacity: 0.7 }}>
-                                {sortDir === 'asc' ? <>&uarr;</> : sortDir === 'desc' ? <>&darr;</> : <>&#8597;</>}
-                              </span>
-                            )}
-                          </div>
+                          header.column.columnDef.meta?.label ? (
+                            <ColumnHeader
+                              label={header.column.columnDef.meta.shortLabel || header.column.columnDef.meta.label}
+                              meta={header.column.columnDef.meta}
+                              canSort={canSort}
+                              sortDir={sortDir}
+                              onSort={canSort ? header.column.getToggleSortingHandler() : undefined}
+                            />
+                          ) : (
+                            <div
+                              role={canSort ? 'button' : undefined}
+                              onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                              {canSort && (
+                                <span style={{ fontSize: 12, opacity: 0.7 }}>
+                                  {sortDir === 'asc' ? '↑' : sortDir === 'desc' ? '↓' : '↕'}
+                                </span>
+                              )}
+                            </div>
+                          )
                         )}
                         {isResizable && (
                           <div
@@ -277,8 +299,18 @@ export default function DataGrid({
                   }}
                   onClick={() => onRowClick && onRowClick(row)}
                 >
-                  {row.getVisibleCells().map(cell => {
+                  {row.getVisibleCells().map((cell, cellIdx) => {
                     let cellStyle = {};
+                    const colId = cell.column.id;
+                    if (stickyColumnIds.includes(colId)) {
+                      cellStyle.position = 'sticky';
+                      cellStyle.left = cellIdx === 0 ? 0 : stickyColumnIds.indexOf(colId) === 1 ? 72 : 0;
+                      cellStyle.zIndex = 2;
+                      cellStyle.background = row.getIsSelected() ? undefined : 'inherit';
+                    }
+                    if (cell.column.columnDef.meta?.numeric) {
+                      cellStyle.textAlign = 'right';
+                    }
                     // Prefer dynamic column sizing when available
                     const cSize = table.getState().columnSizing?.[cell.column.id];
                     if (cSize) {
@@ -303,7 +335,7 @@ export default function DataGrid({
                       Object.assign(cellStyle, cell.column.columnDef.cellStyle);
                     }
                     return (
-                      <td key={cell.id} style={cellStyle}>
+                      <td key={cell.id} style={cellStyle} className={cell.column.columnDef.meta?.numeric ? 'numeric-cell' : undefined}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     );
