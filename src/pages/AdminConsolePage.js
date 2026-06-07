@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import BootstrapPipeline from '../components/BootstrapPipeline';
-import { getPortfolio, getPortfolioTickersCsv } from '../utils/portfolio';
+import { getPortfolio, getPortfolioTickersCsv, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
+import { clearScreener } from '../store';
 
 const DEFAULT_TICKERS = 'AAPL,MSFT,NVDA,AMD,GOOGL,AMZN,META,TSLA';
 
@@ -32,6 +34,7 @@ export default function AdminConsolePage() {
   const [busyAction, setBusyAction] = useState(null);
   const [message, setMessage] = useState('');
   const { showToast } = useToast();
+  const dispatch = useDispatch();
 
   const tickersQuery = () => encodeURIComponent(resolveTickersForRequest(tickers));
   const resolvedTickersCsv = useMemo(() => resolveTickersForRequest(tickers), [tickers]);
@@ -52,13 +55,10 @@ export default function AdminConsolePage() {
   }, []);
 
   useEffect(() => {
+    loadUserPreferences().then(() => setPortfolioCount(getPortfolio().length));
     const syncPortfolio = () => setPortfolioCount(getPortfolio().length);
-    window.addEventListener('storage', syncPortfolio);
-    window.addEventListener('focus', syncPortfolio);
-    return () => {
-      window.removeEventListener('storage', syncPortfolio);
-      window.removeEventListener('focus', syncPortfolio);
-    };
+    window.addEventListener(PORTFOLIO_UPDATED_EVENT, syncPortfolio);
+    return () => window.removeEventListener(PORTFOLIO_UPDATED_EVENT, syncPortfolio);
   }, []);
 
   const runAction = async (action, request) => {
@@ -70,6 +70,7 @@ export default function AdminConsolePage() {
       const successText = typeof response.data === 'object' ? `${action} complete` : String(response.data);
       setMessage(successText);
       showToast(successText, 'success', 5000);
+      dispatch(clearScreener());
     } catch (error) {
       const errorText = error?.response?.data?.error || `${action} failed`;
       setMessage(errorText);
@@ -143,6 +144,7 @@ export default function AdminConsolePage() {
             showToast={showToast}
             onComplete={async (stepResults) => {
               await loadStatus();
+              dispatch(clearScreener());
               const errors = Object.entries(stepResults)
                 .filter(([, result]) => result.status === 'error')
                 .map(([id, result]) => `${id}: ${result.error}`);

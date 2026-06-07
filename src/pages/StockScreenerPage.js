@@ -128,7 +128,8 @@ const StockScreenerPage = () => {
             href={`/${ticker}/insiders`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ textDecoration: 'underline', color: '#007bff', cursor: 'pointer' }}
+            className="link-primary"
+            style={{ textDecoration: 'underline', cursor: 'pointer' }}
             onClick={e => {
               e.preventDefault();
               navigate(`/${ticker}/insiders`, { state: row });
@@ -160,7 +161,11 @@ const StockScreenerPage = () => {
         if (owners >= 3) {
           const capped = Math.min(owners, 12);
           const lightness = 25 + (capped - 3) * 7;
-          const color = lightness < 40 ? '#fff' : '#222';
+          const dark = typeof document !== 'undefined'
+            && document.documentElement.getAttribute('data-bs-theme') === 'dark';
+          const color = dark
+            ? (lightness < 45 ? '#f0fff4' : '#0a2e14')
+            : (lightness < 40 ? '#fff' : '#222');
           return {
             background: `hsl(120, 100%, ${lightness}%)`,
             color,

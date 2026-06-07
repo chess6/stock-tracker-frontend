@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Badge, Button, Col, Container, Form, FormGroup, Input, Label, Row, Spinner } from 'reactstrap';
 import API_ENDPOINTS from '../apiConfig';
+import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
 
 const PAGE_SIZE = 50;
 
@@ -58,12 +59,13 @@ export default function NewsPage() {
     portfolioOnly: initialTickers.length > 0,
   });
 
-  const portfolioTickers = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem('portfolio') || '[]');
-    } catch {
-      return [];
-    }
+  const [portfolioTickers, setPortfolioTickers] = useState(() => getPortfolio());
+
+  useEffect(() => {
+    loadUserPreferences().then(() => setPortfolioTickers(getPortfolio()));
+    const sync = () => setPortfolioTickers(getPortfolio());
+    window.addEventListener(PORTFOLIO_UPDATED_EVENT, sync);
+    return () => window.removeEventListener(PORTFOLIO_UPDATED_EVENT, sync);
   }, []);
 
   const loadNews = useCallback(async (nextOffset, filters) => {
@@ -134,7 +136,7 @@ export default function NewsPage() {
         </Col>
       </Row>
 
-      <Form onSubmit={applyFilters} className="mb-3 p-3 border rounded bg-light">
+      <Form onSubmit={applyFilters} className="mb-3 p-3 border rounded st-filter-panel">
         <Row className="g-2 align-items-end">
           <Col md={4}>
             <FormGroup>
@@ -215,7 +217,7 @@ export default function NewsPage() {
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="fw-semibold text-decoration-none"
+                    className="fw-semibold text-decoration-none link-primary"
                   >
                     {item.title}
                     {sentimentBadge(item.sentimentLabel)}
@@ -228,7 +230,7 @@ export default function NewsPage() {
                   <div className="mt-2 d-flex flex-wrap gap-1">
                     {item.tickers.map((ticker) => (
                       <Link key={ticker} to={`/${ticker}`}>
-                        <Badge color="dark" pill className="me-1">{ticker}</Badge>
+                        <Badge color="secondary" pill className="me-1">{ticker}</Badge>
                       </Link>
                     ))}
                   </div>

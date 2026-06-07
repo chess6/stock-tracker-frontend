@@ -1,0 +1,138 @@
+/* Navbar shell: brand | nav links (collapse) | search + profile */
+
+.navbar,
+.navbar > .container,
+.navbar > .container-fluid,
+.navbar .navbar-shell,
+.navbar .navbar-shell-collapse,
+.navbar .navbar-tools,
+.navbar .navbar-profile-slot,
+.navbar .dropdown {
+  overflow: visible !important;
+}
+
+.navbar-shell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  overflow: visible;
+}
+
+.navbar-shell > .navbar-brand {
+  margin-right: 0;
+}
+
+.navbar-shell-collapse.navbar-collapse {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: visible;
+}
+
+.navbar-nav-links {
+  row-gap: 0.15rem;
+}
+
+.navbar-nav-links .nav-link {
+  padding-left: 0.65rem;
+  padding-right: 0.65rem;
+  white-space: nowrap;
+}
+
+.navbar-tools {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  padding-right: 0.25rem;
+  position: relative;
+  overflow: visible;
+  flex: 0 0 auto;
+}
+
+.navbar-search-area {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.navbar-profile-slot {
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.navbar-profile-slot .dropdown {
+  position: relative;
+}
+
+.navbar-profile-slot .dropdown-menu {
+  right: 0 !important;
+  left: auto !important;
+  transform: none !important;
+}
+
+@media (max-width: 991.98px) {
+  .navbar-shell > .navbar-brand {
+    order: 1;
+    flex: 0 1 auto;
+    max-width: 9.5rem;
+    font-size: 1.05rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .navbar-tools {
+    order: 2;
+    flex: 1 1 0;
+    min-width: 0;
+    margin-left: 0;
+    max-width: none;
+  }
+
+  .navbar-search-area {
+    flex: 1 1 auto;
+    min-width: 5.5rem;
+    width: auto;
+  }
+
+  .navbar-shell > .navbar-toggler {
+    order: 3;
+    flex: 0 0 auto;
+    margin-left: 0.15rem;
+  }
+
+  .navbar-shell-collapse.navbar-collapse {
+    order: 4;
+    flex: 1 1 100%;
+    width: 100%;
+  }
+}
+
+@media (min-width: 992px) {
+  .navbar-shell-collapse.navbar-collapse {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+  }
+
+  .navbar-nav-links {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-right: 0.5rem !important;
+  }
+
+  .navbar-search-area {
+    width: clamp(14rem, 18vw, 28rem);
+    flex: 0 1 auto;
+  }
+}
+
+@media (min-width: 1200px) {
+  .navbar-nav-links .nav-link {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+}

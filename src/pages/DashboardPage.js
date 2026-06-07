@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Badge, Card, CardBody, Col, Container, Row, Spinner, Table } from 'reactstrap';
 import API_ENDPOINTS from '../apiConfig';
-import { getPortfolio, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
+import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
 import { signedHeatStyle } from '../utils/heatMap';
 import { formatDecimal, formatPercent, formatUsd } from '../utils/formatters';
 
@@ -27,13 +27,10 @@ export default function DashboardPage() {
   const portfolioTickersKey = useMemo(() => portfolioTickers.join(','), [portfolioTickers]);
 
   useEffect(() => {
+    loadUserPreferences().then(() => setPortfolioTickers(getPortfolio()));
     const sync = () => setPortfolioTickers(getPortfolio());
     window.addEventListener(PORTFOLIO_UPDATED_EVENT, sync);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener(PORTFOLIO_UPDATED_EVENT, sync);
-      window.removeEventListener('storage', sync);
-    };
+    return () => window.removeEventListener(PORTFOLIO_UPDATED_EVENT, sync);
   }, []);
 
   useEffect(() => {
@@ -145,7 +142,7 @@ export default function DashboardPage() {
           <div className="text-muted py-2"><Spinner size="sm" /> Loading portfolio quotes…</div>
         ) : (
           <div className="table-responsive">
-            <Table size="sm" bordered hover className="mb-0 bg-white">
+            <Table size="sm" bordered hover className="mb-0">
               <thead className="table-light">
                 <tr>
                   <th>Ticker</th>
@@ -204,7 +201,7 @@ export default function DashboardPage() {
                         <div className="text-muted small">{item.symbol}</div>
                       </div>
                       {item.available !== false && item.changePct != null ? (
-                        <Badge color="dark" pill>{formatPercent(item.changePct, 2)}</Badge>
+                        <span className="badge rounded-pill border border-current">{formatPercent(item.changePct, 2)}</span>
                       ) : (
                         <Badge color="secondary" pill>—</Badge>
                       )}

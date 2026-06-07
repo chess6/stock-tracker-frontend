@@ -5,7 +5,7 @@ const API_BASE = '/api';
 
 export const API_ENDPOINTS = {
   SEARCH: `${API_BASE}/search`,
-  PORTFOLIO: `${API_BASE}/portfolio`,
+  PREFERENCES: `${API_BASE}/preferences`,
   SUMMARY: ticker => `${API_BASE}/ticker/${ticker}/summary`,
   NEWS: ticker => `${API_BASE}/ticker/${ticker}/news`,
   NEWS_FEED: `${API_BASE}/news`,
@@ -18,6 +18,10 @@ export const API_ENDPOINTS = {
   MOVERS: `${API_BASE}/tickers/movers`,
   INDUSTRIES: `${API_BASE}/companies/industries`,
   INDUSTRY_PEERS: `${API_BASE}/companies/peers`,
+  WATCHLISTS: `${API_BASE}/watchlists`,
+  WATCHLIST: name => `${API_BASE}/watchlists/${encodeURIComponent(name)}`,
+  WATCHLIST_TICKERS: name => `${API_BASE}/watchlists/${encodeURIComponent(name)}/tickers`,
+  WATCHLIST_TICKER: (name, ticker) => `${API_BASE}/watchlists/${encodeURIComponent(name)}/tickers/${encodeURIComponent(ticker)}`,
   INSIDER_BUYING_SUMS: `${API_BASE}/insiders/buying-sums`,
   /** SEC Form 4 insider transactions (SQLite; response keeps SF2-compatible datatable shape). */
   INSIDER_TRANSACTIONS: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
@@ -33,6 +37,8 @@ export const API_ENDPOINTS = {
   ADMIN_ENQUEUE_JOB: `${API_BASE}/admin/enqueue-job`,
   ADMIN_DEDUP_ARTICLES: `${API_BASE}/admin/dedup-articles`,
   ADMIN_BOOTSTRAP: `${API_BASE}/admin/bootstrap`,
+  ADMIN_REFRESH_MACRO: `${API_BASE}/admin/refresh-macro`,
+  ADMIN_ENRICH_METADATA: `${API_BASE}/admin/enrich-metadata`,
 };
 
 export default API_ENDPOINTS;

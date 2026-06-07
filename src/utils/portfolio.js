@@ -1,13 +1,58 @@
-// Portfolio management helpers
+import API_ENDPOINTS from '../apiConfig';
 
 export const PORTFOLIO_UPDATED_EVENT = 'portfolio-updated';
 
-export function getPortfolio() {
+const LEGACY_PORTFOLIO_KEY = 'portfolio';
+const LEGACY_THEME_KEY = 'stock-tracker-theme';
+
+let portfolioCache = [];
+let loadPromise = null;
+
+function normalizeTickers(tickers) {
+  return [...new Set(tickers.map((t) => String(t).trim().toUpperCase()).filter(Boolean))];
+}
+
+function readLegacyPortfolio() {
   try {
-    return JSON.parse(localStorage.getItem('portfolio')) || [];
+    const stored = localStorage.getItem(LEGACY_PORTFOLIO_KEY);
+    return stored ? normalizeTickers(JSON.parse(stored)) : [];
   } catch {
     return [];
   }
+}
+
+function readLegacyTheme() {
+  try {
+    const stored = localStorage.getItem(LEGACY_THEME_KEY);
+    return stored === 'light' || stored === 'dark' ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearLegacyStorage() {
+  try {
+    localStorage.removeItem(LEGACY_PORTFOLIO_KEY);
+    localStorage.removeItem(LEGACY_THEME_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+async function savePreferences(body) {
+  const res = await fetch(API_ENDPOINTS.PREFERENCES, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to save preferences');
+  }
+  return res.json();
+}
+
+export function getPortfolio() {
+  return [...portfolioCache];
 }
 
 export function notifyPortfolioUpdated() {
@@ -15,32 +60,76 @@ export function notifyPortfolioUpdated() {
 }
 
 export function setPortfolioTickers(tickers) {
-  const normalized = [...new Set(tickers.map((t) => String(t).trim().toUpperCase()).filter(Boolean))];
-  localStorage.setItem('portfolio', JSON.stringify(normalized));
+  const normalized = normalizeTickers(tickers);
+  portfolioCache = normalized;
   notifyPortfolioUpdated();
+  savePreferences({ portfolio: normalized }).catch(() => {});
 }
 
-/** Comma-separated tickers from localStorage portfolio, or empty string. */
 export function getPortfolioTickersCsv() {
-  const tickers = getPortfolio()
-    .map((t) => String(t).trim().toUpperCase())
-    .filter(Boolean);
-  return tickers.join(',');
+  return portfolioCache.join(',');
 }
 
 export function isInPortfolio(ticker) {
-  const portfolio = getPortfolio();
   const symbol = String(ticker).trim().toUpperCase();
-  return portfolio.includes(symbol);
+  return portfolioCache.includes(symbol);
 }
 
-/** Adds ticker to portfolio and returns a toast payload `{ type, message }`. */
 export function addToPortfolioWithNotification(ticker) {
   const symbol = String(ticker).trim().toUpperCase();
-  const portfolio = getPortfolio();
-  if (portfolio.includes(symbol)) {
+  if (portfolioCache.includes(symbol)) {
     return { type: 'info', message: `${symbol} is already in your portfolio.` };
   }
-  setPortfolioTickers([...portfolio, symbol]);
+  setPortfolioTickers([...portfolioCache, symbol]);
   return { type: 'success', message: `${symbol} added to portfolio.` };
+}
+
+export async function loadUserPreferences() {
+  if (loadPromise) {
+    return loadPromise;
+  }
+
+  loadPromise = (async () => {
+    try {
+      const res = await fetch(API_ENDPOINTS.PREFERENCES);
+      if (!res.ok) {
+        throw new Error('Failed to load preferences');
+      }
+      const data = await res.json();
+      portfolioCache = normalizeTickers(data.portfolio || []);
+      notifyPortfolioUpdated();
+      clearLegacyStorage();
+      return data;
+    } catch {
+      const legacyPortfolio = readLegacyPortfolio();
+      const legacyTheme = readLegacyTheme();
+      portfolioCache = legacyPortfolio;
+      notifyPortfolioUpdated();
+
+      if (legacyPortfolio.length || legacyTheme) {
+        try {
+          const migrated = await savePreferences({
+            portfolio: legacyPortfolio,
+            ...(legacyTheme ? { theme: legacyTheme } : {}),
+          });
+          portfolioCache = normalizeTickers(migrated.portfolio || legacyPortfolio);
+          notifyPortfolioUpdated();
+          clearLegacyStorage();
+          return migrated;
+        } catch {
+          return { theme: legacyTheme || 'dark', portfolio: portfolioCache };
+        }
+      }
+
+      return { theme: 'dark', portfolio: portfolioCache };
+    }
+  })();
+
+  return loadPromise;
+}
+
+/** @internal test helper */
+export function resetPortfolioStateForTests() {
+  portfolioCache = [];
+  loadPromise = null;
 }

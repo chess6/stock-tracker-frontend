@@ -14,6 +14,10 @@ export function tickerNewsUrl(ticker) {
   return `/news?tickers=${encodeURIComponent(ticker)}`;
 }
 
+export function tickerFinancialsUrl(ticker) {
+  return `/${encodeURIComponent(ticker)}/financials`;
+}
+
 export function stockChartsUrl(ticker) {
   return `https://stockcharts.com/h-sc/ui?s=${encodeURIComponent(ticker)}`;
 }

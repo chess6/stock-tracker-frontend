@@ -25,7 +25,7 @@ export const BOOTSTRAP_STEPS = [
     id: 'ingest_feeds',
     label: 'Ingest RSS Feeds',
     shortLabel: 'Feeds',
-    description: 'Poll default RSS sources (fast mode — summaries only, no full article extraction).',
+    description: 'Poll default RSS sources. Fast mode uses summaries only; full run extracts article HTML.',
     defaultEnabled: true,
     requiresTickers: false,
     wave: 1,

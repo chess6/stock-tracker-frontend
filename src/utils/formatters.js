@@ -36,6 +36,11 @@ export const formatPercent = (value, fractionDigits = 2) => {
     return num.toFixed(fractionDigits) + '%';
 };
 
+function isDarkTheme() {
+    if (typeof document === 'undefined') return false;
+    return document.documentElement.getAttribute('data-bs-theme') === 'dark';
+}
+
 /** Green/red background intensity scaled by |percent change|. */
 export function changePercentStyle(value) {
     if (isMissing(value)) return {};
@@ -43,8 +48,15 @@ export function changePercentStyle(value) {
     if (!isFinite(num) || num === 0) return {};
     const magnitude = Math.min(Math.abs(num) / 5, 1);
     const alpha = 0.12 + magnitude * 0.28;
+    const dark = isDarkTheme();
     if (num > 0) {
-        return { backgroundColor: `rgba(40, 167, 69, ${alpha})`, color: '#155724' };
+        return {
+            backgroundColor: `rgba(40, 167, 69, ${alpha})`,
+            color: dark ? '#9ee0b8' : '#155724',
+        };
     }
-    return { backgroundColor: `rgba(220, 53, 69, ${alpha})`, color: '#721c24' };
+    return {
+        backgroundColor: `rgba(220, 53, 69, ${alpha})`,
+        color: dark ? '#f5b5bb' : '#721c24',
+    };
 }

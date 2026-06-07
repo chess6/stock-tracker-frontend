@@ -97,7 +97,7 @@ export default function DataGrid({
     columnResizeMode: 'onChange',
   });
 
-  const headerStyle = { background: 'rgba(99, 99, 99, 1)', color: '#fff' };
+  const headerStyle = { background: 'var(--st-grid-header-bg)', color: 'var(--st-grid-header-fg)' };
 
   // Dropdown for column visibility
   const handleToggleColumn = (colKey) => {
@@ -262,7 +262,7 @@ export default function DataGrid({
           {showColumnDropdown && (
             <div
               ref={dropdownRef}
-              className="position-absolute bg-white border rounded shadow-sm"
+              className="position-absolute bg-body border rounded shadow-sm"
               style={{ right: 0, top: '110%', minWidth: 180, zIndex: 10, padding: 8 }}
             >
               <div className="d-flex justify-content-between align-items-center mb-2">
@@ -337,7 +337,7 @@ export default function DataGrid({
             )}
             <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
               {columnGroups.length > 0 && (
-                <tr style={{ ...headerStyle, background: 'rgba(70, 70, 70, 1)' }}>
+                <tr style={{ ...headerStyle, background: 'var(--st-grid-group-header-bg)' }}>
                   {(() => {
                     const cells = [];
                     let idx = 0;
@@ -481,7 +481,7 @@ export default function DataGrid({
                     const width = getColumnWidth(colId, header);
                     let cellStyle = applyWidthStyle(
                       applyStickyStyle(colId, {
-                        background: row.getIsSelected() ? undefined : (stickyIds.includes(colId) ? '#fff' : undefined),
+                        background: row.getIsSelected() ? undefined : (stickyIds.includes(colId) ? 'var(--bs-body-bg)' : undefined),
                         zIndex: stickyIds.includes(colId) ? 4 : undefined,
                       }),
                       colId,

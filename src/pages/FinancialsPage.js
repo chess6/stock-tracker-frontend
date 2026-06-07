@@ -9,6 +9,8 @@ import API_ENDPOINTS from '../apiConfig';
 import DataGrid from '../components/DataGrid';
 import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
 import { signedHeatStyle } from '../utils/heatMap';
+import { useTheme } from '../context/ThemeContext';
+import { mergeApexOptions } from '../utils/chartTheme';
 
 const yearOptions = [5, 10, 15, 'all'];
 const statementTypes = [
@@ -68,6 +70,7 @@ const METRICS_MAP = {
 const FinancialsPage = () => {
   const { ticker } = useParams();
   const { showToast } = useToast();
+  const { theme } = useTheme();
   const handleAddToPortfolio = () => {
     if (!ticker) return;
     const notif = addToPortfolioWithNotification(ticker);
@@ -240,7 +243,7 @@ const FinancialsPage = () => {
   // Chart width and scroll container for ApexCharts
   const chartWidth = Math.max(600, periods.length * 200); // 60px per bar, min 600px
 
-  const barChartOptions = useMemo(() => ({
+  const barChartOptions = useMemo(() => mergeApexOptions({
     chart: {
       type: 'bar',
       stacked: false,
@@ -274,9 +277,6 @@ const FinancialsPage = () => {
     legend: { position: 'top' },
     dataLabels: {
       enabled: true,
-      style: {
-        colors: ['#000']
-      },
       formatter: (val) => {
         if (typeof val !== 'number' || isNaN(val)) return '';
         const absVal = Math.abs(val);
@@ -352,7 +352,7 @@ const FinancialsPage = () => {
         }
       }
     }
-  }), [financials, activeType]);
+  }), [financials, activeType, theme]);
 
   const onMetricRowClick = (row) => {
     const original = row?.original ?? row;

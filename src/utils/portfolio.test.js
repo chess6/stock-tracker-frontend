@@ -1,8 +1,29 @@
-import { addToPortfolioWithNotification, getPortfolio, setPortfolioTickers } from './portfolio';
+import {
+  addToPortfolioWithNotification,
+  getPortfolio,
+  resetPortfolioStateForTests,
+  setPortfolioTickers,
+} from './portfolio';
 
 describe('portfolio helpers', () => {
   beforeEach(() => {
-    localStorage.clear();
+    resetPortfolioStateForTests();
+    global.fetch = jest.fn((url, options = {}) => {
+      const body = options.body ? JSON.parse(options.body) : {};
+      if (options.method === 'PUT') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            theme: body.theme || 'dark',
+            portfolio: body.portfolio || [],
+          }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ theme: 'dark', portfolio: [] }),
+      });
+    });
   });
 
   it('adds ticker and returns success toast payload', () => {

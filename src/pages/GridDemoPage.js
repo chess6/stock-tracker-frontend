@@ -57,8 +57,8 @@ export default function GridDemoPage() {
           const pct = Math.max(0, Math.min(100, Number(v)));
           return (
             <div style={{ width: 100 }}>
-              <div style={{ height: 8, background: "#eee", borderRadius: 4 }}>
-                <div style={{ width: `${pct}%`, height: 8, background: "#4caf50", borderRadius: 4 }} />
+              <div style={{ height: 8, background: 'var(--bs-secondary-bg)', borderRadius: 4 }}>
+                <div style={{ width: `${pct}%`, height: 8, background: 'var(--bs-success)', borderRadius: 4 }} />
               </div>
               <small>{v}</small>
             </div>
@@ -71,12 +71,12 @@ export default function GridDemoPage() {
         header: "Rating",
         cell: (info) => {
           const stars = Number(info.getValue()) || 0;
-          return <span style={{ color: "#f2b01e" }}>{"★".repeat(stars)}</span>;
+          return <span style={{ color: 'var(--bs-warning)' }}>{"★".repeat(stars)}</span>;
         },
       }),
       columnHelper.accessor("passed", {
         header: "Passed?",
-        cell: (info) => info.getValue() ? <span style={{ color: "#28a745" }}>✓</span> : <span style={{ color: "#dc3545" }}>✗</span>,
+        cell: (info) => info.getValue() ? <span style={{ color: 'var(--bs-success)' }}>✓</span> : <span style={{ color: 'var(--bs-danger)' }}>✗</span>,
       }),
       columnHelper.accessor("custom", {
         header: "Custom",

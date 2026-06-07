@@ -7,6 +7,8 @@ import { Container, Row, Col, Card, CardBody, CardTitle, Button, Spinner } from 
 import TickerSubnav from '../components/TickerSubnav';
 import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
+import { mergeApexOptions } from '../utils/chartTheme';
 
 const SummaryPage = () => {
   const { ticker } = useParams();
@@ -20,6 +22,7 @@ const SummaryPage = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const { showToast } = useToast();
+  const { theme } = useTheme();
 
   useEffect(() => {
     let cancelled = false;
@@ -166,7 +169,7 @@ const SummaryPage = () => {
   }, [range, intraday, prices]);
 
 
-  const chartOptions = {
+  const chartOptions = useMemo(() => mergeApexOptions({
     chart: { id: 'price-line' },
     xaxis: {
       categories: filteredPrices.map(p => p.date ? p.date.slice(0, 16) : ''),
@@ -175,7 +178,7 @@ const SummaryPage = () => {
     },
     yaxis: { title: { text: 'Price' } },
     title: { text: `${ticker} Price History`, align: 'left' },
-  };
+  }), [filteredPrices, ticker, theme]);
   const chartSeries = [
     {
       name: 'Close',
@@ -236,7 +239,7 @@ const SummaryPage = () => {
                 </Button>
               </div>
               {metaFields.length > 0 && (
-                <div className="mb-2" style={{ fontSize: 13, color: '#444' }}>
+                <div className="mb-2 small text-muted">
                   {metaFields.map(([label, value]) => (
                     <div key={label}><strong>{label}:</strong> {value}</div>
                   ))}
@@ -248,7 +251,7 @@ const SummaryPage = () => {
                   )}
                 </div>
               )}
-              <div className="mb-1" style={{ fontSize: 14, color: '#666' }}>
+              <div className="mb-1 text-muted">
                 {latestClose != null && (
                   <span>
                     Latest Close: <strong>${latestClose.toFixed(2)}</strong>
@@ -260,7 +263,7 @@ const SummaryPage = () => {
                   </span>
                 )}
                 {changeInfo && (
-                  <span style={{ marginLeft: 12, color: changeInfo.up ? '#0a7' : '#d33' }}>
+                  <span className={changeInfo.up ? 'st-change-up' : 'st-change-down'} style={{ marginLeft: 12 }}>
                     {changeInfo.up ? '+' : ''}{changeInfo.diff.toFixed(2)} ({changeInfo.up ? '+' : ''}{changeInfo.pct.toFixed(2)}%)
                   </span>
                 )}
@@ -282,13 +285,15 @@ const SummaryPage = () => {
         </Col>
       </Row>
       <h3>News Feed</h3>
-      <ul>
-        {news.length === 0 && <li>No news found.</li>}
+      <ul className="list-unstyled">
+        {news.length === 0 && <li className="text-muted">No news found.</li>}
         {news.map((item, idx) => (
-          <li key={idx} style={{ marginBottom: 12 }}>
-            <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
-            <div style={{ color: '#888', fontSize: 12 }}>{item.publishedDate ? item.publishedDate.slice(0, 10) : ''}</div>
-            <div>{item.description}</div>
+          <li key={idx} className="mb-3">
+            <a href={item.url} target="_blank" rel="noopener noreferrer" className="link-primary fw-semibold text-decoration-none">
+              {item.title}
+            </a>
+            <div className="small text-muted">{item.publishedDate ? item.publishedDate.slice(0, 10) : ''}</div>
+            {item.description && <div className="small text-secondary">{item.description}</div>}
           </li>
         ))}
       </ul>

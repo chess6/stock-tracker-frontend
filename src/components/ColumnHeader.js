@@ -36,7 +36,7 @@ export default function ColumnHeader({ label, meta = {}, canSort, sortDir, onSor
         <button
           type="button"
           className="btn btn-link p-0 border-0"
-          style={{ fontSize: 11, lineHeight: 1, color: 'rgba(255,255,255,0.75)', minWidth: 14 }}
+          style={{ fontSize: 11, lineHeight: 1, color: 'var(--st-grid-header-icon)', minWidth: 14 }}
           onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
           aria-label={`Help for ${meta.fullName || label}`}
         >
@@ -50,7 +50,7 @@ export default function ColumnHeader({ label, meta = {}, canSort, sortDir, onSor
       )}
       {open && (
         <div
-          className="position-absolute bg-white border rounded shadow-sm text-dark"
+          className="position-absolute bg-body border rounded shadow-sm"
           style={{ top: '120%', left: 0, zIndex: 20, minWidth: 220, maxWidth: 300, padding: '8px 10px', fontSize: 12, fontWeight: 400 }}
           onClick={(e) => e.stopPropagation()}
         >

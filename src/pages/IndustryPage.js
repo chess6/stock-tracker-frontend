@@ -192,7 +192,7 @@ export default function IndustryPage() {
                         onClick={() => setSelected({ sector: item.sector, industry: item.industry })}
                       >
                         {item.industry}
-                        <span className="badge bg-light text-dark ms-2">{item.company_count}</span>
+                        <span className="badge text-bg-secondary ms-2">{item.company_count}</span>
                       </button>
                     );
                   })}

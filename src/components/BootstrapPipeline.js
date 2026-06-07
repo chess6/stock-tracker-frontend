@@ -5,6 +5,14 @@ import {
   defaultSelectedStepIds,
 } from '../config/bootstrapPipeline';
 import { runBootstrapPipeline } from '../config/bootstrapPipelineRunner';
+import {
+  PIPELINE_MODES,
+  buildFullRunConfirmationMessage,
+  estimatePipelineDuration,
+  formatSecondsRange,
+  modeSummary,
+  stepDescriptionForMode,
+} from '../config/bootstrapPipelineModes';
 import './BootstrapPipeline.css';
 
 function connectorClass(stageIndex, stages, selected, stepStatus) {
@@ -72,8 +80,15 @@ export default function BootstrapPipeline({
   const [stepStatus, setStepStatus] = useState({});
   const [focusedStepId, setFocusedStepId] = useState(BOOTSTRAP_STEPS[0]?.id);
   const [running, setRunning] = useState(false);
+  const [fullSlowRun, setFullSlowRun] = useState(false);
 
   const selectedCount = selected.size;
+  const pipelineMode = fullSlowRun ? PIPELINE_MODES.FULL : PIPELINE_MODES.FAST;
+  const selectedStepIds = useMemo(() => [...selected], [selected]);
+  const durationEstimate = useMemo(
+    () => estimatePipelineDuration(selectedStepIds, pipelineMode, tickersCsv),
+    [selectedStepIds, pipelineMode, tickersCsv],
+  );
   const tickersMissing = !tickersCsv.trim();
   const tickerStepsSelected = BOOTSTRAP_STEPS.some(
     (step) => selected.has(step.id) && step.requiresTickers,
@@ -110,6 +125,12 @@ export default function BootstrapPipeline({
       showToast?.('Enter tickers or use portfolio for ticker-scoped steps', 'warning', 5000);
       return;
     }
+    if (fullSlowRun) {
+      const confirmed = window.confirm(
+        buildFullRunConfirmationMessage(selectedStepIds, tickersCsv),
+      );
+      if (!confirmed) return;
+    }
 
     setRunning(true);
     const initialStatus = {};
@@ -118,8 +139,9 @@ export default function BootstrapPipeline({
 
     try {
       const { stepResults, failedCount } = await runBootstrapPipeline({
-        selectedStepIds: [...selected],
+        selectedStepIds,
         tickersCsv,
+        mode: pipelineMode,
         onStepStatus: (stepId, status) => {
           setStepStatus((prev) => ({ ...prev, [stepId]: status }));
         },
@@ -146,7 +168,7 @@ export default function BootstrapPipeline({
         <div>
           <h2 className="h6 mb-1">Bootstrap Pipeline</h2>
           <div className="text-muted small">
-            Click stages to include or exclude. Parallel stages run together.
+            Click stages to include or exclude. Parallel stages run together. Fast mode by default.
           </div>
         </div>
         <div className="d-flex gap-2 flex-wrap">
@@ -218,12 +240,41 @@ export default function BootstrapPipeline({
               <span className="badge bg-secondary-subtle text-secondary-emphasis ms-2">tickers</span>
             )}
             {!selected.has(focusedStep.id) && (
-              <span className="badge bg-light text-muted border ms-2">excluded</span>
+              <span className="badge text-bg-secondary ms-2">excluded</span>
             )}
           </div>
-          <div className="text-muted small">{focusedStep.description}</div>
+          <div className="text-muted small">
+            {stepDescriptionForMode(focusedStep.id, pipelineMode)}
+          </div>
         </div>
       )}
+
+      <div className="jx-pipeline-mode mt-2">
+        <div className="form-check">
+          <input
+            className="form-check-input"
+            type="checkbox"
+            id="bootstrap-full-slow-run"
+            checked={fullSlowRun}
+            disabled={disabled || running}
+            onChange={(event) => setFullSlowRun(event.target.checked)}
+          />
+          <label className="form-check-label small" htmlFor="bootstrap-full-slow-run">
+            Full slow run (no feed caps, full article extraction, longer history)
+          </label>
+        </div>
+        <div className="text-muted small mt-1">
+          {modeSummary(pipelineMode)}
+          {selectedCount > 0 && (
+            <span className="ms-1">
+              Estimated total:
+              {' '}
+              {formatSecondsRange(durationEstimate.minSeconds, durationEstimate.maxSeconds)}
+              {fullSlowRun ? ' — confirmation required before start.' : '.'}
+            </span>
+          )}
+        </div>
+      </div>
 
       {tickerStepsSelected && tickersMissing && (
         <div className="alert alert-warning py-2 small mb-3 mt-2" role="alert">
@@ -237,7 +288,9 @@ export default function BootstrapPipeline({
         disabled={disabled || running || selectedCount === 0}
         onClick={handleRun}
       >
-        {running ? 'Running pipeline…' : `Run pipeline (${selectedCount} stage${selectedCount === 1 ? '' : 's'})`}
+        {running
+          ? 'Running pipeline…'
+          : `Run ${fullSlowRun ? 'full' : 'fast'} pipeline (${selectedCount} stage${selectedCount === 1 ? '' : 's'})`}
       </button>
     </div>
   );

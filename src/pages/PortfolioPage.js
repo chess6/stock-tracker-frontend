@@ -13,11 +13,11 @@ import {
 import DataGrid from '../components/DataGrid';
 import ConfirmModal from '../components/ConfirmModal';
 import { Link } from 'react-router-dom';
-import { PORTFOLIO_UPDATED_EVENT, setPortfolioTickers } from '../utils/portfolio';
+import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT, setPortfolioTickers } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
 import { formatFreshnessTimestamp } from '../utils/dataFreshness';
 import {
-    secEdgarUrl, whaleWisdomUrl, seekingAlphaUrl, tickerNewsUrl,
+    secEdgarUrl, whaleWisdomUrl, seekingAlphaUrl, tickerFinancialsUrl, tickerNewsUrl,
     stockChartsUrl, openInsiderUrl,
 } from '../utils/tickerLinks';
 
@@ -36,11 +36,21 @@ const meta = (key) => ({
 
 const isRowDataIncomplete = (row) => row.price == null || row.marketCap == null;
 
+const incompleteCacheTitle = (row) => {
+    if (row.price == null && row.marketCap == null) {
+        return 'Missing price and market cap — refresh prices and fundamentals in Admin';
+    }
+    if (row.price == null) {
+        return 'Missing price — run Refresh prices in Admin';
+    }
+    if (row.marketCap == null) {
+        return 'Missing market cap (shares outstanding) — run Refresh fundamentals in Admin';
+    }
+    return 'Incomplete cache — refresh in Admin';
+};
+
 const PortfolioPage = () => {
-    const [portfolio, setPortfolio] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('portfolio')) || []; }
-        catch { return []; }
-    });
+    const [portfolio, setPortfolio] = useState(() => getPortfolio());
     const [rows, setRows] = useState([]);
     const rowsRef = useRef(rows);
     rowsRef.current = rows;
@@ -101,11 +111,11 @@ const PortfolioPage = () => {
             header: 'Ticker',
             cell: ({ getValue, row }) => (
                 <>
-                    <strong>{getValue()}</strong>
+                    <Link to={tickerFinancialsUrl(getValue())}><strong>{getValue()}</strong></Link>
                     {!isPageLoading && isRowDataIncomplete(row.original) && (
                         <span
-                            className="badge bg-warning text-dark ms-1"
-                            title="Incomplete cache — refresh in Admin"
+                            className="badge text-bg-warning ms-1"
+                            title={incompleteCacheTitle(row.original)}
                             style={{ fontSize: 10, verticalAlign: 'middle' }}
                         >
                             !
@@ -386,14 +396,10 @@ const PortfolioPage = () => {
     };
 
     useEffect(() => {
-        function handleStorage(e) {
-            if (e.key === 'portfolio') {
-                try { setPortfolio(JSON.parse(e.newValue) || []); }
-                catch { /* ignore corrupt value */ }
-            }
-        }
-        window.addEventListener('storage', handleStorage);
-        return () => window.removeEventListener('storage', handleStorage);
+        loadUserPreferences().then(() => setPortfolio(getPortfolio()));
+        const sync = () => setPortfolio(getPortfolio());
+        window.addEventListener(PORTFOLIO_UPDATED_EVENT, sync);
+        return () => window.removeEventListener(PORTFOLIO_UPDATED_EVENT, sync);
     }, []);
 
     useEffect(() => {
@@ -414,13 +420,16 @@ const PortfolioPage = () => {
         if (rows.length === 0 || added.length) {
             setIsPageLoading(true);
             const fetchTickers = rows.length === 0 ? portfolioList : added;
+            const controller = new AbortController();
+            const signal = controller.signal;
             (async () => {
                 try {
                     const tickersStr = fetchTickers.join(',');
                     const [fundRes, topRes] = await Promise.allSettled([
-                        axios.get(`${API_ENDPOINTS.FINANCIALS}?ticker=${tickersStr}&mostRecent=true`),
-                        axios.get(API_ENDPOINTS.TOP_OF_BOOK, { params: { tickers: tickersStr } }),
+                        axios.get(`${API_ENDPOINTS.FINANCIALS}?ticker=${tickersStr}&mostRecent=true`, { signal }),
+                        axios.get(API_ENDPOINTS.TOP_OF_BOOK, { params: { tickers: tickersStr }, signal }),
                     ]);
+                    if (signal.aborted) return;
                     const metricsMap = fundRes.status === 'fulfilled' ? (fundRes.value.data?.metrics || {}) : {};
                     const topQuotes = topRes.status === 'fulfilled' ? (topRes.value.data?.quotes || {}) : {};
 
@@ -478,11 +487,14 @@ const PortfolioPage = () => {
                         return [...prevRows, ...newRows.filter(r => !existing.has(r.ticker))];
                     });
                 } finally {
-                    setIsPageLoading(false);
+                    if (!signal.aborted) setIsPageLoading(false);
                 }
 
+                if (signal.aborted) return;
+
                 try {
-                    const changeRes = await axios.get(API_ENDPOINTS.DAILY_CHANGE, { params: { tickers: fetchTickers.join(',') } });
+                    const changeRes = await axios.get(API_ENDPOINTS.DAILY_CHANGE, { params: { tickers: fetchTickers.join(',') }, signal });
+                    if (signal.aborted) return;
                     const changeMap = changeRes.data?.changes || {};
                     setRows(prev => prev.map(row => {
                         if (!fetchTickers.includes(row.ticker)) return row;
@@ -498,7 +510,8 @@ const PortfolioPage = () => {
                         else if (price == null && prevClose != null) price = prevClose;
                         return { ...row, price, change, prevClose, _pending: { ...(row._pending || {}), change: false } };
                     }));
-                } catch {
+                } catch (err) {
+                    if (axios.isCancel(err)) return;
                     setRows(prev => prev.map(row => (
                         fetchTickers.includes(row.ticker)
                             ? { ...row, _pending: { ...(row._pending || {}), change: false } }
@@ -506,8 +519,11 @@ const PortfolioPage = () => {
                     )));
                 }
 
+                if (signal.aborted) return;
+
                 try {
-                    const insiderRes = await axios.get(API_ENDPOINTS.INSIDER_BUYING_SUMS, { params: { tickers: fetchTickers.join(',') } });
+                    const insiderRes = await axios.get(API_ENDPOINTS.INSIDER_BUYING_SUMS, { params: { tickers: fetchTickers.join(',') }, signal });
+                    if (signal.aborted) return;
                     const payload = insiderRes?.data;
                     const map = {};
                     (payload?.rows || []).forEach(r => { if (r?.ticker) map[r.ticker] = r; });
@@ -523,8 +539,11 @@ const PortfolioPage = () => {
                     }));
                 } catch { /* ignore */ }
 
+                if (signal.aborted) return;
+
                 try {
-                    const statsRes = await axios.get(API_ENDPOINTS.MARKET_STATS, { params: { tickers: fetchTickers.join(',') } });
+                    const statsRes = await axios.get(API_ENDPOINTS.MARKET_STATS, { params: { tickers: fetchTickers.join(',') }, signal });
+                    if (signal.aborted) return;
                     const statsMap = statsRes.data?.stats || {};
                     setRows(prev => prev.map(row => {
                         if (!fetchTickers.includes(row.ticker)) return row;
@@ -540,6 +559,7 @@ const PortfolioPage = () => {
                     }));
                 } catch { /* ignore */ }
             })();
+            return () => controller.abort();
         }
     }, [portfolioKey]);
 
@@ -555,21 +575,6 @@ const PortfolioPage = () => {
         })();
         return () => { cancelled = true; };
     }, [portfolio.length]);
-
-    useEffect(() => {
-        const sync = () => {
-            try {
-                const parsed = JSON.parse(localStorage.getItem('portfolio') || '[]');
-                setPortfolio((prev) => (JSON.stringify(prev) !== JSON.stringify(parsed) ? parsed : prev));
-            } catch { /* ignore */ }
-        };
-        window.addEventListener(PORTFOLIO_UPDATED_EVENT, sync);
-        window.addEventListener('focus', sync);
-        return () => {
-            window.removeEventListener(PORTFOLIO_UPDATED_EVENT, sync);
-            window.removeEventListener('focus', sync);
-        };
-    }, []);
 
     if (portfolio.length === 0) {
         return (
@@ -636,7 +641,7 @@ const PortfolioPage = () => {
                     />
                     <div style={{ position: 'relative' }}>
                         {isPageLoading && (
-                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                            <div className="portfolio-loading-overlay" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
                                 <div className="spinner-border" role="status" aria-hidden="true" />
                             </div>
                         )}

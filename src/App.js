@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import PortfolioPage from './pages/PortfolioPage';
 import SummaryPage from './pages/SummaryPage';
@@ -18,6 +19,8 @@ import DashboardPage from './pages/DashboardPage';
 import IndustryPage from './pages/IndustryPage';
 import MoversPage from './pages/MoversPage';
 import { ToastProvider } from './context/ToastContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { loadUserPreferences } from './utils/portfolio';
 
 function LegacyInsiderRedirect() {
   const { ticker } = useParams();
@@ -25,8 +28,10 @@ function LegacyInsiderRedirect() {
 }
 
 function App() {
+  useEffect(() => { loadUserPreferences(); }, []);
   return (
     <Provider store={store}>
+      <ThemeProvider>
       <ToastProvider>
       <Router>
         <AppNavbar />
@@ -53,6 +58,7 @@ function App() {
         </Routes>
       </Router>
       </ToastProvider>
+      </ThemeProvider>
     </Provider>
   );
 }

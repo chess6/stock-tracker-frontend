@@ -13,7 +13,10 @@ import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import { summarizeFreshness } from '../utils/dataFreshness';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
+import ThemeProfileMenu from './ThemeProfileMenu';
 import '../navbar-search-dropdown.css';
+import '../navbar-layout.css';
 
 const NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -37,6 +40,7 @@ const AppNavbar = () => {
   const searchAreaRef = useRef(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { isDark } = useTheme();
 
   useEffect(() => {
     let cancelled = false;
@@ -140,19 +144,25 @@ const AppNavbar = () => {
   };
 
   return (
-    <Navbar color="dark" dark expand="lg" className="mb-1 position-relative" style={{ minHeight: 64 }}>
-      <Container fluid>
+    <Navbar
+      color={isDark ? 'dark' : 'light'}
+      dark={isDark}
+      expand="lg"
+      className={`mb-1 position-relative ${isDark ? '' : 'border-bottom'}`}
+      style={{ minHeight: 64 }}
+    >
+      <Container fluid className="navbar-shell">
         <NavbarBrand tag={Link} to="/" className="fw-bold fs-4" style={{ cursor: 'pointer' }}>
           Stock Portfolio
         </NavbarBrand>
         <NavbarToggler onClick={() => setNavOpen((v) => !v)} />
-        <Collapse isOpen={navOpen} navbar>
-          <Nav className="me-auto flex-wrap" navbar>
+        <Collapse isOpen={navOpen} navbar className="navbar-shell-collapse">
+          <Nav className="me-auto flex-wrap navbar-nav-links" navbar>
             {NAV_LINKS.map((link) => (
               <NavItem key={link.to}>
                 <Link
                   to={link.to}
-                  className="nav-link text-light fw-semibold"
+                  className={`nav-link fw-semibold ${isDark ? 'text-light' : 'text-dark'}`}
                   onClick={() => setNavOpen(false)}
                 >
                   {link.label}
@@ -172,77 +182,80 @@ const AppNavbar = () => {
               </NavItem>
             )}
           </Nav>
-          <div
-            ref={searchAreaRef}
-            className="d-flex position-relative w-100 flex-lg-grow-0 navbar-search-area mt-2 mt-lg-0"
-            style={{ minWidth: 0, maxWidth: '45rem' }}
-          >
-            <div className="position-relative w-100">
-              <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                <Input
-                  type="search"
-                  bsSize="sm"
-                  style={{ width: '100%', fontSize: 14 }}
-                  value={search}
-                  onChange={handleSearchChange}
-                  onKeyDown={handleSearchKeyDown}
-                  placeholder="Search ticker or company"
-                  aria-label="Search ticker or company"
-                  onFocus={() => searchResults.length > 0 && setDropdownOpen(true)}
-                  autoComplete="off"
-                />
-                {search && (
-                  <Button
-                    size="sm"
-                    color="secondary"
-                    style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', zIndex: 11, padding: '0 8px', fontSize: 16, borderRadius: '50%' }}
-                    onClick={() => { setSearch(''); setSearchResults([]); setDropdownOpen(false); setActiveResultIdx(-1); }}
-                    aria-label="Clear search"
-                  >
-                    &times;
-                  </Button>
-                )}
-              </div>
-              <Dropdown isOpen={dropdownOpen && searchResults.length > 0} toggle={() => setDropdownOpen(!dropdownOpen)} style={{ width: '100%' }} direction="down">
-                <DropdownToggle tag="span" style={{ display: 'none' }} />
-                <DropdownMenu className="w-100 navbar-search-dropdown shadow">
-                  {searchResults.map((item, idx) => (
-                    <div
-                      key={item.ticker}
-                      className={`d-flex justify-content-between align-items-center dropdown-item ${idx === activeResultIdx ? 'active' : ''}`}
-                      style={{ width: '100%', cursor: 'pointer' }}
-                      role="menuitem"
-                      onMouseEnter={() => setActiveResultIdx(idx)}
-                    >
-                      <span><strong>{item.ticker}</strong> <small className="text-muted">{item.name}</small></span>
-                      <span>
-                        <Button
-                          size="sm"
-                          color={isInPortfolio(item.ticker) ? 'secondary' : 'success'}
-                          className="me-2"
-                          onMouseDown={e => e.preventDefault()}
-                          onClick={() => handleAddToPortfolio(item.ticker)}
-                          title={isInPortfolio(item.ticker) ? 'Already in portfolio' : 'Add to portfolio'}
-                        >
-                          <FontAwesomeIcon icon={faPlus} />
-                        </Button>
-                        <Button
-                          size="sm"
-                          color="primary"
-                          onMouseDown={e => e.preventDefault()}
-                          onClick={() => handleSearchTicker(item.ticker)}
-                          title="Open ticker summary"
-                        >
-                          <FontAwesomeIcon icon={faSearch} />
-                        </Button>
-                      </span>
-                    </div>
-                  ))}
-                </DropdownMenu>
-              </Dropdown>
-            </div>
-          </div>
         </Collapse>
+        <div ref={searchAreaRef} className="navbar-tools">
+          <div className="navbar-search-area">
+            <Input
+              type="search"
+              bsSize="sm"
+              className="navbar-search-input"
+              value={search}
+              onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search ticker or company"
+              aria-label="Search ticker or company"
+              onFocus={() => searchResults.length > 0 && setDropdownOpen(true)}
+              autoComplete="off"
+            />
+            {search && (
+              <Button
+                size="sm"
+                color="secondary"
+                className="navbar-search-clear"
+                onClick={() => { setSearch(''); setSearchResults([]); setDropdownOpen(false); setActiveResultIdx(-1); }}
+                aria-label="Clear search"
+              >
+                &times;
+              </Button>
+            )}
+            <Dropdown
+              isOpen={dropdownOpen && searchResults.length > 0}
+              toggle={() => setDropdownOpen(!dropdownOpen)}
+              className="navbar-search-dropdown-wrap"
+              direction="down"
+            >
+              <DropdownToggle tag="span" className="navbar-search-dropdown-anchor" />
+              <DropdownMenu className="navbar-search-dropdown shadow">
+                {searchResults.map((item, idx) => (
+                  <div
+                    key={item.ticker}
+                    className={`dropdown-item navbar-search-result ${idx === activeResultIdx ? 'active' : ''}`}
+                    role="menuitem"
+                    onMouseEnter={() => setActiveResultIdx(idx)}
+                  >
+                    <span className="navbar-search-result-label" title={`${item.ticker} ${item.name}`}>
+                      <strong>{item.ticker}</strong>{' '}
+                      <small className="text-muted">{item.name}</small>
+                    </span>
+                    <span className="navbar-search-result-actions">
+                      <Button
+                        size="sm"
+                        color={isInPortfolio(item.ticker) ? 'secondary' : 'success'}
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => handleAddToPortfolio(item.ticker)}
+                        title={isInPortfolio(item.ticker) ? 'Already in portfolio' : 'Add to portfolio'}
+                      >
+                        <FontAwesomeIcon icon={faPlus} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        color="primary"
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => handleSearchTicker(item.ticker)}
+                        title="Open ticker summary"
+                      >
+                        <FontAwesomeIcon icon={faSearch} />
+                      </Button>
+                    </span>
+                  </div>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+          <div className="navbar-profile-slot">
+            <ThemeProfileMenu />
+          </div>
+        </div>
       </Container>
     </Navbar>
   );
