@@ -181,14 +181,25 @@ class IssueScanner:
             return 0
         output = (result.stdout or "") + (result.stderr or "")
         created = 0
-        for match in re.finditer(r"\[(\w+)\].*›.*visual regression › (.+)", output):
-            viewport, test_name = match.group(1), match.group(2)
+        failures = [
+            (match.group(1), match.group(2))
+            for match in re.finditer(r"\[(\w+)\].*›.*visual regression › (.+)", output)
+        ]
+        if failures:
+            tests = sorted({f"{name} ({viewport})" for viewport, name in failures})
+            summary = "\n".join(f"- {item}" for item in tests[:30])
             if self._try_create(
                 category="visual_regression",
-                title=f"Visual regression: {test_name} ({viewport})",
-                description=f"Screenshot diff exceeded threshold for {test_name} on {viewport}",
+                title="Playwright visual regression baselines out of date",
+                description=(
+                    f"{len(failures)} screenshot diff(s) across {len(tests)} test/viewport pair(s).\n"
+                    f"Run `npm run test:visual:update` after intentional UI changes.\n\n{summary}"
+                ),
                 source="playwright_visual",
-                evidence={"viewport": viewport, "test": test_name, "output_tail": output[-1500:]},
+                evidence={
+                    "failures": [{"viewport": v, "test": n} for v, n in failures[:50]],
+                    "output_tail": output[-1500:],
+                },
                 priority=PRIORITY["visual_regression"],
             ):
                 created += 1

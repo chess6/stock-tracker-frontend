@@ -3,8 +3,10 @@ import { useParams } from 'react-router-dom';
 import ApexCharts from 'react-apexcharts';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
-import { Link } from 'react-router-dom';
-import { Container, Row, Col, Card, CardBody, CardTitle, Button, Nav } from 'reactstrap';
+import { Container, Row, Col, Card, CardBody, CardTitle, Button, Spinner } from 'reactstrap';
+import TickerSubnav from '../components/TickerSubnav';
+import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
+import { useToast } from '../context/ToastContext';
 
 const SummaryPage = () => {
   const { ticker } = useParams();
@@ -15,10 +17,15 @@ const SummaryPage = () => {
   const [latestClose, setLatestClose] = useState(null);
   const [prevClose, setPrevClose] = useState(null);
   const [tickerMeta, setTickerMeta] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const { showToast } = useToast();
 
   useEffect(() => {
     let cancelled = false;
     async function fetchAll() {
+      setLoading(true);
+      setLoadError('');
       try {
         const [summaryRes, intradayRes, newsRes, changeRes] = await Promise.allSettled([
           axios.get(API_ENDPOINTS.SUMMARY(ticker)),
@@ -27,10 +34,12 @@ const SummaryPage = () => {
           axios.get(API_ENDPOINTS.DAILY_CHANGE, { params: { tickers: ticker } }),
         ]);
         if (!cancelled) {
+          const failures = [];
           if (summaryRes.status === 'fulfilled') {
             setPrices(summaryRes.value.data.prices || []);
           } else {
             setPrices([]);
+            failures.push('price history');
           }
           if (intradayRes.status === 'fulfilled') {
             const data = intradayRes.value.data;
@@ -48,11 +57,13 @@ const SummaryPage = () => {
           } else {
             setIntraday([]);
             setTickerMeta(null);
+            failures.push('intraday quote');
           }
           if (newsRes.status === 'fulfilled') {
             setNews(newsRes.value.data || []);
           } else {
             setNews([]);
+            failures.push('news');
           }
           if (changeRes.status === 'fulfilled') {
             const changes = (changeRes.value.data && changeRes.value.data.changes) || {};
@@ -64,6 +75,10 @@ const SummaryPage = () => {
           } else {
             setPrevClose(null);
             setLatestClose(null);
+            failures.push('daily change');
+          }
+          if (failures.length) {
+            setLoadError(`Some data could not be loaded (${failures.join(', ')}). Try Admin → Refresh Prices.`);
           }
         }
       } catch (e) {
@@ -74,7 +89,10 @@ const SummaryPage = () => {
           setPrevClose(null);
           setLatestClose(null);
           setTickerMeta(null);
+          setLoadError('Failed to load ticker data. Check that the backend is running.');
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
     fetchAll();
@@ -177,32 +195,57 @@ const SummaryPage = () => {
   }, [latestClose, prevClose]);
 
 
+  const metaFields = [
+    ['Exchange', tickerMeta?.exchange],
+    ['Sector', tickerMeta?.sector],
+    ['Industry', tickerMeta?.industry],
+    ['Location', tickerMeta?.location],
+    ['Currency', tickerMeta?.currency],
+  ].filter(([, value]) => value);
+
+  const handleAddToPortfolio = () => {
+    const notif = addToPortfolioWithNotification(ticker);
+    showToast(notif.message, notif.type);
+  };
+
+  if (loading) {
+    return (
+      <Container className="py-5 text-center text-muted">
+        <Spinner size="sm" className="me-2" /> Loading {ticker}…
+      </Container>
+    );
+  }
+
   return (
     <Container className="py-3">
+      {loadError && <div className="alert alert-warning">{loadError}</div>}
+      <TickerSubnav ticker={ticker} />
       <Row className="mb-4">
-        <Nav>
-          <Link to={`/${ticker}`}>Summary</Link> |{' '}
-          <Link to={`/${ticker}/financials`}>Financials</Link>
-        </Nav>
         <Col md={8} className="mx-auto">
           <Card className="shadow-sm p-3">
             <CardBody>
-              <CardTitle tag="h3" className="mb-1">{tickerMeta?.name || ticker} Summary</CardTitle>
-              {tickerMeta && (
+              <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <CardTitle tag="h3" className="mb-0">{tickerMeta?.name || ticker} Summary</CardTitle>
+                <Button
+                  type="button"
+                  size="sm"
+                  color={isInPortfolio(ticker) ? 'outline-secondary' : 'success'}
+                  onClick={handleAddToPortfolio}
+                >
+                  {isInPortfolio(ticker) ? 'In Portfolio' : 'Add to Portfolio'}
+                </Button>
+              </div>
+              {metaFields.length > 0 && (
                 <div className="mb-2" style={{ fontSize: 13, color: '#444' }}>
-                  <div><strong>Exchange:</strong> {tickerMeta.exchange}</div>
-                  <div><strong>Category:</strong> {tickerMeta.category}</div>
-                  <div><strong>Sector:</strong> {tickerMeta.sector}</div>
-                  <div><strong>Industry:</strong> {tickerMeta.industry}</div>
-                  <div><strong>Location:</strong> {tickerMeta.location}</div>
-                  <div><strong>Currency:</strong> {tickerMeta.currency}</div>
-                  <div><strong>Market Cap Scale:</strong> {tickerMeta.scalemarketcap}</div>
-                  <div><strong>Revenue Scale:</strong> {tickerMeta.scalerevenue}</div>
-                  <div><strong>First Added:</strong> {tickerMeta.firstadded}</div>
-                  <div><strong>First Price Date:</strong> {tickerMeta.firstpricedate}</div>
-                  <div><strong>Last Price Date:</strong> {tickerMeta.lastpricedate}</div>
-                  <div><strong>SEC Filings:</strong> <a href={tickerMeta.secfilings} target="_blank" rel="noopener noreferrer">Link</a></div>
-                  <div><strong>Company Site:</strong> <a href={tickerMeta.companysite} target="_blank" rel="noopener noreferrer">{tickerMeta.companysite}</a></div>
+                  {metaFields.map(([label, value]) => (
+                    <div key={label}><strong>{label}:</strong> {value}</div>
+                  ))}
+                  {tickerMeta?.secfilings && (
+                    <div><strong>SEC Filings:</strong> <a href={tickerMeta.secfilings} target="_blank" rel="noopener noreferrer">Link</a></div>
+                  )}
+                  {tickerMeta?.companysite && (
+                    <div><strong>Company Site:</strong> <a href={tickerMeta.companysite} target="_blank" rel="noopener noreferrer">{tickerMeta.companysite}</a></div>
+                  )}
                 </div>
               )}
               <div className="mb-1" style={{ fontSize: 14, color: '#666' }}>

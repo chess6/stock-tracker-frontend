@@ -26,7 +26,7 @@ const extractFormula = (description) => {
           formula = match[1];
           formula = formula.replace(/plus/ig, '+').replace(/minus/ig, '-').replace(/\[(.*?)\]/g, (m, p1) => p1.toLowerCase());
         }
-        return formula.toLowerCase().replace(/[\[\]\.]/g, '');
+        return formula.toLowerCase().replace(/[[\].]/g, '');
       }
     }
   
@@ -45,8 +45,6 @@ function NasdaqColumnsGrid() {
     useEffect(() => {
         const data = indicatorData.datatable.data;
         const columnsInfo = indicatorData.datatable.columns;
-
-        console.log('Columns Info:', indicatorData);
 
         const colObjects = data.map(row => {
             const obj = {};
@@ -136,8 +134,12 @@ function NasdaqColumnsGrid() {
     const tableNames = Object.keys(groupedColumns).sort();
     return (
         <div className="container-fluid col-lg-10 mt-4">
-            <a id={tocId} />
-            <h2>NASDAQ Financials API Columns Reference</h2>
+            <span id={tocId} />
+            <h2>Column Reference</h2>
+            <p className="text-muted">
+              Legacy field glossary from the original Nasdaq Data Link (SHARADAR) export.
+              Live portfolio metrics are computed from SEC EDGAR and cached prices — see column help (<code>?</code>) on the portfolio grid.
+            </p>
             {/* Table of Contents */}
             <nav className="mb-4">
                 <h5>Contents</h5>
@@ -153,7 +155,7 @@ function NasdaqColumnsGrid() {
             </nav>
             {tableNames.map(table => (
                 <div key={table} className="mt-1">
-                    <a id={`section-${table}`} />
+                    <span id={`section-${table}`} />
                     <h3>
                         {table}
                         {' '}

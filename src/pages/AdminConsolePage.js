@@ -1,6 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
+import BootstrapPipeline from '../components/BootstrapPipeline';
+import { getPortfolio, getPortfolioTickersCsv } from '../utils/portfolio';
+import { useToast } from '../context/ToastContext';
+
+const DEFAULT_TICKERS = 'AAPL,MSFT,NVDA,AMD,GOOGL,AMZN,META,TSLA';
+
+function initialTickersField() {
+  return getPortfolioTickersCsv() || DEFAULT_TICKERS;
+}
+
+function resolveTickersForRequest(fieldValue) {
+  const trimmed = fieldValue.trim();
+  if (trimmed) return trimmed;
+  return getPortfolioTickersCsv() || DEFAULT_TICKERS;
+}
 
 function formatDate(value) {
   if (!value) return 'Not available yet';
@@ -11,9 +27,14 @@ function formatDate(value) {
 export default function AdminConsolePage() {
   const [status, setStatus] = useState({ counts: {}, freshness: {} });
   const [feeds, setFeeds] = useState([]);
-  const [tickers, setTickers] = useState('AAPL,MSFT,NVDA,AMD,GOOGL,AMZN,META,TSLA');
+  const [tickers, setTickers] = useState(initialTickersField);
+  const [portfolioCount, setPortfolioCount] = useState(() => getPortfolio().length);
   const [busyAction, setBusyAction] = useState(null);
   const [message, setMessage] = useState('');
+  const { showToast } = useToast();
+
+  const tickersQuery = () => encodeURIComponent(resolveTickersForRequest(tickers));
+  const resolvedTickersCsv = useMemo(() => resolveTickersForRequest(tickers), [tickers]);
 
   const loadStatus = async () => {
     const [statusRes, feedsRes] = await Promise.all([
@@ -30,15 +51,29 @@ export default function AdminConsolePage() {
     });
   }, []);
 
+  useEffect(() => {
+    const syncPortfolio = () => setPortfolioCount(getPortfolio().length);
+    window.addEventListener('storage', syncPortfolio);
+    window.addEventListener('focus', syncPortfolio);
+    return () => {
+      window.removeEventListener('storage', syncPortfolio);
+      window.removeEventListener('focus', syncPortfolio);
+    };
+  }, []);
+
   const runAction = async (action, request) => {
     setBusyAction(action);
     setMessage('');
     try {
       const response = await request();
       await loadStatus();
-      setMessage(typeof response.data === 'object' ? `${action} complete` : String(response.data));
+      const successText = typeof response.data === 'object' ? `${action} complete` : String(response.data);
+      setMessage(successText);
+      showToast(successText, 'success', 5000);
     } catch (error) {
-      setMessage(error?.response?.data?.error || `${action} failed`);
+      const errorText = error?.response?.data?.error || `${action} failed`;
+      setMessage(errorText);
+      showToast(errorText, 'danger', 6000);
     } finally {
       setBusyAction(null);
     }
@@ -49,7 +84,10 @@ export default function AdminConsolePage() {
       <div className="row mb-3">
         <div className="col">
           <h1 className="h3 mb-1">Admin Console</h1>
-          <div className="text-muted">Manage local cache bootstrap, fundamentals refreshes, and default RSS ingestion.</div>
+          <div className="text-muted">
+            Manage local cache bootstrap, fundamentals refreshes, and default RSS ingestion.
+            {' '}<Link to="/columns">Column reference</Link> (legacy SHARADAR field glossary).
+          </div>
         </div>
       </div>
 
@@ -70,15 +108,26 @@ export default function AdminConsolePage() {
                 onChange={e => setTickers(e.target.value)}
                 placeholder="AAPL,MSFT,NVDA"
               />
+              <div className="form-text">
+                {portfolioCount > 0
+                  ? `Pre-filled from portfolio (${portfolioCount} ticker${portfolioCount === 1 ? '' : 's'}). Clear the field to still use portfolio on bootstrap.`
+                  : 'Portfolio empty — using default tickers unless you enter symbols.'}
+              </div>
             </div>
-            <div className="col-lg-4 d-flex gap-2">
-              <button
-                className="btn btn-primary"
-                disabled={busyAction !== null}
-                onClick={() => runAction('Bootstrap', () => axios.post(`${API_ENDPOINTS.ADMIN_BOOTSTRAP}?tickers=${encodeURIComponent(tickers)}`))}
-              >
-                {busyAction === 'Bootstrap' ? 'Running...' : 'Bootstrap All'}
-              </button>
+            <div className="col-lg-4 d-flex gap-2 flex-wrap">
+              {portfolioCount > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  disabled={busyAction !== null}
+                  onClick={() => {
+                    setTickers(getPortfolioTickersCsv());
+                    setPortfolioCount(getPortfolio().length);
+                  }}
+                >
+                  Use portfolio
+                </button>
+              )}
               <button
                 className="btn btn-outline-secondary"
                 disabled={busyAction !== null}
@@ -88,7 +137,24 @@ export default function AdminConsolePage() {
               </button>
             </div>
           </div>
-          <div className="d-flex gap-2 flex-wrap mt-3">
+          <BootstrapPipeline
+            tickersCsv={resolvedTickersCsv}
+            disabled={busyAction !== null}
+            showToast={showToast}
+            onComplete={async (stepResults) => {
+              await loadStatus();
+              const errors = Object.entries(stepResults)
+                .filter(([, result]) => result.status === 'error')
+                .map(([id, result]) => `${id}: ${result.error}`);
+              if (errors.length) {
+                setMessage(`Pipeline errors — ${errors.join('; ')}`);
+              } else {
+                setMessage('Pipeline complete');
+              }
+            }}
+          />
+          <div className="d-flex gap-2 flex-wrap mt-3 pt-3 border-top">
+            <span className="align-self-center small text-muted me-1">Individual actions:</span>
             <button
               className="btn btn-outline-primary"
               disabled={busyAction !== null}
@@ -99,7 +165,7 @@ export default function AdminConsolePage() {
             <button
               className="btn btn-outline-primary"
               disabled={busyAction !== null}
-              onClick={() => runAction('Fundamentals refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_FUNDAMENTALS}?tickers=${encodeURIComponent(tickers)}`))}
+              onClick={() => runAction('Fundamentals refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_FUNDAMENTALS}?tickers=${tickersQuery()}`))}
             >
               {busyAction === 'Fundamentals refresh' ? 'Running...' : 'Refresh Fundamentals'}
             </button>
@@ -113,14 +179,14 @@ export default function AdminConsolePage() {
             <button
               className="btn btn-outline-primary"
               disabled={busyAction !== null}
-              onClick={() => runAction('Price refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_PRICES}?tickers=${encodeURIComponent(tickers)}`))}
+              onClick={() => runAction('Price refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_PRICES}?tickers=${tickersQuery()}`))}
             >
               {busyAction === 'Price refresh' ? 'Running...' : 'Refresh Prices'}
             </button>
             <button
               className="btn btn-outline-primary"
               disabled={busyAction !== null}
-              onClick={() => runAction('Insider refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_INSIDERS}?tickers=${encodeURIComponent(tickers)}`))}
+              onClick={() => runAction('Insider refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_INSIDERS}?tickers=${tickersQuery()}`))}
             >
               {busyAction === 'Insider refresh' ? 'Running...' : 'Refresh Insiders'}
             </button>

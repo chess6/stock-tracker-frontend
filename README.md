@@ -32,9 +32,10 @@ The dev server proxies `/api` to `localhost:5000` via `package.json` `"proxy"`.
 | `/news` | News | Deduped RSS articles with filters and portfolio-only toggle |
 | `/screener` | Screener | Insider buying totals with RK dollar heat shading |
 | `/admin` | Admin console | Cache bootstrap and refresh controls |
+| `/columns` | Column reference | Legacy SHARADAR field glossary (`/nasdaq-columns` redirects here) |
 | `/:ticker` | Summary | Quote, chart, news for one ticker |
 | `/:ticker/financials` | Financials | SEC financials with YoY % column and shading |
-| `/nasdaq-columns` | Column reference | Legacy Nasdaq field names |
+| `/:ticker/insiders` | Insider transactions | SEC Form 4 grid (`/ticker/:ticker` redirects here) |
 
 Portfolio tickers are stored in **browser localStorage** (`portfolio` key). Add tickers via the navbar search box (+ button).
 
@@ -56,7 +57,7 @@ Comma-separated symbols for refresh actions. Default: `AAPL,MSFT,NVDA,AMD,GOOGL,
 | **Refresh Status** | Reload table counts and freshness timestamps. |
 | **Sync Companies** | Download SEC company master (~10k tickers). Powers navbar search. |
 | **Refresh Fundamentals** | SEC XBRL → portfolio ratios (S/P, Eb/EV, B/P, etc.) and financials page. |
-| **Ingest Default Feeds** | Poll 18 RSS sources, dedup articles, link tickers. |
+| **Ingest Default Feeds** | Poll 53 RSS sources, dedup articles, link tickers. |
 | **Refresh Prices** | Daily OHLCV → price, daily % change, charts. |
 | **Refresh Insiders** | SEC Form 4 → 1M/3M/6M insider columns. |
 | **Dedup Articles** | Re-normalize dates, semantic dedup, sentiment backfill. |

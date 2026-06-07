@@ -12,6 +12,8 @@ See `AGENTS.md` and `.cursor/rules/frontend-qa.mdc` for the full QA gate.
 
 - Endpoints only in `src/apiConfig.js` — never hardcode `/api/...`
 - Dev proxy: `package.json` → `"proxy": "http://localhost:5000"`
+- When renaming legacy endpoints (e.g. `SF2`), add the new key, migrate call sites,
+  then **comment out** the old alias (do not delete until Phase 8 is validated).
 
 ## Key routes
 
@@ -24,7 +26,9 @@ See `AGENTS.md` and `.cursor/rules/frontend-qa.mdc` for the full QA gate.
 | `/admin` | AdminConsolePage |
 | `/:ticker` | SummaryPage |
 | `/:ticker/financials` | FinancialsPage |
-| `/ticker/:ticker` | TickerDetailsPage (insiders) |
+| `/:ticker/insiders` | TickerDetailsPage (insider transactions) |
+| `/columns` | NasdaqColumnsGrid (legacy SHARADAR glossary) |
+| `/ticker/:ticker` | redirect → `/:ticker/insiders` |
 
 ## Free-first UX
 

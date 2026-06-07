@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
-import { useParams, Link } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
+import { useParams } from 'react-router-dom';
+import TickerSubnav from '../components/TickerSubnav';
 import ApexCharts from 'react-apexcharts';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
@@ -24,14 +26,53 @@ const reportOptions = [
   { label: 'Most Recent', value: 'MR' },
 ];
 
+const METRICS_MAP = {
+  income: [
+    { key: 'revenue', label: 'Revenue', alt: ['revenueusd'] },
+    { key: 'cor', label: 'Cost of Revenue', alt: ['costofrevenue'] },
+    { key: 'opex', label: 'Operating Expenses', alt: ['operatingexpenses'] },
+    { key: 'sgna', label: 'SG&A' },
+    { key: 'rnd', label: 'R&D', alt: ['researchanddevelopment'] },
+    { key: 'gp', label: 'Gross Profit', alt: ['grossProfit'] },
+    { key: 'opinc', label: 'Operating Income', alt: ['operatingIncome'] },
+    { key: 'ebit', label: 'EBIT' },
+    { key: 'ebitda', label: 'EBITDA' },
+    { key: 'netinc', label: 'Net Income', alt: ['netIncome', 'netinccmn'] },
+    { key: 'eps', label: 'EPS' },
+    { key: 'sgna', label: 'SG&A' },
+    { key: 'taxexp', label: 'Tax Expense' },
+  ],
+  balanceSheet: [
+    { key: 'assets', label: 'Total Assets' },
+    { key: 'liabilities', label: 'Total Liabilities' },
+    { key: 'equity', label: 'Shareholders’ Equity' },
+    { key: 'cashneq', label: 'Cash & Equivalents' },
+    { key: 'debt', label: 'Total Debt' },
+    { key: 'ppnenet', label: 'PP&E, Net' },
+    { key: 'inventory', label: 'Inventory' },
+    { key: 'receivables', label: 'Receivables' },
+    { key: 'payables', label: 'Payables' },
+    { key: 'workingcapital', label: 'Working Capital' },
+  ],
+  cashFlow: [
+    { key: 'ncfo', label: 'Operating Cash Flow', alt: ['operatingCashFlow'] },
+    { key: 'capex', label: 'Capital Expenditures' },
+    { key: 'fcf', label: 'Free Cash Flow' },
+    { key: 'ncfi', label: 'Investing Cash Flow' },
+    { key: 'ncff', label: 'Financing Cash Flow' },
+    { key: 'ncfdiv', label: 'Dividends Paid' },
+    { key: 'ncfdebt', label: 'Debt Issued/Repurchased' },
+    { key: 'ncf', label: 'Net Cash Flow' },
+  ],
+};
+
 const FinancialsPage = () => {
   const { ticker } = useParams();
-  const [notification, setNotification] = useState(null);
-  // Add to portfolio with notification and duplicate check
+  const { showToast } = useToast();
   const handleAddToPortfolio = () => {
     if (!ticker) return;
     const notif = addToPortfolioWithNotification(ticker);
-    setNotification(notif);
+    showToast(notif.message, notif.type);
   };
   const [financials, setFinancials] = useState({ income: [], balanceSheet: [], cashFlow: [] });
   const [loading, setLoading] = useState(true);
@@ -89,47 +130,6 @@ const FinancialsPage = () => {
     return () => { cancelled = true; };
   }, [ticker, period, years, report]);
 
-  // Metric definitions per statement
-  const METRICS_MAP = {
-    income: [
-      { key: 'revenue', label: 'Revenue', alt: ['revenueusd'] },
-      { key: 'cor', label: 'Cost of Revenue', alt: ['costofrevenue'] },
-      { key: 'opex', label: 'Operating Expenses', alt: ['operatingexpenses'] },
-      { key: 'sgna', label: 'SG&A' },
-      { key: 'rnd', label: 'R&D', alt: ['researchanddevelopment'] },
-      { key: 'gp', label: 'Gross Profit', alt: ['grossProfit'] },
-      { key: 'opinc', label: 'Operating Income', alt: ['operatingIncome'] },
-      { key: 'ebit', label: 'EBIT' },
-      { key: 'ebitda', label: 'EBITDA' },
-      { key: 'netinc', label: 'Net Income', alt: ['netIncome', 'netinccmn'] },
-      { key: 'eps', label: 'EPS' },
-      { key: 'sgna', label: 'SG&A' },
-      { key: 'taxexp', label: 'Tax Expense' },
-    ],
-    balanceSheet: [
-      { key: 'assets', label: 'Total Assets' },
-      { key: 'liabilities', label: 'Total Liabilities' },
-      { key: 'equity', label: 'Shareholders’ Equity' },
-      { key: 'cashneq', label: 'Cash & Equivalents' },
-      { key: 'debt', label: 'Total Debt' },
-      { key: 'ppnenet', label: 'PP&E, Net' },
-      { key: 'inventory', label: 'Inventory' },
-      { key: 'receivables', label: 'Receivables' },
-      { key: 'payables', label: 'Payables' },
-      { key: 'workingcapital', label: 'Working Capital' },
-    ],
-    cashFlow: [
-      { key: 'ncfo', label: 'Operating Cash Flow', alt: ['operatingCashFlow'] },
-      { key: 'capex', label: 'Capital Expenditures' },
-      { key: 'fcf', label: 'Free Cash Flow' },
-      { key: 'ncfi', label: 'Investing Cash Flow' },
-      { key: 'ncff', label: 'Financing Cash Flow' },
-      { key: 'ncfdiv', label: 'Dividends Paid' },
-      { key: 'ncfdebt', label: 'Debt Issued/Repurchased' },
-      { key: 'ncf', label: 'Net Cash Flow' },
-    ],
-  };
-
   const safeNumber = (v) => {
     if (v === null || v === undefined) return null;
     const n = Number(v);
@@ -137,9 +137,12 @@ const FinancialsPage = () => {
   };
 
   // Build rows and columns for DataGrid
-  const data = financials[activeType] || [];
-  const metrics = METRICS_MAP[activeType] || [];
-  const periods = data.map(r => (r.calendardate || r.reportperiod || r.fiscalperiod || r.endDate || r.periodEnd || '').slice(0, 10));
+  const data = useMemo(() => financials[activeType] || [], [financials, activeType]);
+  const metrics = useMemo(() => METRICS_MAP[activeType] || [], [activeType]);
+  const periods = useMemo(
+    () => data.map(r => (r.calendardate || r.reportperiod || r.fiscalperiod || r.endDate || r.periodEnd || '').slice(0, 10)),
+    [data],
+  );
   const formatMetricValue = (val, key) => {
     if (val === '-' || val === null || val === undefined) return '-';
     if ([
@@ -367,26 +370,17 @@ const FinancialsPage = () => {
 
   return (
   <div className="container py-3">
-      {notification && (
-        <div className={`alert alert-${notification.type} alert-dismissible fade show`} role="alert" style={{ position: 'fixed', top: 70, right: 30, zIndex: 9999, minWidth: 280 }}>
-          {notification.message}
-          <button type="button" className="btn-close" aria-label="Close" onClick={() => setNotification(null)}></button>
-        </div>
-      )}
+      <TickerSubnav ticker={ticker} />
       <div className="row mb-1">
         <div className="col">
-          <nav className="mb-2">
-            <Link to={`/${ticker}`}>Summary</Link> |{' '}
-            <Link to={`/${ticker}/financials`}>Financials</Link>
-          </nav>
           <h1 className="h3 mb-0">{ticker} Financials</h1>
           <button
-            className={`btn btn-sm ms-2 ${isInPortfolio(ticker) ? 'btn-secondary' : 'btn-success'}`}
+            type="button"
+            className={`btn btn-sm ms-2 ${isInPortfolio(ticker) ? 'btn-outline-secondary' : 'btn-success'}`}
             onClick={handleAddToPortfolio}
             style={{ verticalAlign: 'middle' }}
-            disabled={isInPortfolio(ticker)}
           >
-          Add to Portfolio
+            {isInPortfolio(ticker) ? 'In Portfolio' : 'Add to Portfolio'}
           </button>
         </div>
       </div>

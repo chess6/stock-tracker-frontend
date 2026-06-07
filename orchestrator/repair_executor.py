@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -78,6 +79,9 @@ Follow frontend QA gate in AGENTS.md before completing.
         path.write_text(brief, encoding="utf-8")
 
     def _try_rule_based_fix(self, task: dict[str, Any]) -> RepairResult:
+        if task["category"] == "visual_regression":
+            return self._try_visual_snapshot_update(task)
+
         evidence = task.get("evidence", {})
         file_path = evidence.get("file")
         line_desc = evidence.get("line", "")
@@ -106,6 +110,66 @@ Follow frontend QA gate in AGENTS.md before completing.
             return RepairResult(True, [str(rel)], edits, False, False, f"Removed unused symbol via rule engine")
 
         return RepairResult(False, [], 0, False, False, "rule engine no-op")
+
+    def _try_visual_snapshot_update(self, task: dict[str, Any]) -> RepairResult:
+        """Refresh Playwright baselines when UI changes are intentional."""
+        snap_dir = REPO_ROOT / "e2e" / "snapshots"
+        before = {
+            str(path.relative_to(REPO_ROOT)): path.stat().st_mtime_ns
+            for path in snap_dir.rglob("*.png")
+        }
+        update = subprocess.run(
+            ["npm", "run", "test:visual:update"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=self.budget.qa_command_timeout_seconds,
+        )
+        if update.returncode != 0:
+            tail = (update.stdout or "") + (update.stderr or "")
+            return RepairResult(
+                False, [], 0, False, False,
+                "snapshot update command failed",
+                tail[-500:],
+            )
+
+        modified = [
+            str(path.relative_to(REPO_ROOT))
+            for path in snap_dir.rglob("*.png")
+            if before.get(str(path.relative_to(REPO_ROOT))) != path.stat().st_mtime_ns
+        ]
+        if not modified:
+            modified = [str(path.relative_to(REPO_ROOT)) for path in snap_dir.rglob("*.png")]
+
+        verify = subprocess.run(
+            ["npm", "run", "test:visual"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=self.budget.qa_command_timeout_seconds,
+        )
+        if verify.returncode != 0:
+            tail = (verify.stdout or "") + (verify.stderr or "")
+            return RepairResult(
+                False, [], 0, True, False,
+                "visual tests still failing after snapshot update",
+                tail[-500:],
+            )
+
+        log_event(
+            "rule_fix_applied",
+            task_id=task["id"],
+            files_modified=modified[: self.budget.max_file_edits],
+            extra={"kind": "visual_snapshot_update"},
+        )
+        return RepairResult(
+            True,
+            modified[: self.budget.max_file_edits],
+            min(len(modified), self.budget.max_file_edits),
+            False,
+            False,
+            f"Updated {len(modified)} Playwright visual baseline(s)",
+        )
 
     def _remove_unused_import(self, content: str, symbol: str) -> tuple[str, bool]:
         lines = content.splitlines(keepends=True)

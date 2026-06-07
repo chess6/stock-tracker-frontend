@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setRows, setError } from '../store';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,12 @@ import API_ENDPOINTS from '../apiConfig';
 import DataGrid from '../components/DataGrid';
 import { formatUsd } from '../utils/formatters';
 import { insiderDollarStyle } from '../utils/heatMap';
+import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfolio';
+import { useToast } from '../context/ToastContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import { Link } from 'react-router-dom';
+import { formatFreshnessTimestamp } from '../utils/dataFreshness';
 
 const StockScreenerPage = () => {
   const rows = useSelector(state => state.screener.rows);
@@ -14,7 +20,9 @@ const StockScreenerPage = () => {
   const error = useSelector(state => state.screener.error);
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(true);
+  const [insidersUpdatedAt, setInsidersUpdatedAt] = useState(null);
   const navigate = useNavigate();
+  const { showToast } = useToast();
     
     // Helper to build OpenInsider URL for a ticker and days window
     function getOpenInsiderUrl(ticker, days) {
@@ -31,7 +39,9 @@ const StockScreenerPage = () => {
       setLoading(true);
       dispatch(setError(null));
       try {
-        const res = await axios.get(API_ENDPOINTS.INSIDER_BUYING_SUMS);
+        const res = await axios.get(API_ENDPOINTS.INSIDER_BUYING_SUMS, {
+          params: { min_buy6m: 100000 },
+        });
         let data = res?.data;
         // Normalize various possible shapes
         if (data && Array.isArray(data.rows)) {
@@ -62,7 +72,44 @@ const StockScreenerPage = () => {
     return () => { cancelled = true; };
   }, [loaded, dispatch]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await axios.get(API_ENDPOINTS.ADMIN_STATUS);
+        if (!cancelled) setInsidersUpdatedAt(res.data?.freshness?.insidersUpdatedAt || null);
+      } catch {
+        if (!cancelled) setInsidersUpdatedAt(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [loaded]);
+
+  const handleAdd = useCallback((symbol) => {
+    const notif = addToPortfolioWithNotification(symbol);
+    showToast(notif.message, notif.type);
+  }, [showToast]);
+
   const columns = useMemo(() => [
+    {
+      header: '',
+      id: 'add',
+      cell: info => {
+        const ticker = info.row.original.ticker;
+        return (
+          <button
+            type="button"
+            className={`btn btn-sm ${isInPortfolio(ticker) ? 'btn-outline-secondary' : 'btn-success'}`}
+            title={isInPortfolio(ticker) ? 'Already in portfolio' : 'Add to portfolio'}
+            onClick={() => handleAdd(ticker)}
+          >
+            <FontAwesomeIcon icon={faPlus} />
+          </button>
+        );
+      },
+      size: 44,
+      enableSorting: false,
+    },
     {
       header: '#',
       accessorKey: 'rowIndex',
@@ -78,13 +125,13 @@ const StockScreenerPage = () => {
         const row = info.row.original;
         return (
           <a
-            href={`/ticker/${ticker}`}
+            href={`/${ticker}/insiders`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ textDecoration: 'underline', color: '#007bff', cursor: 'pointer' }}
             onClick={e => {
               e.preventDefault();
-              navigate(`/ticker/${ticker}`, { state: row });
+              navigate(`/${ticker}/insiders`, { state: row });
             }}
           >
             {ticker}
@@ -154,25 +201,35 @@ const StockScreenerPage = () => {
         },
         size: 180,
     },
-  ], []);
+  ], [navigate, handleAdd]);
 
   return (
     <div className="container py-3">
       <div className="row mb-1">
         <div className="col">
           <h1 className="h3 mb-0">Stock Screener</h1>
-          <div className="text-muted">Insider buying totals by ticker (6M &gt; $100k)</div>
+          <div className="text-muted">
+            Insider buying totals by ticker (6M &gt; $100k)
+            {insidersUpdatedAt && (
+              <span className="ms-2">· insiders cached {formatFreshnessTimestamp(insidersUpdatedAt)}</span>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="card shadow-sm">
         <div className="card-body" style={{ overflowX: 'auto' }}>
           {loading ? (
-            <div>Loading...</div>
+            <div className="text-center py-4 text-muted">
+              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+              Loading screener…
+            </div>
           ) : error ? (
-            <div className="text-danger">{error}</div>
+            <div className="alert alert-danger mb-0">{error}</div>
           ) : rows.length === 0 ? (
-            <div>No results.</div>
+            <div className="alert alert-secondary mb-0">
+              No tickers match the $100k 6M insider threshold. Try <Link to="/admin">bootstrapping insider data</Link> first.
+            </div>
           ) : (
             <DataGrid
               data={rows}

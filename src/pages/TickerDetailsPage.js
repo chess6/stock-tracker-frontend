@@ -1,102 +1,123 @@
-import { useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Spinner } from 'reactstrap';
 import DataGrid from '../components/DataGrid';
+import TickerSubnav from '../components/TickerSubnav';
 import {
   formatShares,
   formatUsd,
   formatDecimal,
 } from '../utils/formatters';
-import { useNavigate } from 'react-router-dom';
 import API_ENDPOINTS from '../apiConfig';
 
+const COLUMN_FORMATTERS = {
+  transactionvalue: (value) => formatUsd(value),
+  filingdate: (value) => (value ? String(value).slice(0, 10) : '—'),
+  transactiondate: (value) => (value ? String(value).slice(0, 10) : '—'),
+};
+
 export default function TickerDetailsPage() {
-  const navigate = useNavigate();
   const { ticker } = useParams();
   const [rows, setRows] = useState([]);
-  const [columns, setColumns] = useState([]);
+  const [source, setSource] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    setError(null);
-    fetch(API_ENDPOINTS.SF2(ticker))
-      .then(res => res.json())
-      .then(data => {
-        const datatable = data?.datatable;
-        if (!datatable || !Array.isArray(datatable.data) || !Array.isArray(datatable.columns)) {
-          setError('No SF2 data found');
+    setError('');
+    fetch(API_ENDPOINTS.INSIDER_TRANSACTIONS(ticker))
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (cancelled) return;
+        if (!ok && data?.error) {
+          setError(data.error);
           setRows([]);
-          setColumns([]);
-          setLoading(false);
+          setSource('');
+          return;
+        }
+        const datatable = data?.datatable;
+        setSource(data?.meta?.source || '');
+        if (!datatable || !Array.isArray(datatable.data) || !Array.isArray(datatable.columns)) {
+          setRows([]);
           return;
         }
         setRows(datatable.data.map((row, idx) => {
-          const obj = {};
+          const obj = { id: idx };
           datatable.columns.forEach((col, i) => {
             obj[col.name] = row[i];
           });
-          obj.id = idx;
           return obj;
         }));
-        setColumns(datatable.columns.map(col => ({
-          header: col.name,
-          accessorKey: col.name,
-          // Format cell based on column type
-          cell: info => {
-            const value = info.getValue();
-            switch (col.type) {
-              case 'Integer':
-                // Shares columns
-                if (col.name.includes('shares') || col.name === 'transactionvalue') {
-                  return formatShares(value);
-                }
-                return formatDecimal(value, 0);
-              case 'double':
-                // Price columns
-                if (col.name.includes('price') || col.name === 'priceexercisable') {
-                  return formatUsd(value);
-                }
-                return formatDecimal(value, 2);
-              case 'Date':
-                // Format date as YYYY-MM-DD
-                return value ? String(value).slice(0, 10) : '';
-              default:
-                return value;
-            }
-          },
-          size: 140,
-          cellStyle: (col.name === 'issuername' || col.name === 'officertitle' || col.name === 'ownername') ? { whiteSpace: 'nowrap' } : undefined,
-        })));
-        setLoading(false);
       })
       .catch(() => {
-        setError('Failed to load SF2 data');
-        setLoading(false);
+        if (!cancelled) {
+          setError('Failed to load insider transactions');
+          setRows([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
+    return () => { cancelled = true; };
   }, [ticker]);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div className="text-danger">{error}</div>;
-  if (!rows.length) return <div>No SF2 data found for {ticker}.</div>;
+  const columns = useMemo(() => {
+    if (!rows.length) return [];
+    const keys = Object.keys(rows[0]).filter((key) => key !== 'id');
+    return keys.map((name) => ({
+      header: name,
+      accessorKey: name,
+      cell: (info) => {
+        const value = info.getValue();
+        if (COLUMN_FORMATTERS[name]) return COLUMN_FORMATTERS[name](value);
+        if (name.includes('shares')) return formatShares(value);
+        if (name.includes('price')) return formatUsd(value);
+        if (typeof value === 'number') return formatDecimal(value, 2);
+        return value ?? '—';
+      },
+      cellStyle: (['issuername', 'officertitle', 'ownername', 'securitytitle'].includes(name))
+        ? { whiteSpace: 'nowrap' }
+        : undefined,
+    }));
+  }, [rows]);
 
   return (
     <div className="container py-3">
-      <button className="btn btn-sm btn-outline-secondary mb-1" onClick={() => navigate(-1)}>
-        &larr; Back to Screener
-      </button>
-      <h2 className="mb-1">Details for {ticker}</h2>
-      <DataGrid
-        data={rows}
-        columns={columns}
-        enableRowSelection={false}
-        enableSorting={true}
-        enableGlobalFilter={true}
-        style={{ minWidth: 800 }}
-        pageChunkSize={50}
-        getRowId={row => String(row.id ?? row.ticker ?? ticker)}
-        maxHeight={'calc(100vh - 230px)'}
-      />
+      <TickerSubnav ticker={ticker} />
+      <h2 className="h4 mb-1">Insider Transactions — {ticker}</h2>
+      <p className="text-muted small mb-3">
+        SEC Form 4 filings from local cache
+        {source && <> · source: <code>{source}</code></>}
+      </p>
+
+      {loading && (
+        <div className="text-muted py-4">
+          <Spinner size="sm" className="me-2" /> Loading insider transactions…
+        </div>
+      )}
+      {!loading && error && <div className="alert alert-danger">{error}</div>}
+      {!loading && !error && rows.length === 0 && (
+        <div className="alert alert-secondary">
+          No insider transactions cached for {ticker}. Run{' '}
+          <Link to="/admin">Admin → Refresh Insiders</Link> or bootstrap your portfolio tickers.
+        </div>
+      )}
+      {!loading && rows.length > 0 && (
+        <DataGrid
+          data={rows}
+          columns={columns}
+          enableRowSelection={false}
+          enableSorting
+          enableGlobalFilter
+          style={{ minWidth: 800 }}
+          pageChunkSize={50}
+          getRowId={(row) => String(row.id)}
+          maxHeight="calc(100vh - 260px)"
+          compact
+        />
+      )}
     </div>
   );
 }

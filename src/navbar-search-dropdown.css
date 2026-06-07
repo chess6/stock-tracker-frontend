@@ -1,4 +1,12 @@
-/* Custom class for navbar search dropdown max height and scroll */
+/* Navbar search dropdown — stays below search input, above page content */
+.navbar-search-area .dropdown-menu {
+  position: absolute !important;
+  inset: 100% auto auto 0 !important;
+  transform: none !important;
+  margin-top: 0.25rem;
+  z-index: 1040;
+}
+
 .navbar-search-dropdown {
   max-height: 250px;
   overflow-y: auto;

@@ -1,4 +1,6 @@
-// Centralized API endpoints for the stock tracker app
+// Centralized API endpoints — all reads are SQLite-backed after admin bootstrap.
+// Data sources: SEC EDGAR (fundamentals, insiders), Stooq/yfinance (prices), RSS (news).
+// NASDAQ_API_KEY on the backend is optional fallback only when cache is empty.
 const API_BASE = '/api';
 
 export const API_ENDPOINTS = {
@@ -12,8 +14,15 @@ export const API_ENDPOINTS = {
   INTRADAY: ticker => `${API_BASE}/ticker/${ticker}/intraday`,
   TOP_OF_BOOK: `${API_BASE}/tickers/top`,
   DAILY_CHANGE: `${API_BASE}/tickers/daily-change`,
+  MARKET_STATS: `${API_BASE}/tickers/market-stats`,
+  MOVERS: `${API_BASE}/tickers/movers`,
+  INDUSTRIES: `${API_BASE}/companies/industries`,
+  INDUSTRY_PEERS: `${API_BASE}/companies/peers`,
   INSIDER_BUYING_SUMS: `${API_BASE}/insiders/buying-sums`,
-  SF2: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
+  /** SEC Form 4 insider transactions (SQLite; response keeps SF2-compatible datatable shape). */
+  INSIDER_TRANSACTIONS: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
+  // legacy: SHARADAR-era client name — same URL as INSIDER_TRANSACTIONS
+  // SF2: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
   ADMIN_STATUS: `${API_BASE}/admin/status`,
   ADMIN_DEFAULT_FEEDS: `${API_BASE}/admin/default-feeds`,
   ADMIN_SYNC_COMPANIES: `${API_BASE}/admin/sync-companies`,

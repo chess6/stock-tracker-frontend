@@ -1,5 +1,5 @@
 import './DataGrid.css';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import ColumnHeader from './ColumnHeader';
 import {
   useReactTable,
@@ -36,15 +36,27 @@ export default function DataGrid({
   stickyColumnIds = [],
   columnGroups = [],
   tableExtraClassName = '',
+  defaultVisibleColumns,
+  compact = false,
 }) {
+  const defaultColWidth = 150;
+  const stickyColumnKey = stickyColumnIds.join(',');
+  const stickyIds = useMemo(
+    () => (stickyColumnKey ? stickyColumnKey.split(',') : []),
+    [stickyColumnKey],
+  );
   const [internalRowSelection, setInternalRowSelection] = useState({});
+  const [measuredStickyWidths, setMeasuredStickyWidths] = useState({});
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnSizingInfo, setColumnSizingInfo] = useState({});
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
   const [visibleCount, setVisibleCount] = useState(pageChunkSize);
-  const defaultVisible = columns.map(col => col.accessorKey ?? col.id).filter(Boolean);
-  const [internalVisibleColumns, setInternalVisibleColumns] = useState(controlledColumnVisibility ?? defaultVisible);
+  const allColumnIds = columns.map(col => col.accessorKey ?? col.id).filter(Boolean);
+  const defaultVisible = defaultVisibleColumns ?? allColumnIds;
+  const [internalVisibleColumns, setInternalVisibleColumns] = useState(
+    controlledColumnVisibility ?? defaultVisible.filter((id) => allColumnIds.includes(id)),
+  );
   const dropdownRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -65,6 +77,9 @@ export default function DataGrid({
   const table = useReactTable({
     data,
     columns: filteredColumns,
+    defaultColumn: compact
+      ? { minSize: 28 }
+      : { size: defaultColWidth, minSize: 40 },
     state: { rowSelection, sorting, globalFilter, columnSizing: effectiveColumnSizing, columnSizingInfo },
     getRowId,
     enableRowSelection,
@@ -132,6 +147,104 @@ export default function DataGrid({
   const totalCount = allRows.length;
   const rowsToRender = allRows.slice(0, visibleCount);
 
+  const visibleHeaders = table.getHeaderGroups()[0]?.headers ?? [];
+  const visibleColumnsKey = effectiveVisibleColumns.join(',');
+
+  const ungroupedColumnIds = useMemo(() => {
+    if (!columnGroups.length) return new Set();
+    const grouped = new Set(columnGroups.flatMap((group) => group.columnIds));
+    return new Set(
+      filteredColumns
+        .map((col) => col.accessorKey ?? col.id)
+        .filter((id) => id && !grouped.has(id)),
+    );
+  }, [columnGroups, filteredColumns]);
+
+  const getColumnWidth = (columnId, header) => {
+    if (effectiveColumnSizing[columnId]) {
+      return effectiveColumnSizing[columnId];
+    }
+    if (compact) {
+      return undefined;
+    }
+    const colDef = filteredColumns.find((col) => (col.accessorKey ?? col.id) === columnId);
+    return header?.getSize?.() ?? colDef?.size ?? defaultColWidth;
+  };
+
+  const stickyLeftByColId = useMemo(() => {
+    const offsets = {};
+    let left = 0;
+    stickyIds.forEach((colId) => {
+      offsets[colId] = left;
+      if (compact) {
+        left += measuredStickyWidths[colId] ?? effectiveColumnSizing[colId] ?? 0;
+      } else {
+        const colDef = filteredColumns.find((col) => (col.accessorKey ?? col.id) === colId);
+        left += effectiveColumnSizing[colId] ?? colDef?.size ?? defaultColWidth;
+      }
+    });
+    return offsets;
+  }, [stickyIds, filteredColumns, effectiveColumnSizing, defaultColWidth, compact, measuredStickyWidths]);
+
+  const applyWidthStyle = (baseStyle, colId, width) => {
+    if (width == null) return baseStyle;
+    if (compact) {
+      return { ...baseStyle, width };
+    }
+    return { ...baseStyle, width, minWidth: width, maxWidth: width };
+  };
+
+  useLayoutEffect(() => {
+    if (!compact || !stickyIds.length) {
+      setMeasuredStickyWidths((prev) => (Object.keys(prev).length ? {} : prev));
+      return undefined;
+    }
+    let cancelled = false;
+    const measure = () => {
+      if (cancelled) return;
+      const tableEl = scrollRef.current?.querySelector('table');
+      if (!tableEl) return;
+      const next = {};
+      stickyIds.forEach((colId) => {
+        const cell = tableEl.querySelector(`[data-col-id="${colId}"]`);
+        if (cell) {
+          next[colId] = Math.round(cell.getBoundingClientRect().width);
+        }
+      });
+      setMeasuredStickyWidths((prev) => {
+        const unchanged = stickyIds.every((id) => prev[id] === next[id]);
+        return unchanged ? prev : next;
+      });
+    };
+    // Measure after layout; avoid ResizeObserver (sticky offset updates can retrigger measure in a loop).
+    const frame = window.requestAnimationFrame(measure);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [compact, stickyIds, visibleColumnsKey, sorting, globalFilter, data.length]);
+
+  const applyStickyStyle = (colId, baseStyle = {}) => {
+    if (!stickyIds.includes(colId)) return baseStyle;
+    return {
+      ...baseStyle,
+      position: 'sticky',
+      left: stickyLeftByColId[colId] ?? 0,
+      zIndex: baseStyle.zIndex ?? 3,
+      background: baseStyle.background ?? 'inherit',
+    };
+  };
+
+  const resetVisibleColumns = () => {
+    const next = defaultVisible.filter((id) => allColumnIds.includes(id));
+    if (useSharedColumnState && onColumnVisibilityChange) {
+      onColumnVisibilityChange(next);
+    } else {
+      setInternalVisibleColumns(next);
+    }
+    setShowColumnDropdown(false);
+  };
+
   return (
     <div style={{ position: 'relative', maxWidth: '100%', ...style }}>
       {/* Controls aligned to the right edge of the table area (stay fixed while grid scrolls) */}
@@ -152,7 +265,12 @@ export default function DataGrid({
               className="position-absolute bg-white border rounded shadow-sm"
               style={{ right: 0, top: '110%', minWidth: 180, zIndex: 10, padding: 8 }}
             >
-              <div className="fw-bold mb-2">Columns</div>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <div className="fw-bold">Columns</div>
+                <button type="button" className="btn btn-link btn-sm p-0" onClick={resetVisibleColumns}>
+                  Reset
+                </button>
+              </div>
               {columns.map(col => {
                 const colKey = col.accessorKey ?? col.id;
                 if (!colKey || colKey === 'select') return null;
@@ -180,7 +298,8 @@ export default function DataGrid({
           <input
             className="form-control form-control-sm"
             style={{ maxWidth: 220 }}
-            placeholder="Filter..."
+            placeholder="Filter rows…"
+            aria-label="Filter table rows"
             value={globalFilter ?? ''}
             onChange={(e) => setGlobalFilter(e.target.value)}
           />
@@ -202,27 +321,53 @@ export default function DataGrid({
           <table
             className={`${tableClassName} data-grid-table ${tableExtraClassName}`.trim()}
             style={{
-              tableLayout: fixedColumnWidth ? 'fixed' : 'auto',
-              width: 'auto',
-              maxWidth: '100%',
+              tableLayout: compact ? 'auto' : 'fixed',
+              width: 'max-content',
+              minWidth: compact ? undefined : '100%',
               marginBottom: 0,
             }}
           >
+            {!compact && (
+              <colgroup>
+                {visibleHeaders.map((header) => {
+                  const width = getColumnWidth(header.column.id, header);
+                  return <col key={header.id} style={width ? { width, minWidth: width } : undefined} />;
+                })}
+              </colgroup>
+            )}
             <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
               {columnGroups.length > 0 && (
                 <tr style={{ ...headerStyle, background: 'rgba(70, 70, 70, 1)' }}>
                   {(() => {
-                    const visibleHeaders = table.getHeaderGroups()[0]?.headers || [];
                     const cells = [];
                     let idx = 0;
                     while (idx < visibleHeaders.length) {
                       const header = visibleHeaders[idx];
                       const colId = header.column.id;
+                      const width = getColumnWidth(colId, header);
+                      if (ungroupedColumnIds.has(colId)) {
+                        cells.push(
+                          <th
+                            key={`group-${colId}`}
+                            rowSpan={2}
+                            data-col-id={colId}
+                            style={{
+                              ...applyWidthStyle(
+                                applyStickyStyle(colId, { ...headerStyle, zIndex: 6 }),
+                                colId,
+                                width,
+                              ),
+                              verticalAlign: 'middle',
+                            }}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </th>,
+                        );
+                        idx += 1;
+                        continue;
+                      }
                       const group = columnGroups.find((item) => item.columnIds.includes(colId));
                       if (!group) {
-                        cells.push(
-                          <th key={`group-${colId}`} style={headerStyle} rowSpan={2} />
-                        );
                         idx += 1;
                         continue;
                       }
@@ -233,9 +378,13 @@ export default function DataGrid({
                         span += 1;
                       }
                       cells.push(
-                        <th key={`group-${group.id}`} colSpan={span} style={{ ...headerStyle, textAlign: 'center', fontSize: 12 }}>
+                        <th
+                          key={`group-${group.id}-${idx}`}
+                          colSpan={span}
+                          style={{ ...headerStyle, textAlign: 'center', fontSize: compact ? 11 : 12 }}
+                        >
                           {group.label}
-                        </th>
+                        </th>,
                       );
                       idx += span;
                     }
@@ -245,37 +394,29 @@ export default function DataGrid({
               )}
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id} style={headerStyle}>
-                  {headerGroup.headers.map((header, headerIdx) => {
+                  {headerGroup.headers
+                    .filter((header) => !columnGroups.length || !ungroupedColumnIds.has(header.column.id))
+                    .map((header) => {
                     const canSort = enableSorting && header.column.getCanSort();
                     const sortDir = header.column.getIsSorted();
                     const isResizable = header.column.getCanResize();
                     const colId = header.column.id;
-                    const isSticky = stickyColumnIds.includes(colId);
-                    let thStyle = { ...headerStyle };
-                    if (isSticky) {
-                      thStyle.position = 'sticky';
-                      thStyle.left = headerIdx === 0 ? 0 : stickyColumnIds.indexOf(colId) === 1 ? 72 : 0;
-                      thStyle.zIndex = 5;
-                    }
-                    // Always position relative for proper resizer anchor
-                    if (isResizable) {
+                    const width = getColumnWidth(colId, header);
+                    let thStyle = applyWidthStyle(
+                      applyStickyStyle(colId, {
+                        ...headerStyle,
+                        zIndex: stickyIds.includes(colId) ? 6 : headerStyle.zIndex,
+                      }),
+                      colId,
+                      width,
+                    );
+                    if (isResizable && !stickyIds.includes(colId)) {
                       thStyle.position = 'relative';
-                    }
-                    // Prefer dynamic column sizing when available
-                    const colSize = table.getState().columnSizing?.[header.column.id];
-                    if (colSize) {
-                      thStyle.width = colSize;
-                      thStyle.maxWidth = colSize;
-                    } else if (fixedColumnWidth) {
-                      const colDef = header.column.columnDef;
-                      if (colDef.size) {
-                        thStyle.width = colDef.size;
-                        thStyle.maxWidth = colDef.size;
-                      }
                     }
                     return (
                       <th
                         key={header.id}
+                        data-col-id={colId}
                         style={thStyle}
                       >
                         {header.isPlaceholder ? null : (
@@ -334,31 +475,21 @@ export default function DataGrid({
                   }}
                   onClick={() => onRowClick && onRowClick(row)}
                 >
-                  {row.getVisibleCells().map((cell, cellIdx) => {
-                    let cellStyle = {};
+                  {row.getVisibleCells().map((cell) => {
                     const colId = cell.column.id;
-                    if (stickyColumnIds.includes(colId)) {
-                      cellStyle.position = 'sticky';
-                      cellStyle.left = cellIdx === 0 ? 0 : stickyColumnIds.indexOf(colId) === 1 ? 72 : 0;
-                      cellStyle.zIndex = 2;
-                      cellStyle.background = row.getIsSelected() ? undefined : 'inherit';
-                    }
+                    const header = visibleHeaders.find((item) => item.column.id === colId);
+                    const width = getColumnWidth(colId, header);
+                    let cellStyle = applyWidthStyle(
+                      applyStickyStyle(colId, {
+                        background: row.getIsSelected() ? undefined : (stickyIds.includes(colId) ? '#fff' : undefined),
+                        zIndex: stickyIds.includes(colId) ? 4 : undefined,
+                      }),
+                      colId,
+                      width,
+                    );
                     if (cell.column.columnDef.meta?.numeric) {
                       cellStyle.textAlign = 'right';
                     }
-                    // Prefer dynamic column sizing when available
-                    const cSize = table.getState().columnSizing?.[cell.column.id];
-                    if (cSize) {
-                      cellStyle.width = cSize;
-                      cellStyle.maxWidth = cSize;
-                    } else if (fixedColumnWidth) {
-                      const colDef = cell.column.columnDef;
-                      if (colDef.size) {
-                        cellStyle.width = colDef.size;
-                        cellStyle.maxWidth = colDef.size;
-                      }
-                    }
-                    // Ensure wrapping for fixed layouts
                     if (fixedColumnWidth) {
                       cellStyle.whiteSpace = 'normal';
                       cellStyle.wordBreak = 'break-word';
@@ -370,7 +501,12 @@ export default function DataGrid({
                       Object.assign(cellStyle, cell.column.columnDef.cellStyle);
                     }
                     return (
-                      <td key={cell.id} style={cellStyle} className={cell.column.columnDef.meta?.numeric ? 'numeric-cell' : undefined}>
+                      <td
+                        key={cell.id}
+                        data-col-id={colId}
+                        style={cellStyle}
+                        className={cell.column.columnDef.meta?.numeric ? 'numeric-cell' : undefined}
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     );

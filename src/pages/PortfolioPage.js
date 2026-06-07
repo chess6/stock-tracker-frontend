@@ -1,14 +1,25 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import { Container, Card, CardBody, CardTitle } from 'reactstrap';
 import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
 import { signedHeatStyle, insiderDollarStyle, columnHeatStyle, columnMinMax } from '../utils/heatMap';
-import { PORTFOLIO_COLUMN_META, PORTFOLIO_COLUMN_GROUPS } from '../config/portfolioColumns';
+import {
+    PORTFOLIO_COLUMN_META,
+    PORTFOLIO_COLUMN_GROUPS,
+    PORTFOLIO_DEFAULT_VISIBLE_COLUMNS,
+} from '../config/portfolioColumns';
 import DataGrid from '../components/DataGrid';
+import ConfirmModal from '../components/ConfirmModal';
 import { Link } from 'react-router-dom';
-import { secEdgarUrl, whaleWisdomUrl, seekingAlphaUrl, tickerNewsUrl } from '../utils/tickerLinks';
+import { PORTFOLIO_UPDATED_EVENT, setPortfolioTickers } from '../utils/portfolio';
+import { useToast } from '../context/ToastContext';
+import { formatFreshnessTimestamp } from '../utils/dataFreshness';
+import {
+    secEdgarUrl, whaleWisdomUrl, seekingAlphaUrl, tickerNewsUrl,
+    stockChartsUrl, openInsiderUrl,
+} from '../utils/tickerLinks';
 
 const toNullableNumber = (value) => {
     if (value === null || value === undefined) return null;
@@ -16,16 +27,26 @@ const toNullableNumber = (value) => {
     return Number.isNaN(parsed) ? null : parsed;
 };
 
+const PORTFOLIO_STICKY_COLUMNS = ['select', 'ticker', 'price'];
+
 const meta = (key) => ({
     ...(PORTFOLIO_COLUMN_META[key] || { label: key, tooltip: key }),
     numeric: key !== 'ticker',
 });
 
+const isRowDataIncomplete = (row) => row.price == null || row.marketCap == null;
+
 const PortfolioPage = () => {
     const [portfolio, setPortfolio] = useState(() => JSON.parse(localStorage.getItem('portfolio')) || []);
     const [rows, setRows] = useState([]);
+    const rowsRef = useRef(rows);
+    rowsRef.current = rows;
     const [rowSelection, setRowSelection] = useState({});
     const [isPageLoading, setIsPageLoading] = useState(false);
+    const [cacheFreshness, setCacheFreshness] = useState(null);
+    const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const { showToast } = useToast();
+    const portfolioKey = useMemo(() => portfolio.join(','), [portfolio]);
 
     const heatRanges = useMemo(() => ({
         sp: columnMinMax(rows, 'sp'),
@@ -35,6 +56,11 @@ const PortfolioPage = () => {
         ep: columnMinMax(rows, 'ep'),
         cfop: columnMinMax(rows, 'cfop'),
         sfcfp: columnMinMax(rows, 'sfcfp'),
+        ncfp: columnMinMax(rows, 'ncfp'),
+        cashp: columnMinMax(rows, 'cashp'),
+        assetp: columnMinMax(rows, 'assetp'),
+        revDebt: columnMinMax(rows, 'revDebt'),
+        mcEv: columnMinMax(rows, 'mcEv'),
     }), [rows]);
 
     const columnHelper = useMemo(() => createColumnHelper(), []);
@@ -58,12 +84,24 @@ const PortfolioPage = () => {
                     title="Select row"
                 />
             ),
-            size: 32,
         }),
         columnHelper.accessor('ticker', {
             meta: meta('ticker'),
             header: 'Ticker',
-            cell: ({ getValue }) => <strong>{getValue()}</strong>,
+            cell: ({ getValue, row }) => (
+                <>
+                    <strong>{getValue()}</strong>
+                    {!isPageLoading && isRowDataIncomplete(row.original) && (
+                        <span
+                            className="badge bg-warning text-dark ms-1"
+                            title="Incomplete cache — refresh in Admin"
+                            style={{ fontSize: 10, verticalAlign: 'middle' }}
+                        >
+                            !
+                        </span>
+                    )}
+                </>
+            ),
         }),
         columnHelper.accessor('price', {
             meta: meta('price'),
@@ -90,6 +128,45 @@ const PortfolioPage = () => {
         columnHelper.accessor('marketCap', {
             meta: meta('marketCap'),
             header: 'Market Cap',
+            cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
+        }),
+        columnHelper.accessor('sector', {
+            meta: meta('sector'),
+            header: 'Sector',
+            cell: ({ getValue }) => <span className="small">{getValue() || '—'}</span>,
+        }),
+        columnHelper.accessor('industry', {
+            meta: meta('industry'),
+            header: 'Industry',
+            cell: ({ getValue }) => <span className="small text-muted">{getValue() || '—'}</span>,
+        }),
+        columnHelper.accessor('change1w', {
+            meta: meta('change1w'),
+            header: '1W %',
+            cellStyle: ({ row }) => signedHeatStyle(row.original?.change1w, 8),
+            cell: ({ getValue }) => <span>{formatPercent(getValue())}</span>,
+        }),
+        columnHelper.accessor('change6m', {
+            meta: meta('change6m'),
+            header: '6M %',
+            cellStyle: ({ row }) => signedHeatStyle(row.original?.change6m, 20),
+            cell: ({ getValue }) => <span>{formatPercent(getValue())}</span>,
+        }),
+        columnHelper.accessor('pctTo52wHi', {
+            meta: meta('pctTo52wHi'),
+            header: '% to 52H',
+            cellStyle: ({ row }) => signedHeatStyle(row.original?.pctTo52wHi, 15),
+            cell: ({ getValue }) => <span>{formatPercent(getValue())}</span>,
+        }),
+        columnHelper.accessor('pctFrom52wLo', {
+            meta: meta('pctFrom52wLo'),
+            header: '% fr 52L',
+            cellStyle: ({ row }) => signedHeatStyle(row.original?.pctFrom52wLo, 30),
+            cell: ({ getValue }) => <span>{formatPercent(getValue())}</span>,
+        }),
+        columnHelper.accessor('revenue', {
+            meta: meta('revenue'),
+            header: 'Revenue',
             cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
         }),
         columnHelper.accessor('sp', {
@@ -134,6 +211,36 @@ const PortfolioPage = () => {
             cellStyle: ({ row }) => columnHeatStyle(row.original?.sfcfp, heatRanges.sfcfp.min, heatRanges.sfcfp.max),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
+        columnHelper.accessor('ncfp', {
+            meta: meta('ncfp'),
+            header: 'NCFP',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.ncfp, heatRanges.ncfp.min, heatRanges.ncfp.max),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('cashp', {
+            meta: meta('cashp'),
+            header: 'Cash/P',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.cashp, heatRanges.cashp.min, heatRanges.cashp.max),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('assetp', {
+            meta: meta('assetp'),
+            header: 'Asset/P',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.assetp, heatRanges.assetp.min, heatRanges.assetp.max),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('revDebt', {
+            meta: meta('revDebt'),
+            header: 'Rev/Debt',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.revDebt, heatRanges.revDebt.min, heatRanges.revDebt.max),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('mcEv', {
+            meta: meta('mcEv'),
+            header: 'MC/EV',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.mcEv, heatRanges.mcEv.min, heatRanges.mcEv.max),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
         columnHelper.accessor('insiderBuy6m', {
             meta: meta('insiderBuy6m'),
             header: 'Insider Buy 6M',
@@ -159,7 +266,6 @@ const PortfolioPage = () => {
             cell: ({ row }) => (
                 <a href={secEdgarUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">SEC</a>
             ),
-            size: 44,
         }),
         columnHelper.display({
             id: 'wwLink',
@@ -168,7 +274,6 @@ const PortfolioPage = () => {
             cell: ({ row }) => (
                 <a href={whaleWisdomUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">WW</a>
             ),
-            size: 40,
         }),
         columnHelper.display({
             id: 'saLink',
@@ -177,7 +282,6 @@ const PortfolioPage = () => {
             cell: ({ row }) => (
                 <a href={seekingAlphaUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">SA</a>
             ),
-            size: 36,
         }),
         columnHelper.display({
             id: 'newsLink',
@@ -186,9 +290,26 @@ const PortfolioPage = () => {
             cell: ({ row }) => (
                 <Link to={tickerNewsUrl(row.original.ticker)}>News</Link>
             ),
-            size: 48,
         }),
-    ], [columnHelper, heatRanges]);
+        columnHelper.display({
+            id: 'chartLink',
+            meta: meta('chartLink'),
+            header: 'Chart',
+            cell: ({ row }) => (
+                <a href={stockChartsUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">
+                    {row.original.price != null ? formatUsd(row.original.price) : 'Chart'}
+                </a>
+            ),
+        }),
+        columnHelper.display({
+            id: 'openInsiderLink',
+            meta: meta('openInsiderLink'),
+            header: '6M Ins',
+            cell: ({ row }) => (
+                <a href={openInsiderUrl(row.original.ticker, 180)} target="_blank" rel="noopener noreferrer">6M</a>
+            ),
+        }),
+    ], [columnHelper, heatRanges, isPageLoading]);
 
     const columnGroups = useMemo(() => PORTFOLIO_COLUMN_GROUPS.map((group) => ({
         ...group,
@@ -198,9 +319,9 @@ const PortfolioPage = () => {
     })).filter((group) => group.columnIds.length > 0), [columns]);
 
     const handleDeleteTicker = (ticker) => {
-        setPortfolio(prev => {
-            const updated = prev.filter(t => t !== ticker);
-            localStorage.setItem('portfolio', JSON.stringify(updated));
+        setPortfolio((prev) => {
+            const updated = prev.filter((t) => t !== ticker);
+            setPortfolioTickers(updated);
             return updated;
         });
     };
@@ -214,14 +335,15 @@ const PortfolioPage = () => {
     }, []);
 
     useEffect(() => {
-        localStorage.setItem('portfolio', JSON.stringify(portfolio));
+        const portfolioList = portfolioKey ? portfolioKey.split(',') : [];
+        const rows = rowsRef.current;
         const currentTickers = new Set(rows.map(r => r.ticker));
-        const portfolioSet = new Set(portfolio);
-        const added = portfolio.filter(t => !currentTickers.has(t));
+        const portfolioSet = new Set(portfolioList);
+        const added = portfolioList.filter(t => !currentTickers.has(t));
         const removed = rows.filter(r => !portfolioSet.has(r.ticker)).map(r => r.ticker);
 
-        if (portfolio.length === 0) {
-            setRows([]);
+        if (portfolioList.length === 0) {
+            setRows((prev) => (prev.length ? [] : prev));
             return;
         }
         if (removed.length) {
@@ -229,7 +351,7 @@ const PortfolioPage = () => {
         }
         if (rows.length === 0 || added.length) {
             setIsPageLoading(true);
-            const fetchTickers = rows.length === 0 ? portfolio : added;
+            const fetchTickers = rows.length === 0 ? portfolioList : added;
             (async () => {
                 try {
                     const tickersStr = fetchTickers.join(',');
@@ -249,9 +371,17 @@ const PortfolioPage = () => {
                             id: ticker,
                             ticker,
                             company: tq.name || null,
+                            sector: tq.sector || null,
+                            industry: tq.industry || null,
                             price,
                             change: null,
+                            change1w: null,
+                            change4w: null,
+                            change6m: null,
+                            pctTo52wHi: null,
+                            pctFrom52wLo: null,
                             marketCap: toNullableNumber(m.marketCap),
+                            revenue: toNullableNumber(m.revenue),
                             sp: toNullableNumber(m.sp),
                             ebitdaEv: toNullableNumber(m.ebitdaEv),
                             tbp: toNullableNumber(m.tbp),
@@ -259,6 +389,11 @@ const PortfolioPage = () => {
                             ep: toNullableNumber(m.ep),
                             cfop: toNullableNumber(m.cfop),
                             sfcfp: toNullableNumber(m.sfcfp),
+                            ncfp: toNullableNumber(m.ncfp),
+                            cashp: toNullableNumber(m.cashp),
+                            assetp: toNullableNumber(m.assetp),
+                            revDebt: toNullableNumber(m.revDebt),
+                            mcEv: toNullableNumber(m.mcEv),
                             insiderBuy6m: null,
                             insiderBuy3m: null,
                             insiderBuy1m: null,
@@ -317,21 +452,54 @@ const PortfolioPage = () => {
                         };
                     }));
                 } catch { /* ignore */ }
+
+                try {
+                    const statsRes = await axios.get(API_ENDPOINTS.MARKET_STATS, { params: { tickers: fetchTickers.join(',') } });
+                    const statsMap = statsRes.data?.stats || {};
+                    setRows(prev => prev.map(row => {
+                        if (!fetchTickers.includes(row.ticker)) return row;
+                        const s = statsMap[row.ticker] || {};
+                        return {
+                            ...row,
+                            change1w: toNullableNumber(s.change1w),
+                            change4w: toNullableNumber(s.change4w),
+                            change6m: toNullableNumber(s.change6m),
+                            pctTo52wHi: toNullableNumber(s.pctTo52wHi),
+                            pctFrom52wLo: toNullableNumber(s.pctFrom52wLo),
+                        };
+                    }));
+                } catch { /* ignore */ }
             })();
         }
-    }, [portfolio]);
+    }, [portfolioKey]);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await axios.get(API_ENDPOINTS.ADMIN_STATUS);
+                if (!cancelled) setCacheFreshness(res.data?.freshness || null);
+            } catch {
+                if (!cancelled) setCacheFreshness(null);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [portfolio.length]);
 
     useEffect(() => {
         const sync = () => {
             try {
                 const parsed = JSON.parse(localStorage.getItem('portfolio') || '[]');
-                if (JSON.stringify(portfolio) !== JSON.stringify(parsed)) setPortfolio(parsed);
+                setPortfolio((prev) => (JSON.stringify(prev) !== JSON.stringify(parsed) ? parsed : prev));
             } catch { /* ignore */ }
         };
+        window.addEventListener(PORTFOLIO_UPDATED_EVENT, sync);
         window.addEventListener('focus', sync);
-        const id = setInterval(sync, 1500);
-        return () => { window.removeEventListener('focus', sync); clearInterval(id); };
-    }, [portfolio]);
+        return () => {
+            window.removeEventListener(PORTFOLIO_UPDATED_EVENT, sync);
+            window.removeEventListener('focus', sync);
+        };
+    }, []);
 
     if (portfolio.length === 0) {
         return (
@@ -358,23 +526,44 @@ const PortfolioPage = () => {
             <Card className="shadow-sm p-3">
                 <CardBody>
                     <CardTitle tag="h3" className="mb-1">Portfolio</CardTitle>
-                    <div className="mb-2 d-flex gap-2 align-items-center">
+                    {cacheFreshness && (
+                        <div className="text-muted small mb-2">
+                            Cache: prices {formatFreshnessTimestamp(cacheFreshness.pricesUpdatedAt)}
+                            {' · '}fundamentals {formatFreshnessTimestamp(cacheFreshness.fundamentalsUpdatedAt)}
+                            {' · '}insiders {formatFreshnessTimestamp(cacheFreshness.insidersUpdatedAt)}
+                        </div>
+                    )}
+                    <div className="mb-2 d-flex gap-2 align-items-center flex-wrap">
                         <button
+                            type="button"
                             className="btn btn-danger"
                             disabled={Object.keys(rowSelection).length === 0}
-                            onClick={() => {
-                                const selected = Object.keys(rowSelection);
-                                setPortfolio(prev => {
-                                    const updated = prev.filter(t => !selected.includes(t));
-                                    localStorage.setItem('portfolio', JSON.stringify(updated));
-                                    return updated;
-                                });
-                                setRowSelection({});
-                            }}
+                            onClick={() => setDeleteConfirm(Object.keys(rowSelection))}
                         >
                             Delete Selected
                         </button>
+                        <Link to="/admin" className="btn btn-outline-secondary btn-sm">Refresh data</Link>
                     </div>
+                    <ConfirmModal
+                        isOpen={Boolean(deleteConfirm?.length)}
+                        title="Remove tickers?"
+                        message={deleteConfirm
+                            ? `Remove ${deleteConfirm.length} ticker(s) from your portfolio?`
+                            : ''}
+                        confirmLabel="Remove"
+                        onCancel={() => setDeleteConfirm(null)}
+                        onConfirm={() => {
+                            const selected = deleteConfirm || [];
+                            setPortfolio((prev) => {
+                                const updated = prev.filter((t) => !selected.includes(t));
+                                setPortfolioTickers(updated);
+                                return updated;
+                            });
+                            setRowSelection({});
+                            setDeleteConfirm(null);
+                            showToast(`Removed ${selected.length} ticker(s) from portfolio.`, 'success');
+                        }}
+                    />
                     <div style={{ position: 'relative' }}>
                         {isPageLoading && (
                             <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
@@ -391,8 +580,11 @@ const PortfolioPage = () => {
                             enableGlobalFilter
                             rowSelection={rowSelection}
                             onRowSelectionChange={setRowSelection}
-                            stickyColumnIds={['select', 'ticker', 'price']}
+                            stickyColumnIds={PORTFOLIO_STICKY_COLUMNS}
                             columnGroups={columnGroups}
+                            defaultVisibleColumns={PORTFOLIO_DEFAULT_VISIBLE_COLUMNS}
+                            tableExtraClassName="portfolio-grid-table"
+                            compact
                         />
                     </div>
                 </CardBody>
