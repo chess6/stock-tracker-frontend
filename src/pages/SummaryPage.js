@@ -240,11 +240,11 @@ const SummaryPage = () => {
                   {metaFields.map(([label, value]) => (
                     <div key={label}><strong>{label}:</strong> {value}</div>
                   ))}
-                  {tickerMeta?.secfilings && (
-                    <div><strong>SEC Filings:</strong> <a href={tickerMeta.secfilings} target="_blank" rel="noopener noreferrer">Link</a></div>
+                  {(tickerMeta?.sec_filings_url || tickerMeta?.secfilings) && (
+                    <div><strong>SEC Filings:</strong> <a href={tickerMeta.sec_filings_url || tickerMeta.secfilings} target="_blank" rel="noopener noreferrer">Link</a></div>
                   )}
-                  {tickerMeta?.companysite && (
-                    <div><strong>Company Site:</strong> <a href={tickerMeta.companysite} target="_blank" rel="noopener noreferrer">{tickerMeta.companysite}</a></div>
+                  {(tickerMeta?.company_site || tickerMeta?.companysite) && (
+                    <div><strong>Company Site:</strong> <a href={tickerMeta.company_site || tickerMeta.companysite} target="_blank" rel="noopener noreferrer">{tickerMeta.company_site || tickerMeta.companysite}</a></div>
                   )}
                 </div>
               )}

@@ -3,7 +3,11 @@
 export const PORTFOLIO_UPDATED_EVENT = 'portfolio-updated';
 
 export function getPortfolio() {
-  return JSON.parse(localStorage.getItem('portfolio')) || [];
+  try {
+    return JSON.parse(localStorage.getItem('portfolio')) || [];
+  } catch {
+    return [];
+  }
 }
 
 export function notifyPortfolioUpdated() {
@@ -26,7 +30,8 @@ export function getPortfolioTickersCsv() {
 
 export function isInPortfolio(ticker) {
   const portfolio = getPortfolio();
-  return portfolio.includes(ticker);
+  const symbol = String(ticker).trim().toUpperCase();
+  return portfolio.includes(symbol);
 }
 
 /** Adds ticker to portfolio and returns a toast payload `{ type, message }`. */

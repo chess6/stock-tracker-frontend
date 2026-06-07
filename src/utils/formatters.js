@@ -14,12 +14,11 @@ export const formatUsd = (value, fractionDigits = 2) => {
     if (isMissing(value)) return '-';
     const num = Number(value);
     if (!isFinite(num)) return '-';
-    const digits = Math.abs(num) < 1000 ? 2 : 0;
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits,
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
     }).format(num);
 };
 

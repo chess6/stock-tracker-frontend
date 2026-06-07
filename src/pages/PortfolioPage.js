@@ -37,7 +37,10 @@ const meta = (key) => ({
 const isRowDataIncomplete = (row) => row.price == null || row.marketCap == null;
 
 const PortfolioPage = () => {
-    const [portfolio, setPortfolio] = useState(() => JSON.parse(localStorage.getItem('portfolio')) || []);
+    const [portfolio, setPortfolio] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('portfolio')) || []; }
+        catch { return []; }
+    });
     const [rows, setRows] = useState([]);
     const rowsRef = useRef(rows);
     rowsRef.current = rows;
@@ -54,13 +57,21 @@ const PortfolioPage = () => {
         tbp: columnMinMax(rows, 'tbp'),
         bp: columnMinMax(rows, 'bp'),
         ep: columnMinMax(rows, 'ep'),
+        pe: columnMinMax(rows, 'pe'),
         cfop: columnMinMax(rows, 'cfop'),
         sfcfp: columnMinMax(rows, 'sfcfp'),
         ncfp: columnMinMax(rows, 'ncfp'),
         cashp: columnMinMax(rows, 'cashp'),
         assetp: columnMinMax(rows, 'assetp'),
         revDebt: columnMinMax(rows, 'revDebt'),
+        de: columnMinMax(rows, 'de'),
         mcEv: columnMinMax(rows, 'mcEv'),
+        currentRatio: columnMinMax(rows, 'currentRatio'),
+        grossMargin: columnMinMax(rows, 'grossMargin'),
+        netMargin: columnMinMax(rows, 'netMargin'),
+        roe: columnMinMax(rows, 'roe'),
+        roa: columnMinMax(rows, 'roa'),
+        divYield: columnMinMax(rows, 'divYield'),
     }), [rows]);
 
     const columnHelper = useMemo(() => createColumnHelper(), []);
@@ -199,6 +210,54 @@ const PortfolioPage = () => {
             cellStyle: ({ row }) => columnHeatStyle(row.original?.ep, heatRanges.ep.min, heatRanges.ep.max),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
+        columnHelper.accessor('pe', {
+            meta: meta('pe'),
+            header: 'P/E',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.pe, heatRanges.pe.min, heatRanges.pe.max),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 1)}</span>,
+        }),
+        columnHelper.accessor('de', {
+            meta: meta('de'),
+            header: 'D/E',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.de, heatRanges.de.min, heatRanges.de.max),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('currentRatio', {
+            meta: meta('currentRatio'),
+            header: 'Cur R',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.currentRatio, heatRanges.currentRatio.min, heatRanges.currentRatio.max),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('grossMargin', {
+            meta: meta('grossMargin'),
+            header: 'GM%',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.grossMargin, heatRanges.grossMargin.min, heatRanges.grossMargin.max),
+            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+        }),
+        columnHelper.accessor('netMargin', {
+            meta: meta('netMargin'),
+            header: 'NM%',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.netMargin, heatRanges.netMargin.min, heatRanges.netMargin.max),
+            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+        }),
+        columnHelper.accessor('roe', {
+            meta: meta('roe'),
+            header: 'ROE',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.roe, heatRanges.roe.min, heatRanges.roe.max),
+            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+        }),
+        columnHelper.accessor('roa', {
+            meta: meta('roa'),
+            header: 'ROA',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.roa, heatRanges.roa.min, heatRanges.roa.max),
+            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+        }),
+        columnHelper.accessor('divYield', {
+            meta: meta('divYield'),
+            header: 'Div%',
+            cellStyle: ({ row }) => columnHeatStyle(row.original?.divYield, heatRanges.divYield.min, heatRanges.divYield.max),
+            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+        }),
         columnHelper.accessor('cfop', {
             meta: meta('cfop'),
             header: 'CFOP',
@@ -328,7 +387,10 @@ const PortfolioPage = () => {
 
     useEffect(() => {
         function handleStorage(e) {
-            if (e.key === 'portfolio') setPortfolio(JSON.parse(e.newValue) || []);
+            if (e.key === 'portfolio') {
+                try { setPortfolio(JSON.parse(e.newValue) || []); }
+                catch { /* ignore corrupt value */ }
+            }
         }
         window.addEventListener('storage', handleStorage);
         return () => window.removeEventListener('storage', handleStorage);
@@ -393,7 +455,15 @@ const PortfolioPage = () => {
                             cashp: toNullableNumber(m.cashp),
                             assetp: toNullableNumber(m.assetp),
                             revDebt: toNullableNumber(m.revDebt),
+                            de: toNullableNumber(m.de),
                             mcEv: toNullableNumber(m.mcEv),
+                            pe: toNullableNumber(m.pe),
+                            currentRatio: toNullableNumber(m.currentRatio),
+                            grossMargin: toNullableNumber(m.grossMargin),
+                            netMargin: toNullableNumber(m.netMargin),
+                            roe: toNullableNumber(m.roe),
+                            roa: toNullableNumber(m.roa),
+                            divYield: toNullableNumber(m.divYield),
                             insiderBuy6m: null,
                             insiderBuy3m: null,
                             insiderBuy1m: null,

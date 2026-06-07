@@ -30,16 +30,15 @@ const METRICS_MAP = {
   income: [
     { key: 'revenue', label: 'Revenue', alt: ['revenueusd'] },
     { key: 'cor', label: 'Cost of Revenue', alt: ['costofrevenue'] },
+    { key: 'gp', label: 'Gross Profit', alt: ['grossProfit'] },
     { key: 'opex', label: 'Operating Expenses', alt: ['operatingexpenses'] },
     { key: 'sgna', label: 'SG&A' },
     { key: 'rnd', label: 'R&D', alt: ['researchanddevelopment'] },
-    { key: 'gp', label: 'Gross Profit', alt: ['grossProfit'] },
     { key: 'opinc', label: 'Operating Income', alt: ['operatingIncome'] },
     { key: 'ebit', label: 'EBIT' },
     { key: 'ebitda', label: 'EBITDA' },
     { key: 'netinc', label: 'Net Income', alt: ['netIncome', 'netinccmn'] },
     { key: 'eps', label: 'EPS' },
-    { key: 'sgna', label: 'SG&A' },
     { key: 'taxexp', label: 'Tax Expense' },
   ],
   balanceSheet: [
@@ -108,8 +107,7 @@ const FinancialsPage = () => {
         const res = await axios.get(url);
         let rows = [];
         if (res.data && res.data.raw && res.data.raw.datatable && Array.isArray(res.data.raw.datatable.data)) {
-          console.log('Financials raw datatable:', res.data.raw.datatable);
-          const columns = res.data.raw.datatable.columns || [];
+        const columns = res.data.raw.datatable.columns || [];
           const colNames = columns.map(c => c.name);
           rows = res.data.raw.datatable.data.map(arr => {
             const obj = {};
@@ -220,7 +218,6 @@ const FinancialsPage = () => {
 
   // Deduplicate selectedMetrics for chart
   const chartSeries = useMemo(() => {
-    console.log('Building chartSeries with:', { selectedMetrics, activeType, financials });
     const data = financials[activeType] || [];
     const labelFor = (key) => {
       const m = (METRICS_MAP[activeType] || []).find(x => x.key === key);
@@ -228,21 +225,16 @@ const FinancialsPage = () => {
     };
     const seriesArr = [];
     selectedMetrics.forEach(key => {
-      console.log('Mapping metric key:', key);
       const alt = (METRICS_MAP[activeType] || []).find(m => m.key === key)?.alt;
       const seriesData = data.map(r => {
         const altKey = alt ? alt.find(k => r[k] !== undefined && r[k] !== null) : undefined;
-        const value = safeNumber(r[key] ?? (altKey ? r[altKey] : undefined)) ?? 0;
-        console.log('Row for metric', key, r, 'Value:', value);
-        return value;
+        return safeNumber(r[key] ?? (altKey ? r[altKey] : undefined)) ?? 0;
       });
-      console.log('Series for', key, 'data:', seriesData);
       seriesArr.push({
         name: labelFor(key),
         data: seriesData
       });
     });
-    console.log('Final chartSeries:', seriesArr);
     return seriesArr;
   }, [selectedMetrics, activeType, financials]);
   // Chart width and scroll container for ApexCharts
@@ -363,8 +355,9 @@ const FinancialsPage = () => {
   }), [financials, activeType]);
 
   const onMetricRowClick = (row) => {
-    if (!row || !row.key) return;
-    const key = row.key;
+    const original = row?.original ?? row;
+    if (!original || !original.key) return;
+    const key = original.key;
     setSelectedMetrics(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   };
 
