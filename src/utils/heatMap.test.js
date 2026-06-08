@@ -1,4 +1,4 @@
-import { signedHeatStyle, insiderDollarStyle, columnHeatStyle } from './heatMap';
+import { signedHeatStyle, insiderDollarStyle, columnHeatStyle, piotroskiHeatStyle, altmanZHeatStyle, marginHeatStyle } from './heatMap';
 
 describe('heatMap', () => {
   test('signedHeatStyle returns green for positive', () => {
@@ -18,6 +18,18 @@ describe('heatMap', () => {
   test('insiderDollarStyle colors large buys', () => {
     const style = insiderDollarStyle(500000);
     expect(style.backgroundColor).toBeDefined();
+  });
+
+  test('piotroskiHeatStyle colors high scores green', () => {
+    expect(piotroskiHeatStyle(8).backgroundColor).toContain('40, 167, 69');
+  });
+
+  test('altmanZHeatStyle colors distress red', () => {
+    expect(altmanZHeatStyle(1.2).backgroundColor).toContain('220, 53, 69');
+  });
+
+  test('marginHeatStyle colors positive margins', () => {
+    expect(marginHeatStyle(0.2).backgroundColor).toBeDefined();
   });
 
   test('columnHeatStyle interpolates', () => {

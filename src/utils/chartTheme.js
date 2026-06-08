@@ -28,11 +28,11 @@ export function apexBaseOptions() {
     },
     grid: { borderColor: '#495057' },
     xaxis: {
-      labels: { style: { colors: '#adb5bd' } },
+      labels: { style: { colors: '#b7bdc4' } },
       title: { style: { color: '#dee2e6' } },
     },
     yaxis: {
-      labels: { style: { colors: '#adb5bd' } },
+      labels: { style: { colors: '#b7bdc4' } },
       title: { style: { color: '#dee2e6' } },
     },
     title: { style: { color: '#f8f9fa' } },

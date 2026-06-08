@@ -436,7 +436,7 @@ export default function DataGrid({
                             >
                               {flexRender(header.column.columnDef.header, header.getContext())}
                               {canSort && (
-                                <span style={{ fontSize: 12, opacity: 0.7 }}>
+                                <span className="st-grid-sort-icon">
                                   {sortDir === 'asc' ? '↑' : sortDir === 'desc' ? '↓' : '↕'}
                                 </span>
                               )}

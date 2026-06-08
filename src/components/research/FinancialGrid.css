@@ -1,0 +1,96 @@
+.research-grid-shell {
+  position: relative;
+  max-width: 100%;
+}
+
+.research-grid-scroll {
+  overflow: auto;
+  max-width: 100%;
+}
+
+.research-grid-table {
+  table-layout: fixed;
+  width: max-content;
+  margin-bottom: 0;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.research-grid-table th,
+.research-grid-table td {
+  padding: 0.15rem 0.4rem !important;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.research-grid-table td.numeric-cell,
+.research-grid-table th.numeric-header {
+  text-align: right;
+}
+
+.research-grid-table .group-header td {
+  background: var(--st-grid-group-header-bg, rgba(0, 0, 0, 0.04));
+  color: var(--st-grid-header-fg);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.research-grid-table-compact {
+  font-size: 0.8125rem;
+  table-layout: auto;
+  width: max-content;
+}
+
+.research-grid-table-compact > :not(caption) > * > * {
+  padding: 0.1rem 0.15rem !important;
+  width: auto;
+  white-space: nowrap;
+}
+
+.research-grid-table-compact .group-header td {
+  font-size: 0.75rem;
+}
+
+.research-grid-table-compact thead th {
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.research-grid-table-compact tbody td[style*="position: sticky"],
+.research-grid-table-compact thead th[style*="position: sticky"] {
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
+[data-bs-theme='dark'] .research-grid-table-compact tbody td[style*="position: sticky"],
+[data-bs-theme='dark'] .research-grid-table-compact thead th[style*="position: sticky"] {
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.35);
+}
+
+.research-grid-table .focused-cell {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: -2px;
+}
+
+.research-metric-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.research-sparkline {
+  display: inline-flex;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.research-sparkline-placeholder {
+  display: inline-block;
+  width: 56px;
+  height: 20px;
+}
+
+.research-trend-arrow {
+  margin-left: 0.15rem;
+  font-size: 0.65rem;
+  vertical-align: middle;
+}

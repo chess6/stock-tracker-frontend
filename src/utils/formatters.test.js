@@ -1,4 +1,4 @@
-import { formatDecimal, formatUsd, formatPercent, changePercentStyle } from './formatters';
+import { formatDecimal, formatUsd, formatPercent, changePercentStyle, formatCompactNumber, formatCompactUsd } from './formatters';
 
 describe('formatters', () => {
     test('formatDecimal treats null as missing', () => {
@@ -15,6 +15,14 @@ describe('formatters', () => {
     test('formatPercent treats null as missing', () => {
         expect(formatPercent(null)).toBe('-');
         expect(formatPercent(1.5)).toBe('1.50%');
+    });
+
+    test('formatCompactNumber abbreviates large magnitudes', () => {
+        expect(formatCompactNumber(416161000000)).toBe('416B');
+        expect(formatCompactNumber(391035000000)).toBe('391B');
+        expect(formatCompactNumber(852525000)).toBe('853M');
+        expect(formatCompactUsd(416161000000)).toBe('$416B');
+        expect(formatCompactUsd(198.5)).toBe('$198.50');
     });
 
     test('changePercentStyle scales by magnitude', () => {

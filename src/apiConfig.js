@@ -1,6 +1,6 @@
 // Centralized API endpoints — all reads are SQLite-backed after admin bootstrap.
 // Data sources: SEC EDGAR (fundamentals, insiders), Stooq/yfinance (prices), RSS (news).
-// NASDAQ_API_KEY on the backend is optional fallback only when cache is empty.
+// Routes read SQLite/Stooq/SEC only; bootstrap via Admin when cache is empty.
 const API_BASE = '/api';
 
 export const API_ENDPOINTS = {
@@ -22,12 +22,15 @@ export const API_ENDPOINTS = {
   WATCHLIST: name => `${API_BASE}/watchlists/${encodeURIComponent(name)}`,
   WATCHLIST_TICKERS: name => `${API_BASE}/watchlists/${encodeURIComponent(name)}/tickers`,
   WATCHLIST_TICKER: (name, ticker) => `${API_BASE}/watchlists/${encodeURIComponent(name)}/tickers/${encodeURIComponent(ticker)}`,
+  RESEARCH_SCREENER: `${API_BASE}/research/screener`,
+  RESEARCH_TICKER: ticker => `${API_BASE}/research/ticker/${encodeURIComponent(ticker)}`,
   INSIDER_BUYING_SUMS: `${API_BASE}/insiders/buying-sums`,
   /** SEC Form 4 insider transactions (SQLite; response keeps SF2-compatible datatable shape). */
   INSIDER_TRANSACTIONS: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
   // legacy: SHARADAR-era client name — same URL as INSIDER_TRANSACTIONS
   // SF2: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
   ADMIN_STATUS: `${API_BASE}/admin/status`,
+  ADMIN_JOB_RUNS: `${API_BASE}/admin/job-runs`,
   ADMIN_DEFAULT_FEEDS: `${API_BASE}/admin/default-feeds`,
   ADMIN_SYNC_COMPANIES: `${API_BASE}/admin/sync-companies`,
   ADMIN_REFRESH_FUNDAMENTALS: `${API_BASE}/admin/refresh-fundamentals`,

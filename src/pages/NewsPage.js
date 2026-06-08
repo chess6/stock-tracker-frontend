@@ -36,6 +36,32 @@ function sentimentBadge(label) {
   return <Badge color={color} pill className="ms-2">{label}</Badge>;
 }
 
+function matchStrategyLabel(strategy) {
+  const labels = {
+    cashtag: '$',
+    headline_ticker: 'headline',
+    alias: 'alias',
+    company_name: 'name',
+    company_alias: 'alias',
+  };
+  return labels[strategy] || strategy;
+}
+
+function tickerMatchBadge(match) {
+  const strategy = match.matchStrategy || 'ticker';
+  const confidence = match.confidence != null ? `${Math.round(match.confidence * 100)}%` : '';
+  const title = `${match.ticker}: ${strategy}${confidence ? ` (${confidence})` : ''}`;
+  const color = strategy === 'cashtag' || strategy === 'headline_ticker' ? 'primary' : 'secondary';
+  return (
+    <Link key={`${match.ticker}-${strategy}`} to={`/${match.ticker}`} title={title}>
+      <Badge color={color} pill className="me-1">
+        {match.ticker}
+        <span className="opacity-75 ms-1">{matchStrategyLabel(strategy)}</span>
+      </Badge>
+    </Link>
+  );
+}
+
 export default function NewsPage() {
   const [searchParams] = useSearchParams();
   const initialTickers = useMemo(
@@ -226,12 +252,16 @@ export default function NewsPage() {
                 </div>
                 <div className="small text-muted mb-1">{item.sourceDomain || 'Unknown source'}</div>
                 {item.description && <div className="small text-secondary">{snippet(item.description)}</div>}
-                {item.tickers?.length > 0 && (
+                {(item.tickerMatches?.length > 0 || item.tickers?.length > 0) && (
                   <div className="mt-2 d-flex flex-wrap gap-1">
-                    {item.tickers.map((ticker) => (
-                      <Link key={ticker} to={`/${ticker}`}>
-                        <Badge color="secondary" pill className="me-1">{ticker}</Badge>
-                      </Link>
+                    {(item.tickerMatches?.length ? item.tickerMatches : item.tickers.map((ticker) => ({ ticker }))).map((match) => (
+                      item.tickerMatches?.length
+                        ? tickerMatchBadge(match)
+                        : (
+                          <Link key={match.ticker} to={`/${match.ticker}`}>
+                            <Badge color="secondary" pill className="me-1">{match.ticker}</Badge>
+                          </Link>
+                        )
                     ))}
                   </div>
                 )}

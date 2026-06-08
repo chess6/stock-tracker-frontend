@@ -36,6 +36,49 @@ export const formatPercent = (value, fractionDigits = 2) => {
     return num.toFixed(fractionDigits) + '%';
 };
 
+/** Compact scale suffix for large magnitudes (terminal style). */
+export function formatCompactNumber(value, significantDigits = 3) {
+    if (isMissing(value)) return '-';
+    const num = Number(value);
+    if (!isFinite(num)) return '-';
+    const sign = num < 0 ? '-' : '';
+    const absVal = Math.abs(num);
+    let suffix = '';
+    let divisor = 1;
+    if (absVal >= 1e12) {
+        suffix = 'T';
+        divisor = 1e12;
+    } else if (absVal >= 1e9) {
+        suffix = 'B';
+        divisor = 1e9;
+    } else if (absVal >= 1e6) {
+        suffix = 'M';
+        divisor = 1e6;
+    } else if (absVal >= 1e3) {
+        suffix = 'K';
+        divisor = 1e3;
+    }
+    if (divisor === 1) {
+        if (absVal >= 1) return sign + absVal.toPrecision(significantDigits);
+        return sign + absVal.toFixed(Math.min(2, significantDigits - 1));
+    }
+    return sign + (absVal / divisor).toPrecision(significantDigits) + suffix;
+}
+
+export function formatCompactUsd(value, significantDigits = 3) {
+    if (isMissing(value)) return '-';
+    const num = Number(value);
+    if (!isFinite(num)) return '-';
+    if (num === 0) return '$0';
+    const absVal = Math.abs(num);
+    if (absVal < 1000) {
+        return (num < 0 ? '-$' : '$') + absVal.toFixed(2);
+    }
+    const compact = formatCompactNumber(absVal, significantDigits);
+    if (compact === '-') return '-';
+    return (num < 0 ? '-$' : '$') + compact;
+}
+
 function isDarkTheme() {
     if (typeof document === 'undefined') return false;
     return document.documentElement.getAttribute('data-bs-theme') === 'dark';

@@ -5,10 +5,20 @@ import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import BootstrapPipeline from '../components/BootstrapPipeline';
 import { getPortfolio, getPortfolioTickersCsv, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
+import { formatFreshnessTimestamp, isStale, summarizeFreshness } from '../utils/dataFreshness';
 import { useToast } from '../context/ToastContext';
 import { clearScreener } from '../store';
 
 const DEFAULT_TICKERS = 'AAPL,MSFT,NVDA,AMD,GOOGL,AMZN,META,TSLA';
+
+const FRESHNESS_THRESHOLDS = {
+  companiesUpdatedAt: 168,
+  fundamentalsUpdatedAt: 168,
+  feedsLastPolledAt: 12,
+  pricesUpdatedAt: 36,
+  insidersUpdatedAt: 168,
+  latestArticleFetchedAt: 12,
+};
 
 function initialTickersField() {
   return getPortfolioTickersCsv() || DEFAULT_TICKERS;
@@ -21,13 +31,15 @@ function resolveTickersForRequest(fieldValue) {
 }
 
 function formatDate(value) {
-  if (!value) return 'Not available yet';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  return formatFreshnessTimestamp(value);
+}
+
+function staleClass(value, maxAgeHours) {
+  return isStale(value, maxAgeHours) ? 'text-warning fw-semibold' : '';
 }
 
 export default function AdminConsolePage() {
-  const [status, setStatus] = useState({ counts: {}, freshness: {} });
+  const [status, setStatus] = useState({ counts: {}, freshness: {}, feeds: [], jobs: {}, recentJobRuns: [] });
   const [feeds, setFeeds] = useState([]);
   const [tickers, setTickers] = useState(initialTickersField);
   const [portfolioCount, setPortfolioCount] = useState(() => getPortfolio().length);
@@ -38,13 +50,17 @@ export default function AdminConsolePage() {
 
   const tickersQuery = () => encodeURIComponent(resolveTickersForRequest(tickers));
   const resolvedTickersCsv = useMemo(() => resolveTickersForRequest(tickers), [tickers]);
+  const freshnessSummary = useMemo(
+    () => summarizeFreshness(status.freshness || {}),
+    [status.freshness],
+  );
 
   const loadStatus = async () => {
     const [statusRes, feedsRes] = await Promise.all([
       axios.get(API_ENDPOINTS.ADMIN_STATUS),
       axios.get(API_ENDPOINTS.ADMIN_DEFAULT_FEEDS),
     ]);
-    setStatus(statusRes.data || { counts: {}, freshness: {} });
+    setStatus(statusRes.data || { counts: {}, freshness: {}, feeds: [], jobs: {}, recentJobRuns: [] });
     setFeeds(feedsRes.data?.feeds || []);
   };
 
@@ -80,6 +96,8 @@ export default function AdminConsolePage() {
     }
   };
 
+  const feedHealthRows = status.feeds?.length ? status.feeds : [];
+
   return (
     <div className="container py-3">
       <div className="row mb-3">
@@ -91,6 +109,12 @@ export default function AdminConsolePage() {
           </div>
         </div>
       </div>
+
+      {freshnessSummary.stale && (
+        <div className="alert alert-warning" role="alert">
+          Cache is stale: {freshnessSummary.reasons.join(', ')}. Run bootstrap or the relevant refresh action below.
+        </div>
+      )}
 
       {message && (
         <div className={`alert ${message.includes('failed') ? 'alert-danger' : 'alert-info'}`} role="alert">
@@ -226,6 +250,10 @@ export default function AdminConsolePage() {
                 <li>Prices: {status.counts?.prices ?? 0}</li>
                 <li>Insider transactions: {status.counts?.insider_transactions ?? 0}</li>
                 <li>Jobs queued: {status.jobs?.queued ?? 0}</li>
+                <li>Jobs running: {status.jobs?.running ?? 0}</li>
+                <li className={status.jobs?.failed > 0 ? 'text-danger fw-semibold' : ''}>
+                  Jobs failed: {status.jobs?.failed ?? 0}
+                </li>
               </ul>
             </div>
           </div>
@@ -235,16 +263,96 @@ export default function AdminConsolePage() {
             <div className="card-body">
               <h2 className="h5">Freshness</h2>
               <ul className="mb-0">
-                <li>Companies updated: {formatDate(status.freshness?.companiesUpdatedAt)}</li>
-                <li>Fundamentals updated: {formatDate(status.freshness?.fundamentalsUpdatedAt)}</li>
-                <li>Feeds last polled: {formatDate(status.freshness?.feedsLastPolledAt)}</li>
-                <li>Prices updated: {formatDate(status.freshness?.pricesUpdatedAt)}</li>
-                <li>Insiders updated: {formatDate(status.freshness?.insidersUpdatedAt)}</li>
+                <li className={staleClass(status.freshness?.companiesUpdatedAt, FRESHNESS_THRESHOLDS.companiesUpdatedAt)}>
+                  Companies updated: {formatDate(status.freshness?.companiesUpdatedAt)}
+                </li>
+                <li className={staleClass(status.freshness?.fundamentalsUpdatedAt, FRESHNESS_THRESHOLDS.fundamentalsUpdatedAt)}>
+                  Fundamentals updated: {formatDate(status.freshness?.fundamentalsUpdatedAt)}
+                </li>
+                <li className={staleClass(status.freshness?.feedsLastPolledAt, FRESHNESS_THRESHOLDS.feedsLastPolledAt)}>
+                  Feeds last polled: {formatDate(status.freshness?.feedsLastPolledAt)}
+                </li>
+                <li className={staleClass(status.freshness?.pricesUpdatedAt, FRESHNESS_THRESHOLDS.pricesUpdatedAt)}>
+                  Prices updated: {formatDate(status.freshness?.pricesUpdatedAt)}
+                </li>
+                <li className={staleClass(status.freshness?.insidersUpdatedAt, FRESHNESS_THRESHOLDS.insidersUpdatedAt)}>
+                  Insiders updated: {formatDate(status.freshness?.insidersUpdatedAt)}
+                </li>
                 <li>Latest article published: {formatDate(status.freshness?.latestArticlePublishedAt)}</li>
-                <li>Latest article fetched: {formatDate(status.freshness?.latestArticleFetchedAt)}</li>
+                <li className={staleClass(status.freshness?.latestArticleFetchedAt, FRESHNESS_THRESHOLDS.latestArticleFetchedAt)}>
+                  Latest article fetched: {formatDate(status.freshness?.latestArticleFetchedAt)}
+                </li>
               </ul>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="card shadow-sm mt-3">
+        <div className="card-body">
+          <h2 className="h5">Feed Health</h2>
+          {feedHealthRows.length === 0 ? (
+            <div className="text-muted small">No feed poll history yet. Run ingest to populate health data.</div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Last polled</th>
+                    <th>Last success</th>
+                    <th>Failures</th>
+                    <th>Last error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {feedHealthRows.map((feed) => (
+                    <tr key={feed.feed_url} className={feed.consecutive_failures > 0 ? 'table-warning' : ''}>
+                      <td>{feed.name}</td>
+                      <td>{feed.category}</td>
+                      <td>{formatDate(feed.last_polled_at)}</td>
+                      <td>{formatDate(feed.last_success_at)}</td>
+                      <td>{feed.consecutive_failures ?? 0}</td>
+                      <td className="small text-danger">{feed.last_error_message || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card shadow-sm mt-3">
+        <div className="card-body">
+          <h2 className="h5">Recent Job Runs</h2>
+          {(status.recentJobRuns || []).length === 0 ? (
+            <div className="text-muted small">No completed job runs yet.</div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Job</th>
+                    <th>Status</th>
+                    <th>Finished</th>
+                    <th>Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {status.recentJobRuns.map((run) => (
+                    <tr key={run.id} className={run.status === 'error' || run.status === 'failed' ? 'table-warning' : ''}>
+                      <td>{run.job_type} #{run.job_id}</td>
+                      <td>{run.status}</td>
+                      <td>{formatDate(run.finished_at)}</td>
+                      <td className="small text-danger">{run.error_message || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 

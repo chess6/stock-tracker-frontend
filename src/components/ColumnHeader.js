@@ -1,74 +1,76 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
+
+/** Plain-text help fallback for screen readers / tests. */
+export function formatColumnHeaderHelp(meta = {}) {
+  const parts = [];
+  if (meta.fullName) parts.push(meta.fullName);
+  if (meta.tooltip) parts.push(meta.tooltip);
+  if (meta.formula) parts.push(`Formula: ${meta.formula}`);
+  if (meta.source) parts.push(`Source: ${meta.source}`);
+  return parts.join('\n');
+}
+
+function HelpPopover({ meta }) {
+  return (
+    <div
+      className="position-absolute bg-body border rounded shadow-sm column-header-help-popover"
+      style={{
+        top: '120%',
+        left: 0,
+        zIndex: 20,
+        minWidth: 220,
+        maxWidth: 300,
+        padding: '8px 10px',
+        fontSize: 12,
+        fontWeight: 400,
+        pointerEvents: 'none',
+      }}
+    >
+      {meta.fullName && <div className="fw-bold mb-1">{meta.fullName}</div>}
+      {meta.tooltip && <div className="text-muted mb-1">{meta.tooltip}</div>}
+      {meta.formula && (
+        <div className="mb-1">
+          <span className="fw-semibold">Formula: </span>
+          <code style={{ fontSize: 11 }}>{meta.formula}</code>
+        </div>
+      )}
+      {meta.source && (
+        <div className="text-muted" style={{ fontSize: 11 }}>
+          Source: {meta.source}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
- * Column header with optional terminal-style help popover (full name, formula, source).
+ * Column header with terminal-style help popover on hover (full name, formula, source).
  */
 export default function ColumnHeader({ label, meta = {}, canSort, sortDir, onSort }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
-
-  const hasHelp = meta.tooltip || meta.formula || meta.source;
+  const [hovered, setHovered] = useState(false);
+  const hasHelp = meta.tooltip || meta.formula || meta.source || meta.fullName;
 
   return (
     <div
-      className="d-inline-flex align-items-center gap-1"
+      className="d-inline-flex align-items-center gap-1 column-header-help"
       style={{ position: 'relative', whiteSpace: 'nowrap' }}
-      ref={ref}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <span
         role={canSort ? 'button' : undefined}
         onClick={canSort ? onSort : undefined}
         style={{ cursor: canSort ? 'pointer' : 'default' }}
-        title={meta.tooltip || label}
+        aria-label={hasHelp ? formatColumnHeaderHelp(meta) : label}
       >
         {label}
       </span>
-      {hasHelp && (
-        <button
-          type="button"
-          className="btn btn-link p-0 border-0"
-          style={{ fontSize: 11, lineHeight: 1, color: 'var(--st-grid-header-icon)', minWidth: 14 }}
-          onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-          aria-label={`Help for ${meta.fullName || label}`}
-        >
-          ?
-        </button>
-      )}
       {canSort && (
-        <span style={{ fontSize: 12, opacity: 0.7 }}>
+        <span className="st-grid-sort-icon">
           {sortDir === 'asc' ? '↑' : sortDir === 'desc' ? '↓' : '↕'}
         </span>
       )}
-      {open && (
-        <div
-          className="position-absolute bg-body border rounded shadow-sm"
-          style={{ top: '120%', left: 0, zIndex: 20, minWidth: 220, maxWidth: 300, padding: '8px 10px', fontSize: 12, fontWeight: 400 }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {meta.fullName && <div className="fw-bold mb-1">{meta.fullName}</div>}
-          {meta.tooltip && <div className="text-muted mb-1">{meta.tooltip}</div>}
-          {meta.formula && (
-            <div className="mb-1">
-              <span className="fw-semibold">Formula: </span>
-              <code style={{ fontSize: 11 }}>{meta.formula}</code>
-            </div>
-          )}
-          {meta.source && (
-            <div className="text-muted" style={{ fontSize: 11 }}>
-              Source: {meta.source}
-            </div>
-          )}
-        </div>
-      )}
+      {hovered && hasHelp && <HelpPopover meta={meta} />}
     </div>
   );
 }
