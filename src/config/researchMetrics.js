@@ -114,6 +114,7 @@ export const SCREENER_METRIC_GROUPS = [
     label: 'Insider Activity',
     metrics: [
       { id: 'buyCount90d', label: 'Insider Buys 90d', path: ['insiderSummary', 'buyCount90d'], format: 'integer' },
+      { id: 'intensityScore90d', label: 'Buy Intensity', path: ['insiderSummary', 'intensityScore90d'], format: 'decimal', heatmap: 'column' },
       { id: 'buySellRatio', label: 'Buy/Sell Ratio', path: ['insiderSummary', 'buySellRatio'], format: 'decimal', heatmap: 'column' },
     ],
   },

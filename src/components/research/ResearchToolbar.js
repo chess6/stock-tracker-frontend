@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import API_ENDPOINTS from '../../apiConfig';
-import { DIMENSION_OPTIONS, YEAR_OPTIONS } from '../../config/researchMetrics';
+import { DIMENSION_OPTIONS, SCREENER_METRIC_GROUPS, YEAR_OPTIONS } from '../../config/researchMetrics';
 import { getPortfolio } from '../../utils/portfolio';
+
+const SORT_OPTIONS = SCREENER_METRIC_GROUPS.flatMap((group) => group.metrics.map((metric) => ({
+  value: metric.id,
+  label: metric.label,
+})));
 
 export default function ResearchToolbar({
   tickersText,
@@ -16,6 +21,12 @@ export default function ResearchToolbar({
   onHideEmptyRowsChange,
   loading,
   mode = 'screener',
+  sortMetric,
+  onSortMetricChange,
+  onExportCsv,
+  onCopyGrid,
+  onCopyShareLink,
+  exportDisabled = false,
 }) {
   const [watchlists, setWatchlists] = useState([]);
   const [watchlistName, setWatchlistName] = useState('');
@@ -82,6 +93,20 @@ export default function ResearchToolbar({
                   ))}
                 </select>
               </div>
+              <div className="col-lg-2">
+                <label htmlFor="researchSortMetric" className="form-label mb-1">Sort tickers by</label>
+                <select
+                  id="researchSortMetric"
+                  className="form-select form-select-sm"
+                  value={sortMetric || ''}
+                  onChange={(e) => onSortMetricChange?.(e.target.value || null)}
+                >
+                  <option value="">Default order</option>
+                  {SORT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
             </>
           )}
           <div className="col-auto">
@@ -129,13 +154,45 @@ export default function ResearchToolbar({
               </div>
             </>
           )}
-          {mode === 'screener' && (
-            <div className="col-auto ms-lg-auto">
+          <div className="col-auto ms-lg-auto d-flex flex-wrap gap-1 align-items-end">
+            {onCopyShareLink && (
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={onCopyShareLink}
+                title="Copy shareable link"
+              >
+                Share
+              </button>
+            )}
+            {onCopyGrid && (
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={onCopyGrid}
+                disabled={exportDisabled}
+                title="Copy grid to clipboard"
+              >
+                Copy
+              </button>
+            )}
+            {onExportCsv && (
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={onExportCsv}
+                disabled={exportDisabled}
+                title="Download CSV"
+              >
+                CSV
+              </button>
+            )}
+            {mode === 'screener' && (
               <button type="button" className="btn btn-sm btn-success" onClick={onLoad} disabled={loading}>
                 {loading ? 'Loading…' : 'Load'}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

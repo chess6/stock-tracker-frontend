@@ -5,6 +5,10 @@ import API_ENDPOINTS from '../apiConfig';
 import ResearchToolbar from '../components/research/ResearchToolbar';
 import FinancialGrid from '../components/research/FinancialGrid';
 import MetricSparkline from '../components/research/MetricSparkline';
+import ScoreSummaryBar from '../components/research/ScoreSummaryBar';
+import InsiderPanel from '../components/research/InsiderPanel';
+import ResearchDeepDive from '../components/research/ResearchDeepDive';
+import CompareMetricsPanel, { MAX_COMPARE_TICKERS } from '../components/research/CompareMetricsPanel';
 import {
   RESEARCH_METRIC_GROUPS,
   SCREENER_METRIC_GROUPS,
@@ -22,6 +26,16 @@ import {
   survivabilityHeatStyle,
 } from '../utils/scoringColors';
 import { computeCAGR, computeYoY, extractPeriodSeries, trendArrow } from '../utils/researchCalculations';
+import { copyTextToClipboard } from '../utils/gridExport';
+import {
+  buildDeepDiveSearchParams,
+  buildScreenerSearchParams,
+  parseCompareParam,
+  parseGroupParam,
+  serializeGroupParam,
+  sortTickersByMetric,
+  useResearchExport,
+} from '../utils/researchUrlState';
 import { addToPortfolioWithNotification, getPortfolio, isInPortfolio } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
 import TickerSubnav from '../components/TickerSubnav';
@@ -96,6 +110,7 @@ export default function ResearchPage() {
   const { ticker: routeTicker } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
+  const { exportScreener, copyScreener, exportDetail, copyDetail } = useResearchExport({ showToast });
   const isDeepDive = Boolean(routeTicker);
   const activeTicker = routeTicker?.toUpperCase();
 
@@ -108,14 +123,57 @@ export default function ResearchPage() {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
   });
   const [hideEmptyRows, setHideEmptyRows] = useState(searchParams.get('hideEmpty') !== '0');
+  const [sortMetric, setSortMetric] = useState(searchParams.get('sort') || null);
+  const [compareTickers, setCompareTickers] = useState(() => parseCompareParam(searchParams.get('compare')));
   const [screenerData, setScreenerData] = useState({});
   const [detailData, setDetailData] = useState(null);
+  const [narrativeData, setNarrativeData] = useState(null);
+  const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [expandedGroups, setExpandedGroups] = useState(() => new Set(RESEARCH_METRIC_GROUPS.map((g) => g.id)));
-  const [screenerExpandedGroups, setScreenerExpandedGroups] = useState(
-    () => new Set(SCREENER_METRIC_GROUPS.map((g) => g.id)),
+  const [expandedGroups, setExpandedGroups] = useState(
+    () => parseGroupParam(searchParams.get('groups'), RESEARCH_METRIC_GROUPS.map((group) => group.id)),
   );
+  const [screenerExpandedGroups, setScreenerExpandedGroups] = useState(
+    () => parseGroupParam(searchParams.get('groups'), SCREENER_METRIC_GROUPS.map((group) => group.id)),
+  );
+
+  const syncScreenerParams = useCallback((overrides = {}) => {
+    const tickers = overrides.tickers ?? parseTickers(tickersText);
+    const params = buildScreenerSearchParams({
+      tickers,
+      dim: overrides.dim ?? dimension,
+      compare: overrides.compare ?? compareTickers,
+      groups: serializeGroupParam(
+        overrides.screenerExpandedGroups ?? screenerExpandedGroups,
+        SCREENER_METRIC_GROUPS.map((group) => group.id),
+      ),
+      sort: overrides.sortMetric ?? sortMetric,
+      hideEmpty: overrides.hideEmptyRows ?? hideEmptyRows,
+    });
+    setSearchParams(params, { replace: true });
+  }, [
+    compareTickers,
+    dimension,
+    hideEmptyRows,
+    screenerExpandedGroups,
+    setSearchParams,
+    sortMetric,
+    tickersText,
+  ]);
+
+  const syncDeepDiveParams = useCallback((overrides = {}) => {
+    const params = buildDeepDiveSearchParams({
+      dim: overrides.dim ?? dimension,
+      years: overrides.years ?? years,
+      hideEmpty: overrides.hideEmptyRows ?? hideEmptyRows,
+      groups: serializeGroupParam(
+        overrides.expandedGroups ?? expandedGroups,
+        RESEARCH_METRIC_GROUPS.map((group) => group.id),
+      ),
+    });
+    setSearchParams(params, { replace: true });
+  }, [dimension, expandedGroups, hideEmptyRows, setSearchParams, years]);
 
   const loadScreener = useCallback(async (tickers, dim) => {
     if (!tickers.length) {
@@ -130,14 +188,14 @@ export default function ResearchPage() {
         params: { tickers: tickers.join(','), dimension: dim },
       });
       setScreenerData(res.data?.results || {});
-      setSearchParams({ tickers: tickers.join(','), dim }, { replace: true });
+      syncScreenerParams({ tickers, dim });
     } catch {
       setError('Failed to load research screener data.');
       setScreenerData({});
     } finally {
       setLoading(false);
     }
-  }, [setSearchParams]);
+  }, [syncScreenerParams]);
 
   const loadDetail = useCallback(async (symbol, dim, yrs) => {
     if (!symbol) return;
@@ -158,18 +216,26 @@ export default function ResearchPage() {
     }
   }, []);
 
-  const syncDeepDiveParams = useCallback((dim, yrs, hideEmpty) => {
-    const next = { dim };
-    if (yrs != null) next.years = String(yrs);
-    if (!hideEmpty) next.hideEmpty = '0';
-    setSearchParams(next, { replace: true });
-  }, [setSearchParams]);
+  const loadNarrative = useCallback(async (symbol) => {
+    if (!symbol) return;
+    setNarrativeLoading(true);
+    try {
+      const res = await axios.get(API_ENDPOINTS.RESEARCH_NARRATIVE(symbol));
+      setNarrativeData(res.data);
+    } catch {
+      setNarrativeData(null);
+    } finally {
+      setNarrativeLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (isDeepDive) {
       loadDetail(activeTicker, dimension, years);
+      loadNarrative(activeTicker);
       return;
     }
+    setNarrativeData(null);
     const tickers = parseTickers(tickersText);
     if (tickers.length) loadScreener(tickers, dimension);
     // Initial load only; toolbar actions refresh explicitly.
@@ -177,9 +243,20 @@ export default function ResearchPage() {
   }, [isDeepDive, routeTicker, dimension, years]);
 
   useEffect(() => {
-    if (!isDeepDive) return;
-    syncDeepDiveParams(dimension, years, hideEmptyRows);
-  }, [isDeepDive, dimension, years, hideEmptyRows, syncDeepDiveParams]);
+    if (isDeepDive) syncDeepDiveParams();
+  }, [isDeepDive, dimension, years, hideEmptyRows, expandedGroups, syncDeepDiveParams]);
+
+  useEffect(() => {
+    if (isDeepDive) return;
+    syncScreenerParams();
+  }, [
+    isDeepDive,
+    compareTickers,
+    sortMetric,
+    screenerExpandedGroups,
+    hideEmptyRows,
+    syncScreenerParams,
+  ]);
 
   const handleLoad = () => {
     const tickers = parseTickers(tickersText);
@@ -199,7 +276,34 @@ export default function ResearchPage() {
     showToast(notif.message, notif.type);
   };
 
-  const screenerTickers = useMemo(() => parseTickers(tickersText), [tickersText]);
+  const handleCopyShareLink = async () => {
+    try {
+      await copyTextToClipboard(window.location.href);
+      showToast('Share link copied.', 'success');
+    } catch {
+      showToast('Could not copy link.', 'warning');
+    }
+  };
+
+  const toggleCompareTicker = useCallback((ticker) => {
+    setCompareTickers((prev) => {
+      if (prev.includes(ticker)) {
+        return prev.filter((item) => item !== ticker);
+      }
+      if (prev.length >= MAX_COMPARE_TICKERS) {
+        showToast(`Compare supports up to ${MAX_COMPARE_TICKERS} tickers.`, 'warning');
+        return prev;
+      }
+      return [...prev, ticker];
+    });
+  }, [showToast]);
+
+  const rawScreenerTickers = useMemo(() => parseTickers(tickersText), [tickersText]);
+
+  const screenerTickers = useMemo(
+    () => sortTickersByMetric(rawScreenerTickers, screenerData, sortMetric, SCREENER_METRIC_GROUPS),
+    [rawScreenerTickers, screenerData, sortMetric],
+  );
 
   const screenerGridRows = useMemo(() => {
     if (!screenerTickers.length) return [];
@@ -246,6 +350,14 @@ export default function ResearchPage() {
         accessorKey: `t${idx}`,
         header: () => (
           <div className="research-ticker-header">
+            <label className="research-compare-toggle mb-0">
+              <input
+                type="checkbox"
+                checked={compareTickers.includes(ticker)}
+                onChange={() => toggleCompareTicker(ticker)}
+                aria-label={`Compare ${ticker}`}
+              />
+            </label>
             <Link to={`/research/${ticker}?dim=${dimension}`} className="fw-semibold link-primary">
               {ticker}
             </Link>
@@ -277,7 +389,7 @@ export default function ResearchPage() {
       });
     });
     return cols;
-  }, [screenerTickers, screenerData, dimension]);
+  }, [screenerTickers, screenerData, dimension, compareTickers, toggleCompareTicker]);
 
   const detailPeriods = useMemo(() => {
     if (!detailData?.periods) return [];
@@ -444,44 +556,58 @@ export default function ResearchPage() {
         onHideEmptyRowsChange={setHideEmptyRows}
         loading={loading}
         mode={isDeepDive ? 'deep-dive' : 'screener'}
+        sortMetric={sortMetric}
+        onSortMetricChange={setSortMetric}
+        onExportCsv={isDeepDive
+          ? () => exportDetail(detailGridRows, activeTicker, {
+            includeYoY: columnPeriods.length >= 2,
+            includeCagr: columnPeriods.length >= 3,
+          })
+          : () => exportScreener(screenerGridRows, screenerTickers)}
+        onCopyGrid={isDeepDive
+          ? () => copyDetail(detailGridRows, {
+            includeYoY: columnPeriods.length >= 2,
+            includeCagr: columnPeriods.length >= 3,
+          })
+          : () => copyScreener(screenerGridRows, screenerTickers)}
+        onCopyShareLink={handleCopyShareLink}
+        exportDisabled={isDeepDive ? !detailGridRows.length : !screenerGridRows.length}
       />
 
       {error && <div className="alert alert-warning py-2">{error}</div>}
 
-      {isDeepDive && detailData?.company && (
-        <div className="card shadow-sm mb-2 research-deep-dive-header">
-          <div className="card-body py-2 px-2 d-flex flex-wrap align-items-center gap-2">
-            <div>
-              <div className="d-flex flex-wrap align-items-center gap-2">
-                <h1 className="h4 mb-0">{activeTicker}</h1>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${isInPortfolio(activeTicker) ? 'btn-outline-secondary' : 'btn-success'}`}
-                  onClick={handleAddToPortfolio}
-                >
-                  {isInPortfolio(activeTicker) ? 'In Portfolio' : 'Add to Portfolio'}
-                </button>
-              </div>
-              <div className="text-muted small">{detailData.company.name}</div>
-              <div className="text-muted small">
-                {[detailData.company.sector, detailData.company.industry].filter(Boolean).join(' · ')}
-              </div>
-            </div>
-            {detailData.price?.latest != null && (
-              <div className="ms-auto fw-semibold research-header-price">
-                {formatCompactUsd(detailData.price.latest)}
-              </div>
-            )}
-          </div>
-          {scoreBadges && (
-            <div className="card-body pt-0 px-2 pb-2">
-              <div className="research-score-badges">
-                {scoreBadges.map(([label, value]) => (
-                  <span key={label} className="research-score-badge">{label}: {value}</span>
-                ))}
-              </div>
-            </div>
-          )}
+      {isDeepDive && (
+        <ResearchDeepDive
+          activeTicker={activeTicker}
+          detailData={detailData}
+          narrativeData={narrativeData}
+          narrativeLoading={narrativeLoading}
+          loading={loading}
+          scoreBadges={scoreBadges}
+          isInPortfolio={isInPortfolio(activeTicker)}
+          onAddToPortfolio={handleAddToPortfolio}
+          detailGridRows={detailGridRows}
+          detailColumns={detailColumns}
+          expandedGroups={expandedGroups}
+          onToggleGroup={(groupId) => setExpandedGroups((prev) => {
+            const next = new Set(prev);
+            if (next.has(groupId)) next.delete(groupId);
+            else next.add(groupId);
+            return next;
+          })}
+          detailPeriods={detailPeriods}
+          compareLink={`/research?tickers=${encodeURIComponent(activeTicker)}&compare=${encodeURIComponent(activeTicker)}`}
+        />
+      )}
+
+      {!isDeepDive && (
+        <CompareMetricsPanel compareTickers={compareTickers} />
+      )}
+
+      {!isDeepDive && screenerTickers.length > 0 && Object.keys(screenerData).length > 0 && (
+        <div className="card shadow-sm mb-2">
+          <div className="card-header py-1 px-2 small fw-semibold">Score Summary</div>
+          <ScoreSummaryBar tickers={screenerTickers} screenerData={screenerData} />
         </div>
       )}
 
@@ -527,45 +653,8 @@ export default function ResearchPage() {
         </div>
       )}
 
-      {isDeepDive && (
-        <div className="card shadow-sm research-deep-dive-card">
-          <div className="card-header py-1 px-2 d-flex flex-wrap gap-2 align-items-center">
-            <span className="small fw-semibold">Historical Financials</span>
-            <div className="ms-auto d-flex flex-wrap gap-1">
-              {RESEARCH_METRIC_GROUPS.map((group) => (
-                <button
-                  key={group.id}
-                  type="button"
-                  className={`btn btn-sm ${expandedGroups.has(group.id) ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                  onClick={() => setExpandedGroups((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(group.id)) next.delete(group.id);
-                    else next.add(group.id);
-                    return next;
-                  })}
-                >
-                  {group.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="card-body p-0">
-            {loading && !detailGridRows.length ? (
-              <div className="p-2 small">Loading…</div>
-            ) : detailGridRows.length ? (
-              <FinancialGrid
-                data={detailGridRows}
-                columns={detailColumns}
-                stickyColumnIds={['metric']}
-                getRowId={(row) => row.id}
-                compact
-                maxHeight="calc(100vh - 260px)"
-              />
-            ) : (
-              <div className="p-2 small">No financial history available.</div>
-            )}
-          </div>
-        </div>
+      {!isDeepDive && screenerTickers.length > 0 && (
+        <InsiderPanel mode="screener" tickers={screenerTickers} />
       )}
     </div>
   );

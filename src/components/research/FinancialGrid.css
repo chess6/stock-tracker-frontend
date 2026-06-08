@@ -37,13 +37,13 @@
 }
 
 .research-grid-table-compact {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   table-layout: auto;
   width: max-content;
 }
 
 .research-grid-table-compact > :not(caption) > * > * {
-  padding: 0.1rem 0.15rem !important;
+  padding: 0.06rem 0.12rem !important;
   width: auto;
   white-space: nowrap;
 }

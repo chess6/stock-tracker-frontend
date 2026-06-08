@@ -24,6 +24,9 @@ export const API_ENDPOINTS = {
   WATCHLIST_TICKER: (name, ticker) => `${API_BASE}/watchlists/${encodeURIComponent(name)}/tickers/${encodeURIComponent(ticker)}`,
   RESEARCH_SCREENER: `${API_BASE}/research/screener`,
   RESEARCH_TICKER: ticker => `${API_BASE}/research/ticker/${encodeURIComponent(ticker)}`,
+  RESEARCH_INSIDERS: ticker => `${API_BASE}/research/insiders/${encodeURIComponent(ticker)}`,
+  RESEARCH_INSIDER_CLUSTERS: `${API_BASE}/research/insiders/clusters`,
+  RESEARCH_NARRATIVE: ticker => `${API_BASE}/research/narrative/${encodeURIComponent(ticker)}`,
   INSIDER_BUYING_SUMS: `${API_BASE}/insiders/buying-sums`,
   /** SEC Form 4 insider transactions (SQLite; response keeps SF2-compatible datatable shape). */
   INSIDER_TRANSACTIONS: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
