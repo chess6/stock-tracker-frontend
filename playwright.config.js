@@ -39,9 +39,10 @@ module.exports = defineConfig({
     },
   ],
   webServer: {
-    command: `DISABLE_ESLINT_PLUGIN=true npm run build && npx serve -s build -l ${PORT}`,
+    // Visual tests rebuild in npm pretest:visual* (with progress). Other e2e runs build only if missing.
+    command: `sh -c 'test -f build/index.html || DISABLE_ESLINT_PLUGIN=true npm run build; exec npx serve -s build -l ${PORT}'`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 180000,
+    timeout: 120000,
   },
 });
