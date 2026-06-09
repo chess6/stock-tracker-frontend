@@ -23,8 +23,9 @@ describe('ColumnHeader', () => {
         onSort={() => {}}
       />,
     );
-    expect(screen.getByRole('tooltip')).toHaveTextContent('Formula:');
-    expect(screen.getByRole('tooltip')).toHaveTextContent('price / eps');
-    expect(document.querySelector('.st-tooltip')).not.toHaveAttribute('title');
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Formula:');
+    expect(tooltip).toHaveTextContent('price / eps');
+    expect(tooltip).not.toHaveAttribute('title');
   });
 });

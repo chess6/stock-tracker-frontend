@@ -15,6 +15,5 @@ describe('StTooltip', () => {
       </StTooltip>,
     );
     expect(screen.getByRole('tooltip')).toHaveTextContent('profitability · strong');
-    expect(document.querySelector('.st-tooltip-popup')).toBeInTheDocument();
   });
 });

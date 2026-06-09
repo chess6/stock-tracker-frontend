@@ -9,7 +9,7 @@ import { getCapitalStructureSnapshot } from '../../utils/capitalStructureStats';
 
 export default function CapitalStructurePanel({ periods = [], compact = false, inline = false }) {
   const snapshot = useMemo(() => getCapitalStructureSnapshot(periods), [periods]);
-  const annual = snapshot?.annual || [];
+  const annual = useMemo(() => snapshot?.annual || [], [snapshot]);
   const latest = snapshot?.latest;
 
   const chartData = useMemo(() => {

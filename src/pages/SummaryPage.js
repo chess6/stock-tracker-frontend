@@ -178,6 +178,7 @@ const SummaryPage = () => {
     },
     yaxis: { title: { text: 'Price' } },
     title: { text: `${ticker} Price History`, align: 'left' },
+    theme: { mode: theme },
   }), [filteredPrices, ticker, theme]);
   const chartSeries = [
     {

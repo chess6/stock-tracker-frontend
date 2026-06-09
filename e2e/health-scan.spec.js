@@ -6,7 +6,7 @@ const { mockStockTrackerApi } = require('./support/mock-api');
 
 const REPORT_PATH = path.join(__dirname, '..', 'agent_tasks', 'health-scan-report.json');
 
-const ROUTES = ['/', '/dashboard', '/news', '/admin', '/screener'];
+const ROUTES = ['/', '/dashboard', '/news', '/admin', '/screener', '/research/AAPL'];
 
 test.describe('health scan', () => {
   test('collect console errors, API failures, and broken UI', async ({ page }) => {
@@ -35,7 +35,7 @@ test.describe('health scan', () => {
       }
     });
 
-    await mockStockTrackerApi(page);
+    await mockStockTrackerApi(page, { portfolio: ['JPM'], theme: 'dark' });
 
     if (process.env.AGENT_HEALTH_SIMULATE_API_FAILURE === '1') {
       await page.route('**/api/news**', (route) =>

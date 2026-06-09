@@ -406,7 +406,7 @@ export default function ResearchPage() {
       });
     });
     return cols;
-  }, [screenerTickers, screenerData, dimension, compareTickers, toggleCompareTicker, colorMode]);
+  }, [screenerTickers, screenerData, dimension, compareTickers, toggleCompareTicker]);
 
   const detailPeriods = useMemo(() => {
     if (!detailData?.periods) return [];

@@ -274,6 +274,7 @@ const FinancialsPage = () => {
       title: { text: 'Period End' },
     },
     title: { text: 'Key Financials', align: 'left' },
+    theme: { mode: theme },
     legend: { position: 'top' },
     dataLabels: {
       enabled: true,
