@@ -14,9 +14,11 @@ const DEFAULT_TICKERS = 'AAPL,MSFT,NVDA,AMD,GOOGL,AMZN,META,TSLA';
 const FRESHNESS_THRESHOLDS = {
   companiesUpdatedAt: 168,
   fundamentalsUpdatedAt: 168,
+  companyScoresUpdatedAt: 168,
   feedsLastPolledAt: 12,
   pricesUpdatedAt: 36,
   insidersUpdatedAt: 168,
+  insiderClustersUpdatedAt: 168,
   latestArticleFetchedAt: 12,
 };
 
@@ -51,8 +53,8 @@ export default function AdminConsolePage() {
   const tickersQuery = () => encodeURIComponent(resolveTickersForRequest(tickers));
   const resolvedTickersCsv = useMemo(() => resolveTickersForRequest(tickers), [tickers]);
   const freshnessSummary = useMemo(
-    () => summarizeFreshness(status.freshness || {}),
-    [status.freshness],
+    () => summarizeFreshness(status.freshness || {}, status.coverage || {}),
+    [status.freshness, status.coverage],
   );
 
   const loadStatus = async () => {
@@ -99,7 +101,7 @@ export default function AdminConsolePage() {
   const feedHealthRows = status.feeds?.length ? status.feeds : [];
 
   return (
-    <div className="container py-3">
+    <div className="st-page">
       <div className="row mb-3">
         <div className="col">
           <h1 className="h3 mb-1">Admin Console</h1>
@@ -217,6 +219,20 @@ export default function AdminConsolePage() {
               {busyAction === 'Insider refresh' ? 'Running...' : 'Refresh Insiders'}
             </button>
             <button
+              className="btn btn-outline-primary"
+              disabled={busyAction !== null}
+              onClick={() => runAction('Enrich metadata', () => axios.post(`${API_ENDPOINTS.ADMIN_ENRICH_METADATA}?tickers=${tickersQuery()}`))}
+            >
+              {busyAction === 'Enrich metadata' ? 'Running...' : 'Enrich Metadata'}
+            </button>
+            <button
+              className="btn btn-outline-secondary"
+              disabled={busyAction !== null}
+              onClick={() => runAction('Enrich all missing metadata', () => axios.post(`${API_ENDPOINTS.ADMIN_ENRICH_METADATA}?all=true`))}
+            >
+              {busyAction === 'Enrich all missing metadata' ? 'Running...' : 'Enrich All Missing'}
+            </button>
+            <button
               className="btn btn-outline-warning"
               disabled={busyAction !== null}
               onClick={() => runAction('Article dedup', () => axios.post(API_ENDPOINTS.ADMIN_DEDUP_ARTICLES))}
@@ -254,6 +270,13 @@ export default function AdminConsolePage() {
                 <li className={status.jobs?.failed > 0 ? 'text-danger fw-semibold' : ''}>
                   Jobs failed: {status.jobs?.failed ?? 0}
                 </li>
+                <li className={(status.coverage?.companiesMissingMetadata || 0) > 0 ? 'text-warning fw-semibold' : ''}>
+                  Missing sector/industry: {status.coverage?.companiesMissingMetadata ?? 0}
+                </li>
+                <li>
+                  Articles with market reactions: {status.coverage?.articlesWithMarketReactions ?? 0}
+                  {' '}/ linked: {status.coverage?.linkedArticles ?? 0}
+                </li>
               </ul>
             </div>
           </div>
@@ -277,6 +300,12 @@ export default function AdminConsolePage() {
                 </li>
                 <li className={staleClass(status.freshness?.insidersUpdatedAt, FRESHNESS_THRESHOLDS.insidersUpdatedAt)}>
                   Insiders updated: {formatDate(status.freshness?.insidersUpdatedAt)}
+                </li>
+                <li className={staleClass(status.freshness?.companyScoresUpdatedAt, FRESHNESS_THRESHOLDS.companyScoresUpdatedAt)}>
+                  Company scores updated: {formatDate(status.freshness?.companyScoresUpdatedAt)}
+                </li>
+                <li className={staleClass(status.freshness?.insiderClustersUpdatedAt, FRESHNESS_THRESHOLDS.insiderClustersUpdatedAt)}>
+                  Insider clusters updated: {formatDate(status.freshness?.insiderClustersUpdatedAt)}
                 </li>
                 <li>Latest article published: {formatDate(status.freshness?.latestArticlePublishedAt)}</li>
                 <li className={staleClass(status.freshness?.latestArticleFetchedAt, FRESHNESS_THRESHOLDS.latestArticleFetchedAt)}>

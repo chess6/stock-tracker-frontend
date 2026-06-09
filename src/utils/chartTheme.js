@@ -62,3 +62,44 @@ export function mergeApexOptions(specific = {}) {
     theme: { ...base.theme, ...specific.theme },
   };
 }
+
+/** Plot height for deep-dive analytics columns. */
+export const ANALYTICS_CHART_HEIGHT = 300;
+/** Compact sparkline under margins (capital leverage trend). */
+export const ANALYTICS_CHART_HEIGHT_SHORT = 130;
+/** Narrative overlay in the wider analytics column. */
+export const ANALYTICS_CHART_HEIGHT_NARRATIVE = 240;
+
+/** Tight Y-axis for percent/ratio charts so slopes are visible. */
+export function tightPercentBounds(seriesList, padMin = 3, padMax = 2) {
+  const values = seriesList
+    .flat()
+    .filter((value) => value != null && Number.isFinite(Number(value)));
+  if (!values.length) return {};
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return {
+    min: Math.floor(min - padMin),
+    max: Math.ceil(max + padMax),
+  };
+}
+
+/** Shared compact preset for Research deep-dive chart panels. */
+export function analyticsChartOptions(specific = {}) {
+  return mergeApexOptions({
+    legend: {
+      position: 'bottom',
+      fontSize: '9px',
+      offsetY: 0,
+      height: 28,
+      itemMargin: { horizontal: 6, vertical: 0 },
+    },
+    grid: {
+      padding: { top: 2, right: 6, bottom: 0, left: 2 },
+    },
+    xaxis: {
+      labels: { style: { fontSize: '9px' } },
+    },
+    ...specific,
+  });
+}

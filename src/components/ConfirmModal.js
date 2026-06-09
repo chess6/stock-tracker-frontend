@@ -1,4 +1,4 @@
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap';
+import StModal from './StModal';
 
 export default function ConfirmModal({
   isOpen,
@@ -10,13 +10,14 @@ export default function ConfirmModal({
   onCancel,
 }) {
   return (
-    <Modal isOpen={isOpen} toggle={onCancel} centered>
-      <ModalHeader toggle={onCancel}>{title}</ModalHeader>
-      <ModalBody>{message}</ModalBody>
-      <ModalFooter>
-        <Button color="secondary" outline onClick={onCancel}>Cancel</Button>
-        <Button color={confirmColor} onClick={onConfirm}>{confirmLabel}</Button>
-      </ModalFooter>
-    </Modal>
+    <StModal
+      isOpen={isOpen}
+      title={title}
+      message={message}
+      confirmLabel={confirmLabel}
+      confirmClassName={confirmColor === 'danger' ? 'st-btn' : 'st-btn-primary'}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
   );
 }

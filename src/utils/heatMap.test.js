@@ -20,12 +20,12 @@ describe('heatMap', () => {
     expect(style.backgroundColor).toBeDefined();
   });
 
-  test('piotroskiHeatStyle colors high scores green', () => {
-    expect(piotroskiHeatStyle(8).backgroundColor).toContain('40, 167, 69');
+  test('piotroskiHeatStyle colors high scores elite', () => {
+    expect(piotroskiHeatStyle(8).backgroundColor).toBe('var(--st-heat-elite)');
   });
 
   test('altmanZHeatStyle colors distress red', () => {
-    expect(altmanZHeatStyle(1.2).backgroundColor).toContain('220, 53, 69');
+    expect(altmanZHeatStyle(1.2).backgroundColor).toBe('var(--st-heat-red-deep)');
   });
 
   test('marginHeatStyle colors positive margins', () => {

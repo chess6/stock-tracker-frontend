@@ -9,13 +9,34 @@ const STEP_ENDPOINTS = {
   ingest_feeds: API_ENDPOINTS.ADMIN_INGEST_DEFAULT_FEEDS,
   prices: API_ENDPOINTS.ADMIN_REFRESH_PRICES,
   insiders: API_ENDPOINTS.ADMIN_REFRESH_INSIDERS,
+  macro: API_ENDPOINTS.ADMIN_REFRESH_MACRO,
   dedup_articles: API_ENDPOINTS.ADMIN_DEDUP_ARTICLES,
+  market_reactions: API_ENDPOINTS.ADMIN_BACKFILL_MARKET_REACTIONS,
 };
+
+function parseTickersCsv(tickersCsv) {
+  return [...new Set(
+    String(tickersCsv || '')
+      .split(/[,\s]+/)
+      .map((item) => item.trim().toUpperCase())
+      .filter(Boolean),
+  )];
+}
 
 async function runStep(step, tickersCsv, mode) {
   const endpoint = STEP_ENDPOINTS[step.id];
   if (!endpoint) {
     throw new Error(`Unknown pipeline step: ${step.id}`);
+  }
+  if (step.id === 'market_reactions') {
+    const tickers = parseTickersCsv(tickersCsv);
+    const querySuffix = buildStepRequestUrl(step.id, { tickersCsv, mode }) || '';
+    const results = [];
+    for (const ticker of tickers) {
+      const response = await axios.post(`${endpoint}?ticker=${encodeURIComponent(ticker)}${querySuffix ? `&${querySuffix.slice(1)}` : ''}`);
+      results.push({ ticker, ...response.data });
+    }
+    return { data: { tickers: results } };
   }
   const querySuffix = buildStepRequestUrl(step.id, { tickersCsv, mode }) || '';
   return axios.post(`${endpoint}${querySuffix}`);

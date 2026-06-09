@@ -1,0 +1,83 @@
+/* Industry peers — sidebar + grid side-by-side */
+
+.industry-layout {
+  display: grid;
+  grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+  gap: 0.35rem;
+  align-items: start;
+}
+
+@media (max-width: 767px) {
+  .industry-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.industry-sidebar-body {
+  max-height: calc(100vh - 7rem);
+  overflow-y: auto;
+  padding: 0.25rem 0.35rem;
+}
+
+.industry-sector-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--st-text-muted);
+  margin-bottom: 0.15rem;
+}
+
+.industry-sector-group {
+  margin-bottom: 0.35rem;
+}
+
+.industry-pick-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 0.15rem;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid var(--st-border);
+  border-radius: 0.2rem;
+  background: var(--st-surface-muted);
+  color: var(--st-text-subtle);
+  font-size: 0.72rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.industry-pick-btn:hover {
+  border-color: var(--st-accent-blue);
+  color: var(--st-accent-blue);
+}
+
+.industry-pick-btn-active {
+  border-color: var(--st-accent-amber);
+  background: var(--st-accent-amber-dim);
+  color: var(--st-accent-amber);
+  font-weight: 600;
+}
+
+.industry-pick-count {
+  flex-shrink: 0;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.15rem;
+  font-size: 0.62rem;
+  background: var(--st-surface);
+  color: var(--st-text-muted);
+}
+
+.industry-main-body {
+  padding: 0.25rem 0.35rem;
+  min-width: 0;
+}
+
+.industry-main-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--st-accent-amber);
+}

@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
   ADMIN_DEDUP_ARTICLES: `${API_BASE}/admin/dedup-articles`,
   ADMIN_BOOTSTRAP: `${API_BASE}/admin/bootstrap`,
   ADMIN_REFRESH_MACRO: `${API_BASE}/admin/refresh-macro`,
+  ADMIN_BACKFILL_MARKET_REACTIONS: `${API_BASE}/admin/backfill-market-reactions`,
   ADMIN_ENRICH_METADATA: `${API_BASE}/admin/enrich-metadata`,
 };
 

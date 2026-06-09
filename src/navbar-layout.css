@@ -33,9 +33,8 @@
   row-gap: 0.15rem;
 }
 
-.navbar-nav-links .nav-link {
-  padding-left: 0.65rem;
-  padding-right: 0.65rem;
+.navbar-nav-links .st-nav-link {
+  display: inline-block;
   white-space: nowrap;
 }
 

@@ -36,7 +36,7 @@ const COMPARE_METRICS = [
   },
 ];
 
-const CHART_COLORS = ['#0d6efd', '#20c997', '#6610f2', '#fd7e14', '#dc3545'];
+const CHART_COLORS = ['#5b9cf5', '#f5a623', '#6ecf97', '#e87882', '#9aa3ad'];
 
 function annualPeriods(detail) {
   const periods = detail?.periods || [];
@@ -183,8 +183,8 @@ export default function CompareMetricsPanel({ compareTickers = [] }) {
 
   if (compareTickers.length < 2) {
     return (
-      <div className="card shadow-sm mb-2 research-compare-panel">
-        <div className="card-body py-2 small text-muted">
+      <div className="st-panel mb-2 research-compare-panel">
+        <div className="st-panel-body text-xs text-st-muted">
           Select 2–5 tickers using the compare checkboxes to overlay metric trends.
         </div>
       </div>
@@ -192,20 +192,18 @@ export default function CompareMetricsPanel({ compareTickers = [] }) {
   }
 
   return (
-    <div className="card shadow-sm mb-2 research-compare-panel">
-      <div className="card-header py-1 px-2 d-flex flex-wrap gap-2 align-items-center">
-        <span className="fw-semibold small">Cross-Ticker Comparison</span>
-        <span className="text-muted small">
-          {compareTickers.join(' · ')}
-        </span>
+    <div className="st-panel mb-2 research-compare-panel">
+      <div className="st-panel-header">
+        <span>Cross-Ticker Comparison</span>
+        <span className="font-normal text-st-muted">{compareTickers.join(' · ')}</span>
       </div>
-      <div className="card-body p-1">
-        {loading && <div className="small p-1">Loading comparison data…</div>}
-        {error && <div className="small text-warning p-1">{error}</div>}
+      <div className="st-panel-body p-1">
+        {loading && <div className="p-1 text-xs text-st-muted">Loading comparison data…</div>}
+        {error && <div className="p-1 text-xs text-st-amber">{error}</div>}
         {!loading && !error && tickerData.length >= 2 && (
-          <div className="row g-1">
+          <div className="research-compare-grid">
             {COMPARE_METRICS.map((metric) => (
-              <div key={metric.id} className="col-xl-6">
+              <div key={metric.id}>
                 <div className="research-compare-chart-card">
                   <div className="research-compare-chart-title">{metric.label}</div>
                   <CompareMetricChart metric={metric} tickerData={tickerData} />

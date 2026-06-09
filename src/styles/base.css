@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-st-bg text-[color:var(--bs-body-color,#dee2e6)] antialiased;
+  }
+
+  [data-bs-theme='dark'] a.st-link {
+    @apply text-st-blue hover:text-[#8bb8f8];
+  }
+
+  [data-bs-theme='light'] a.st-link {
+    @apply text-st-blue hover:text-blue-700;
+  }
+}

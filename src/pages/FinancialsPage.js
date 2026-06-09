@@ -362,7 +362,7 @@ const FinancialsPage = () => {
   };
 
   return (
-  <div className="container py-3">
+  <div className="st-page">
       <TickerSubnav ticker={ticker} />
       <div className="row mb-1">
         <div className="col">
@@ -380,7 +380,7 @@ const FinancialsPage = () => {
 
       <div className="card shadow-sm mb-1">
         <div className="card-body">
-          <div className="row g-3 align-items-end">
+          <div className="row g-2 align-items-end">
             <div className="col-auto">
               <label className="form-label d-block">Report</label>
               <div className="btn-group" role="group">
@@ -432,7 +432,7 @@ const FinancialsPage = () => {
       <div className="card shadow-sm mb-1">
         <div className="card-body" style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: chartWidth }}>
-            <ApexCharts options={barChartOptions} series={chartSeries} type="bar" height={500} width={chartWidth} />
+            <ApexCharts options={barChartOptions} series={chartSeries} type="bar" height={340} width={chartWidth} />
           </div>
         </div>
       </div>
@@ -453,12 +453,13 @@ const FinancialsPage = () => {
                     ...col,
                     cellStyle: { whiteSpace: 'nowrap' },
                   }))}
+                  compact
+                  tableExtraClassName="portfolio-grid-table"
                   enableRowSelection={false}
                   enableSorting={false}
                   enableGlobalFilter={false}
                   onRowClick={onMetricRowClick}
                   rowSelection={undefined}
-                  // Highlight selected metrics
                   getRowId={row => String(row.id)}
                   rowProps={row => ({
                     className: selectedMetrics.includes(row.key) ? 'table-primary' : '',

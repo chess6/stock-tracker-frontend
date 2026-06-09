@@ -31,7 +31,7 @@ export default function ScoreSummaryBar({ tickers, screenerData }) {
           return (
             <div key={ticker} className="research-score-summary-ticker">
               <div className="research-score-summary-ticker-name">{ticker}</div>
-              <span className="text-muted small">No data</span>
+              <span className="text-2xs text-st-muted">No data</span>
             </div>
           );
         }

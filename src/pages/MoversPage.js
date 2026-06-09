@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import API_ENDPOINTS from '../apiConfig';
 import DataGrid from '../components/DataGrid';
+import StSpinner from '../components/StSpinner';
 import { formatUsd, formatPercent } from '../utils/formatters';
 import { signedHeatStyle } from '../utils/heatMap';
 import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfolio';
@@ -68,7 +69,7 @@ export default function MoversPage() {
       header: 'Ticker',
       accessorKey: 'ticker',
       cell: info => (
-        <Link to={`/${info.getValue()}`} className="fw-semibold text-decoration-underline">
+        <Link to={`/${info.getValue()}`} className="st-ticker">
           {info.getValue()}
         </Link>
       ),
@@ -90,11 +91,11 @@ export default function MoversPage() {
   ], [window, handleAdd]);
 
   return (
-    <div className="container py-3">
-      <div className="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
+    <div className="st-page">
+      <div className="d-flex flex-wrap align-items-center justify-content-between mb-2 gap-2">
         <div>
           <h1 className="h3 mb-1">Price Movers</h1>
-          <div className="text-muted">terminal-style screens: ±10% {window === 'd' ? 'daily' : 'weekly'} movers from cached prices.</div>
+          <div className="text-muted">±10% {window === 'd' ? 'daily' : 'weekly'} movers from cached prices.</div>
         </div>
         <div className="btn-group" role="group">
           <button type="button" className={`btn btn-sm ${window === 'd' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setWindow('d')}>Daily (d)</button>
@@ -103,7 +104,7 @@ export default function MoversPage() {
       </div>
       {error && <div className="alert alert-danger">{error}</div>}
       {loading ? (
-        <div className="text-center py-5 text-muted">Loading movers…</div>
+        <div className="st-spinner-wrap"><StSpinner size="sm" /> Loading movers…</div>
       ) : movers.length === 0 ? (
         <div className="alert alert-secondary">No movers found. Bootstrap prices for more tickers via Admin.</div>
       ) : (
@@ -112,7 +113,9 @@ export default function MoversPage() {
           data={movers}
           getRowId={row => row.ticker}
           enableRowSelection={false}
-          tableClassName="table table-sm table-bordered"
+          compact
+          tableExtraClassName="portfolio-grid-table"
+          tableClassName="table table-sm table-bordered st-grid-table"
         />
       )}
     </div>

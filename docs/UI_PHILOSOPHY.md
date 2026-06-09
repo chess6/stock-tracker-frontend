@@ -18,7 +18,7 @@ The application is a:
 
 Primary inspiration:
 
-* classic deep-value research spreadsheets,
+* Classic deep-value research spreadsheets,
 * Bloomberg Terminal,
 * WhaleWisdom,
 * OpenInsider,

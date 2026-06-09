@@ -1,6 +1,10 @@
 import { useMemo } from 'react';
 import Chart from 'react-apexcharts';
-import { mergeApexOptions } from '../../utils/chartTheme';
+import {
+  ANALYTICS_CHART_HEIGHT_NARRATIVE,
+  ANALYTICS_CHART_HEIGHT_SHORT,
+  analyticsChartOptions,
+} from '../../utils/chartTheme';
 import { formatDecimal, formatPercent } from '../../utils/formatters';
 import { signedHeatStyle } from '../../utils/heatMap';
 
@@ -15,6 +19,7 @@ export default function NarrativePanel({
   compact = false,
   chartsOnly = false,
   tablesOnly = false,
+  deepDive = false,
 }) {
   const sentimentTrend = narrativeData?.sentimentTrend;
   const movingAverages = sentimentTrend?.movingAverages || {};
@@ -22,7 +27,7 @@ export default function NarrativePanel({
   const topEvents = narrativeData?.topEvents || [];
   const recentArticles = narrativeData?.recentArticles || [];
 
-  const overlayOptions = useMemo(() => mergeApexOptions({
+  const overlayOptions = useMemo(() => analyticsChartOptions({
     chart: {
       type: 'line',
       toolbar: { show: false },
@@ -32,26 +37,25 @@ export default function NarrativePanel({
     dataLabels: { enabled: false },
     xaxis: {
       type: 'datetime',
-      labels: { rotate: -45, style: { fontSize: '10px' } },
+      labels: { rotate: -45, style: { fontSize: '9px' } },
     },
     yaxis: [
       {
         seriesName: 'Price',
-        labels: { formatter: (value) => formatDecimal(value, 2) },
-        title: { text: 'Price' },
+        labels: { formatter: (value) => formatDecimal(value, 2), style: { fontSize: '9px' } },
+        title: { text: undefined },
       },
       {
         opposite: true,
         seriesName: 'Sentiment MA30',
         min: -1,
         max: 1,
-        labels: { formatter: (value) => formatDecimal(value, 2) },
-        title: { text: 'Sentiment' },
+        labels: { formatter: (value) => formatDecimal(value, 2), style: { fontSize: '9px' } },
+        title: { text: undefined },
       },
     ],
-    legend: { position: 'top', fontSize: '11px' },
     tooltip: { shared: true },
-    colors: ['#0d6efd', '#20c997'],
+    colors: ['#5b9cf5', '#f5a623'],
   }), []);
 
   const overlaySeries = useMemo(() => {
@@ -72,7 +76,7 @@ export default function NarrativePanel({
     ];
   }, [narrativeData]);
 
-  const sentimentOptions = useMemo(() => mergeApexOptions({
+  const sentimentOptions = useMemo(() => analyticsChartOptions({
     chart: {
       type: 'area',
       toolbar: { show: false },
@@ -86,15 +90,15 @@ export default function NarrativePanel({
     dataLabels: { enabled: false },
     xaxis: {
       type: 'datetime',
-      labels: { rotate: -45, style: { fontSize: '10px' } },
+      labels: { rotate: -45, style: { fontSize: '9px' } },
     },
     yaxis: {
       min: -1,
       max: 1,
-      labels: { formatter: (value) => formatDecimal(value, 2) },
-      title: { text: 'Daily Sentiment' },
+      labels: { formatter: (value) => formatDecimal(value, 2), style: { fontSize: '9px' } },
+      title: { text: undefined },
     },
-    colors: ['#6610f2'],
+    colors: ['#6ecf97'],
     tooltip: {
       y: { formatter: (value) => formatSentiment(value) },
     },
@@ -109,17 +113,102 @@ export default function NarrativePanel({
   }]), [sentimentTrend]);
 
   if (loading && !narrativeData) {
-    return <div className="small text-muted p-1">Loading narrative correlation…</div>;
+    return <div className="research-chart-empty">Loading narrative correlation…</div>;
   }
 
   if (!narrativeData) {
-    return <div className="small text-muted p-1">No narrative data available.</div>;
+    return <div className="research-chart-empty">No narrative data available.</div>;
   }
 
-  const overlayHeight = compact ? 145 : 260;
+  const overlayHeight = deepDive
+    ? ANALYTICS_CHART_HEIGHT_NARRATIVE
+    : (compact ? ANALYTICS_CHART_HEIGHT_SHORT : 260);
   const sentimentHeight = compact ? 110 : 180;
-  const showCharts = !tablesOnly;
-  const showTables = !chartsOnly;
+  const showCharts = deepDive || !tablesOnly;
+  const showTables = deepDive || !chartsOnly;
+
+  const inlineStats = (
+    <div className="research-stat-strip research-narrative-stat-strip">
+      <span className="research-stat-strip-item">
+        <span className="research-stat-strip-label">30d</span>
+        <span className="research-stat-strip-value st-num" style={signedHeatStyle((movingAverages['30d'] || 0) * 100, 50)}>
+          {formatSentiment(movingAverages['30d'])}
+        </span>
+      </span>
+      <span className="research-stat-strip-item">
+        <span className="research-stat-strip-label">90d</span>
+        <span className="research-stat-strip-value st-num" style={signedHeatStyle((movingAverages['90d'] || 0) * 100, 50)}>
+          {formatSentiment(movingAverages['90d'])}
+        </span>
+      </span>
+      <span className="research-stat-strip-item">
+        <span className="research-stat-strip-label">180d</span>
+        <span className="research-stat-strip-value st-num" style={signedHeatStyle((movingAverages['180d'] || 0) * 100, 50)}>
+          {formatSentiment(movingAverages['180d'])}
+        </span>
+      </span>
+      <span className="research-stat-strip-item research-stat-strip-divergence">
+        {divergence ? (
+          <span className={divergence.type === 'bullish_divergence' ? 'research-text-positive' : 'research-text-warning'}>
+            {divergence.type === 'bullish_divergence' ? 'Bullish' : 'Bearish'} div.
+          </span>
+        ) : (
+          <span className="research-text-muted">No 90d div.</span>
+        )}
+      </span>
+    </div>
+  );
+
+  const topEventsTable = topEvents.length > 0 && (
+    <div className="research-narrative-table-wrap research-narrative-table-wrap-compact">
+      <table className="st-grid-table research-narrative-table mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Event</th>
+            <th>Sent.</th>
+            <th className="numeric-header">Abn.</th>
+            <th>Title</th>
+          </tr>
+        </thead>
+        <tbody>
+          {topEvents.map((event) => (
+            <tr key={`${event.articleId}-${event.publishedAt}`}>
+              <td>{(event.publishedAt || '').slice(0, 10)}</td>
+              <td>{event.eventType || '-'}</td>
+              <td style={signedHeatStyle((event.sentimentScore || 0) * 100, 50)}>
+                {formatSentiment(event.sentimentScore)}
+              </td>
+              <td className="numeric-cell" style={signedHeatStyle((event.abnormalReturn1d || 0) * 100, 5)}>
+                {event.abnormalReturn1d == null ? '-' : formatPercent(event.abnormalReturn1d * 100, 2)}
+              </td>
+              <td>
+                {event.url ? (
+                  <a href={event.url} target="_blank" rel="noopener noreferrer" className="st-link-muted" title={event.title}>{event.title}</a>
+                ) : (
+                  event.title
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  if (deepDive) {
+    return (
+      <div className="research-narrative-panel research-narrative-deep-dive">
+        {inlineStats}
+        {overlaySeries[0]?.data?.length >= 2 && (
+          <div className="research-chart-plot research-chart-plot-narrative">
+            <Chart options={overlayOptions} series={overlaySeries} type="line" height={overlayHeight} />
+          </div>
+        )}
+        {topEventsTable}
+      </div>
+    );
+  }
 
   const statsRow = (
     <div className={`row g-1 ${compact ? 'mb-1' : 'mb-2'}`}>
@@ -165,7 +254,7 @@ export default function NarrativePanel({
     </div>
   );
 
-  const divergenceNote = compact && (
+  const divergenceNote = compact && !chartsOnly && (
     <div className="small mb-1">
       {divergence ? (
         <span className={divergence.type === 'bullish_divergence' ? 'text-success' : 'text-warning'}>
@@ -185,7 +274,9 @@ export default function NarrativePanel({
       {showCharts && overlaySeries[0]?.data?.length >= 2 && (
         <div className={compact ? 'mb-1' : 'mb-2'}>
           {!compact && <div className="small fw-semibold mb-1">Price vs Sentiment Overlay</div>}
-          <Chart options={overlayOptions} series={overlaySeries} type="line" height={overlayHeight} />
+          <div className="research-chart-plot research-chart-plot-short">
+            <Chart options={overlayOptions} series={overlaySeries} type="line" height={overlayHeight} />
+          </div>
         </div>
       )}
 
@@ -225,7 +316,7 @@ export default function NarrativePanel({
                         </td>
                         <td>
                           {event.url ? (
-                            <a href={event.url} target="_blank" rel="noopener noreferrer">{event.title}</a>
+                            <a href={event.url} target="_blank" rel="noopener noreferrer" className="st-link-muted" title={event.title}>{event.title}</a>
                           ) : (
                             event.title
                           )}
@@ -238,9 +329,9 @@ export default function NarrativePanel({
             </div>
           )}
 
-          {recentArticles.length > 0 && (
-            <div className={compact ? 'col-xl-6' : 'col-12'}>
-              {!compact && <div className="small fw-semibold mb-1">Recent Linked Articles</div>}
+          {recentArticles.length > 0 && !compact && (
+            <div className="col-12">
+              <div className="small fw-semibold mb-1">Recent Linked Articles</div>
               <div className="table-responsive research-narrative-table-wrap">
                 <table className="table table-sm table-striped mb-0 research-narrative-table">
                   <thead>
@@ -252,7 +343,7 @@ export default function NarrativePanel({
                     </tr>
                   </thead>
                   <tbody>
-                    {recentArticles.slice(0, compact ? 8 : 10).map((article) => (
+                    {recentArticles.slice(0, 10).map((article) => (
                       <tr key={`${article.articleId}-${article.publishedAt}`}>
                         <td>{(article.publishedAt || '').slice(0, 10)}</td>
                         <td style={signedHeatStyle((article.sentimentScore || 0) * 100, 50)}>
@@ -261,7 +352,7 @@ export default function NarrativePanel({
                         <td>{article.eventType || '-'}</td>
                         <td>
                           {article.url ? (
-                            <a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a>
+                            <a href={article.url} target="_blank" rel="noopener noreferrer" className="st-link-muted" title={article.title}>{article.title}</a>
                           ) : (
                             article.title
                           )}

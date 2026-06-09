@@ -1,0 +1,70 @@
+/**
+ * Stock Tracker design tokens — Bloomberg terminal direction.
+ * Used by Tailwind theme + legacy CSS + third-party grid overrides.
+ */
+:root,
+[data-bs-theme='light'] {
+  --st-body-bg: #eef0f2;
+  --st-surface: #ffffff;
+  --st-surface-muted: #f3f4f6;
+  --st-border: #c8ced4;
+  --st-accent-amber: #c47a00;
+  --st-accent-amber-dim: rgba(196, 122, 0, 0.12);
+  --st-accent-blue: #2563eb;
+  --st-accent-blue-dim: rgba(37, 99, 235, 0.12);
+  --st-text-muted: #5c636a;
+  --st-text-subtle: #495057;
+  --st-positive: #157347;
+  --st-negative: #b02a37;
+  --st-heat-red-deep: rgba(220, 53, 69, 0.55);
+  --st-heat-red: rgba(220, 53, 69, 0.28);
+  --st-heat-neutral: rgba(255, 193, 7, 0.22);
+  --st-heat-green: rgba(40, 167, 69, 0.28);
+  --st-heat-green-deep: rgba(40, 167, 69, 0.48);
+  --st-heat-elite: rgba(111, 66, 193, 0.42);
+  --st-heat-fg-red: #842029;
+  --st-heat-fg-amber: #664d03;
+  --st-heat-fg-green: #155724;
+  --st-heat-fg-elite: #432874;
+  --st-grid-header-bg: #3d4349;
+  --st-grid-header-fg: #f8f9fa;
+  --st-grid-header-icon: rgba(255, 255, 255, 0.85);
+  --st-grid-group-header-bg: #565e66;
+  --st-grid-row-even-bg: rgba(0, 0, 0, 0.03);
+  --st-focus-ring: var(--st-accent-blue);
+  --st-link-muted: #4b5563;
+  --st-link-muted-hover: var(--st-accent-amber);
+}
+
+[data-bs-theme='dark'] {
+  --st-body-bg: #0f1114;
+  --st-surface: #171b1f;
+  --st-surface-muted: #1f2429;
+  --st-border: #3a4249;
+  --st-accent-amber: #f5a623;
+  --st-accent-amber-dim: rgba(245, 166, 35, 0.14);
+  --st-accent-blue: #5b9cf5;
+  --st-accent-blue-dim: rgba(91, 156, 245, 0.14);
+  --st-text-muted: #9aa3ad;
+  --st-text-subtle: #c4cbd3;
+  --st-positive: #6ecf97;
+  --st-negative: #e87882;
+  --st-heat-red-deep: rgba(220, 53, 69, 0.58);
+  --st-heat-red: rgba(220, 53, 69, 0.3);
+  --st-heat-neutral: rgba(255, 193, 7, 0.26);
+  --st-heat-green: rgba(40, 167, 69, 0.3);
+  --st-heat-green-deep: rgba(40, 167, 69, 0.5);
+  --st-heat-elite: rgba(167, 139, 250, 0.38);
+  --st-heat-fg-red: #f8c2c8;
+  --st-heat-fg-amber: #fff3cd;
+  --st-heat-fg-green: #c8f5d8;
+  --st-heat-fg-elite: #e9d5ff;
+  --st-grid-header-bg: #252b31;
+  --st-grid-header-fg: #e8eaed;
+  --st-grid-header-icon: rgba(232, 234, 237, 0.75);
+  --st-grid-group-header-bg: #323a42;
+  --st-grid-row-even-bg: rgba(255, 255, 255, 0.03);
+  --st-focus-ring: var(--st-accent-blue);
+  --st-link-muted: #a8b4c0;
+  --st-link-muted-hover: var(--st-accent-amber);
+}

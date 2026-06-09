@@ -9,8 +9,14 @@ import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
 import { signedHeatStyle, columnHeatStyle, columnMinMax } from '../utils/heatMap';
 import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
+import './industry.css';
 
 const toNum = (v) => (v == null || Number.isNaN(Number(v)) ? null : Number(v));
+
+function displayIndustryName(name) {
+  if (!name) return '';
+  return String(name).replace(/<br\s*\/?>/gi, ' ').trim();
+}
 
 export default function IndustryPage() {
   const [groups, setGroups] = useState([]);
@@ -141,7 +147,7 @@ export default function IndustryPage() {
     {
       header: 'Ticker',
       accessorKey: 'ticker',
-      cell: info => <Link to={`/${info.getValue()}`}>{info.getValue()}</Link>,
+      cell: info => <Link to={`/${info.getValue()}`} className="st-ticker">{info.getValue()}</Link>,
       size: 90,
     },
     { header: 'Name', accessorKey: 'name', size: 180 },
@@ -171,55 +177,56 @@ export default function IndustryPage() {
   ], [heatRanges, handleAdd]);
 
   return (
-    <div className="container-fluid py-3">
-      <h1 className="h3 mb-1">Industry Peers</h1>
-      <p className="text-muted mb-3">terminal-style sub-industry view — peers grouped by SEC SIC industry (populated on fundamentals refresh).</p>
-      {error && <div className="alert alert-danger">{error}</div>}
-      <div className="row g-3">
-        <div className="col-lg-3">
-          <div className="card shadow-sm">
-            <div className="card-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-              {loadingGroups ? <div className="text-muted">Loading industries…</div> : sectors.map(([sector, items]) => (
-                <div key={sector} className="mb-3">
-                  <div className="fw-semibold small text-uppercase text-muted mb-1">{sector}</div>
-                  {items.map((item) => {
-                    const active = selected?.industry === item.industry && selected?.sector === item.sector;
-                    return (
-                      <button
-                        key={`${item.sector}-${item.industry}`}
-                        type="button"
-                        className={`btn btn-sm w-100 text-start mb-1 ${active ? 'btn-primary' : 'btn-outline-secondary'}`}
-                        onClick={() => setSelected({ sector: item.sector, industry: item.industry })}
-                      >
-                        {item.industry}
-                        <span className="badge text-bg-secondary ms-2">{item.company_count}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-              {!loadingGroups && groups.length === 0 && (
-                <div className="text-muted small">No industries yet. Run Admin → Refresh Fundamentals to enrich SIC metadata.</div>
-              )}
-            </div>
+    <div className="st-page">
+      <h1 className="st-page-heading mb-1">Industry Peers</h1>
+      <p className="st-page-subtitle mb-2">Sub-industry peer view — companies grouped by SEC SIC industry (populated on fundamentals refresh).</p>
+      {error && <div className="alert alert-danger py-2">{error}</div>}
+      <div className="industry-layout">
+        <div className="st-panel industry-sidebar">
+          <div className="st-panel-header">Industries</div>
+          <div className="industry-sidebar-body">
+            {loadingGroups ? <div className="text-muted small">Loading industries…</div> : sectors.map(([sector, items]) => (
+              <div key={sector} className="industry-sector-group">
+                <div className="industry-sector-label">{sector}</div>
+                {items.map((item) => {
+                  const active = selected?.industry === item.industry && selected?.sector === item.sector;
+                  return (
+                    <button
+                      key={`${item.sector}-${item.industry}`}
+                      type="button"
+                      className={`industry-pick-btn${active ? ' industry-pick-btn-active' : ''}`}
+                      onClick={() => setSelected({ sector: item.sector, industry: item.industry })}
+                    >
+                      <span>{displayIndustryName(item.industry)}</span>
+                      <span className="industry-pick-count">{item.company_count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+            {!loadingGroups && groups.length === 0 && (
+              <div className="text-muted small">No industries yet. Run Admin → Refresh Fundamentals to enrich SIC metadata.</div>
+            )}
           </div>
         </div>
-        <div className="col-lg-9">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <h2 className="h5">{selected?.industry || 'Select an industry'}</h2>
-              {loadingPeers ? (
-                <div className="text-muted py-4">Loading peers…</div>
-              ) : (
-                <DataGrid
-                  columns={columns}
-                  data={rows}
-                  getRowId={row => row.ticker}
-                  enableRowSelection={false}
-                  tableClassName="table table-sm table-bordered"
-                />
-              )}
-            </div>
+        <div className="st-panel industry-main">
+          <div className="st-panel-header">
+            {displayIndustryName(selected?.industry) || 'Select an industry'}
+          </div>
+          <div className="industry-main-body">
+            {loadingPeers ? (
+              <div className="text-muted py-2 small">Loading peers…</div>
+            ) : (
+              <DataGrid
+                columns={columns}
+                data={rows}
+                getRowId={row => row.ticker}
+                enableRowSelection={false}
+                compact
+                tableExtraClassName="portfolio-grid-table"
+                tableClassName="table table-sm table-bordered st-grid-table"
+              />
+            )}
           </div>
         </div>
       </div>

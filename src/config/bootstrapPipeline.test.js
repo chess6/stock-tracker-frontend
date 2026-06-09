@@ -6,14 +6,16 @@ import {
 } from './bootstrapPipeline';
 
 describe('bootstrapPipeline', () => {
-  test('default selection enables core bootstrap steps but not dedup', () => {
+  test('default selection enables full daily refresh pipeline', () => {
     const defaults = defaultSelectedStepIds();
     expect(defaults).toContain('sync_companies');
     expect(defaults).toContain('fundamentals');
     expect(defaults).toContain('ingest_feeds');
     expect(defaults).toContain('prices');
     expect(defaults).toContain('insiders');
-    expect(defaults).not.toContain('dedup_articles');
+    expect(defaults).toContain('macro');
+    expect(defaults).toContain('dedup_articles');
+    expect(defaults).toContain('market_reactions');
   });
 
   test('buildExecutionWaves groups parallel steps in wave 1', () => {
@@ -34,11 +36,11 @@ describe('bootstrapPipeline', () => {
     expect(waves[0].map((s) => s.id).sort()).toEqual(['ingest_feeds', 'prices']);
   });
 
-  test('dedup articles runs in final wave alone', () => {
-    const waves = buildExecutionWaves(['ingest_feeds', 'dedup_articles']);
+  test('post-process wave runs dedup and market reactions together', () => {
+    const waves = buildExecutionWaves(['ingest_feeds', 'dedup_articles', 'market_reactions']);
     expect(waves).toHaveLength(2);
     expect(waves[0].map((s) => s.id)).toEqual(['ingest_feeds']);
-    expect(waves[1].map((s) => s.id)).toEqual(['dedup_articles']);
+    expect(waves[1].map((s) => s.id).sort()).toEqual(['dedup_articles', 'market_reactions'].sort());
   });
 
   test('every step has a unique id', () => {
@@ -51,7 +53,7 @@ describe('bootstrapPipeline', () => {
     expect(stages).toHaveLength(3);
     expect(stages[0].parallel).toBe(false);
     expect(stages[1].parallel).toBe(true);
-    expect(stages[1].steps).toHaveLength(4);
-    expect(stages[2].steps[0].id).toBe('dedup_articles');
+    expect(stages[1].steps).toHaveLength(5);
+    expect(stages[2].steps.map((s) => s.id).sort()).toEqual(['dedup_articles', 'market_reactions'].sort());
   });
 });

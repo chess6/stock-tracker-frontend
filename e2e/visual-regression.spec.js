@@ -54,4 +54,11 @@ test.describe('visual regression', () => {
     await expect(page.getByRole('link', { name: 'JPM' })).toBeVisible({ timeout: 15000 });
     await expect(page).toHaveScreenshot('screener.png', { fullPage: true });
   });
+
+  test('research deep-dive', async ({ page }) => {
+    await page.goto('/research/AAPL?dim=MRY&years=10&groups=balance,income,cashflow');
+    await waitForPageReady(page);
+    await expect(page.getByText('Historical Financials')).toBeVisible({ timeout: 20000 });
+    await expect(page).toHaveScreenshot('research-aapl-deep-dive.png', { fullPage: true });
+  });
 });

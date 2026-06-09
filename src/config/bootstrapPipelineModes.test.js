@@ -41,6 +41,12 @@ describe('bootstrapPipelineModes', () => {
     expect(insiders).toContain('maxFilingsPerCompany=40');
   });
 
+  test('macro has no query string and market reactions encodes limit', () => {
+    expect(buildStepRequestUrl('macro', { tickersCsv: '', mode: PIPELINE_MODES.FAST })).toBeNull();
+    const reactions = buildStepRequestUrl('market_reactions', { tickersCsv: 'AAPL', mode: PIPELINE_MODES.FAST });
+    expect(reactions).toContain('limit=200');
+  });
+
   test('full run estimate exceeds fast run for default selection', () => {
     const tickers = 'AAPL,MSFT,NVDA';
     const fast = estimatePipelineDuration(defaultSelectedStepIds(), PIPELINE_MODES.FAST, tickers);

@@ -1,0 +1,47 @@
+import {
+  faArrowTrendDown,
+  faArrowTrendUp,
+  faCalculator,
+  faChartLine,
+  faCoins,
+  faCopy,
+  faFileCsv,
+  faFileInvoiceDollar,
+  faLandmark,
+  faMoneyBillTransfer,
+  faNewspaper,
+  faPercent,
+  faScaleBalanced,
+  faShareNodes,
+  faStar,
+  faTableColumns,
+  faUserSecret,
+} from '@fortawesome/free-solid-svg-icons';
+
+export const RESEARCH_ICONS = {
+  marginTrends: faChartLine,
+  capitalDebt: faLandmark,
+  capitalCash: faCoins,
+  narrative: faNewspaper,
+  divergenceUp: faArrowTrendUp,
+  divergenceDown: faArrowTrendDown,
+  scoreBreakdown: faCalculator,
+  insiderActivity: faUserSecret,
+  financials: faTableColumns,
+  income: faFileInvoiceDollar,
+  balance: faScaleBalanced,
+  cashflow: faMoneyBillTransfer,
+  ratios: faPercent,
+  scores: faStar,
+  share: faShareNodes,
+  copy: faCopy,
+  csv: faFileCsv,
+};
+
+export const FINANCIAL_GROUP_ICONS = {
+  income: faFileInvoiceDollar,
+  balance: faScaleBalanced,
+  cashflow: faMoneyBillTransfer,
+  ratios: faPercent,
+  scores: faStar,
+};

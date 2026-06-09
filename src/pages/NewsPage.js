@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { Badge, Button, Col, Container, Form, FormGroup, Input, Label, Row, Spinner } from 'reactstrap';
+import StSpinner from '../components/StSpinner';
 import API_ENDPOINTS from '../apiConfig';
 import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
 
@@ -33,7 +33,7 @@ function snippet(text, maxLen = 220) {
 function sentimentBadge(label) {
   if (!label || label === 'neutral') return null;
   const color = label === 'positive' ? 'success' : label === 'negative' ? 'danger' : 'secondary';
-  return <Badge color={color} pill className="ms-2">{label}</Badge>;
+  return <span className={`badge text-bg-${color} ms-2`}>{label}</span>;
 }
 
 function matchStrategyLabel(strategy) {
@@ -54,10 +54,10 @@ function tickerMatchBadge(match) {
   const color = strategy === 'cashtag' || strategy === 'headline_ticker' ? 'primary' : 'secondary';
   return (
     <Link key={`${match.ticker}-${strategy}`} to={`/${match.ticker}`} title={title}>
-      <Badge color={color} pill className="me-1">
+      <span className={`badge text-bg-${color} me-1`}>
         {match.ticker}
         <span className="opacity-75 ms-1">{matchStrategyLabel(strategy)}</span>
-      </Badge>
+      </span>
     </Link>
   );
 }
@@ -149,82 +149,81 @@ export default function NewsPage() {
   const hasNext = offset + PAGE_SIZE < total;
 
   return (
-    <Container className="py-3">
-      <Row className="mb-3 align-items-end">
-        <Col>
-          <h1 className="h3 mb-1">News</h1>
-          <div className="text-muted">
+    <div className="st-page">
+      <div className="row mb-2 align-items-end">
+        <div className="col">
+          <h1 className="st-page-heading">News</h1>
+          <div className="st-page-subtitle">
             Unique articles from ingested RSS feeds, deduplicated by URL and near-duplicate titles.
           </div>
-        </Col>
-        <Col xs="auto">
-          <Link to="/admin" className="btn btn-sm btn-outline-secondary">Ingest feeds in Admin</Link>
-        </Col>
-      </Row>
+        </div>
+        <div className="col-auto">
+          <Link to="/admin" className="st-btn-ghost st-link-btn">Ingest feeds in Admin</Link>
+        </div>
+      </div>
 
-      <Form onSubmit={applyFilters} className="mb-3 p-3 border rounded st-filter-panel">
-        <Row className="g-2 align-items-end">
-          <Col md={4}>
-            <FormGroup>
-              <Label for="newsSearch" className="small mb-1">Search</Label>
-              <Input
+      <form onSubmit={applyFilters} className="st-panel mb-2">
+        <div className="st-panel-body">
+        <div className="row g-2 align-items-end">
+          <div className="col-md-4">
+              <label htmlFor="newsSearch" className="st-label">Search</label>
+              <input
                 id="newsSearch"
                 type="search"
+                className="st-input"
                 placeholder="Title or summary…"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
               />
-            </FormGroup>
-          </Col>
-          <Col md={3}>
-            <FormGroup>
-              <Label for="newsCategory" className="small mb-1">Category</Label>
-              <Input
+          </div>
+          <div className="col-md-3">
+              <label htmlFor="newsCategory" className="st-label">Category</label>
+              <select
                 id="newsCategory"
-                type="select"
+                className="st-select"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
                 {CATEGORIES.map((item) => (
                   <option key={item.value || 'all'} value={item.value}>{item.label}</option>
                 ))}
-              </Input>
-            </FormGroup>
-          </Col>
-          <Col md={3}>
-            <FormGroup>
-              <Label for="newsSource" className="small mb-1">Source domain</Label>
-              <Input
+              </select>
+          </div>
+          <div className="col-md-3">
+              <label htmlFor="newsSource" className="st-label">Source domain</label>
+              <input
                 id="newsSource"
                 type="text"
+                className="st-input"
                 placeholder="e.g. bbc.co.uk"
                 value={sourceDomain}
                 onChange={(e) => setSourceDomain(e.target.value)}
               />
-            </FormGroup>
-          </Col>
-          <Col md={2}>
-            <FormGroup check className="mt-4">
-              <Input
+          </div>
+          <div className="col-md-2">
+              <div className="form-check mt-0">
+              <input
                 type="checkbox"
+                className="form-check-input"
                 id="portfolioOnlyNews"
                 checked={portfolioOnly}
                 onChange={(e) => setPortfolioOnly(e.target.checked)}
               />
-              <Label check htmlFor="portfolioOnlyNews">Portfolio only</Label>
-            </FormGroup>
-          </Col>
-          <Col md={2} className="d-flex gap-2 align-items-end">
-            <Button color="primary" type="submit" size="sm">Apply</Button>
-            <Button color="secondary" type="button" size="sm" outline onClick={clearFilters}>Clear</Button>
-          </Col>
-        </Row>
-      </Form>
+              <label className="form-check-label" htmlFor="portfolioOnlyNews">Portfolio only</label>
+              </div>
+          </div>
+          <div className="col-md-2 d-flex gap-2 align-items-end">
+            <button type="submit" className="st-btn-primary">Apply</button>
+            <button type="button" className="st-btn-ghost" onClick={clearFilters}>Clear</button>
+          </div>
+        </div>
+        </div>
+      </form>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
       {loading ? (
-        <div className="text-center py-5"><Spinner /> Loading news…</div>
+        <div className="st-spinner-wrap"><StSpinner /> Loading news…</div>
       ) : articles.length === 0 ? (
         <div className="alert alert-secondary">
           No articles found. Run <strong>Ingest Default Feeds</strong> from the{' '}
@@ -237,13 +236,13 @@ export default function NewsPage() {
           </div>
           <div className="list-group mb-3">
             {articles.map((item) => (
-              <div key={item.id} className="list-group-item list-group-item-action flex-column align-items-start py-3">
-                <div className="d-flex w-100 justify-content-between gap-3">
+              <div key={item.id} className="list-group-item list-group-item-action list-group-item-compact flex-column align-items-start">
+                <div className="d-flex w-100 justify-content-between gap-2">
                   <a
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="fw-semibold text-decoration-none link-primary"
+                    className="fw-semibold st-link-muted text-decoration-none"
                   >
                     {item.title}
                     {sentimentBadge(item.sentimentLabel)}
@@ -259,7 +258,7 @@ export default function NewsPage() {
                         ? tickerMatchBadge(match)
                         : (
                           <Link key={match.ticker} to={`/${match.ticker}`}>
-                            <Badge color="secondary" pill className="me-1">{match.ticker}</Badge>
+                            <span className="badge text-bg-secondary me-1">{match.ticker}</span>
                           </Link>
                         )
                     ))}
@@ -269,27 +268,25 @@ export default function NewsPage() {
             ))}
           </div>
           <div className="d-flex justify-content-between">
-            <Button
-              color="secondary"
-              size="sm"
-              outline
+            <button
+              type="button"
+              className="st-btn-ghost"
               disabled={!hasPrev}
               onClick={() => loadNews(Math.max(0, offset - PAGE_SIZE), appliedFilters)}
             >
               Previous
-            </Button>
-            <Button
-              color="secondary"
-              size="sm"
-              outline
+            </button>
+            <button
+              type="button"
+              className="st-btn-ghost"
               disabled={!hasNext}
               onClick={() => loadNews(offset + PAGE_SIZE, appliedFilters)}
             >
               Next
-            </Button>
+            </button>
           </div>
         </>
       )}
-    </Container>
+    </div>
   );
 }

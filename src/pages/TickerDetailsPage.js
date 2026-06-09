@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
-import { Spinner } from 'reactstrap';
+import StSpinner from '../components/StSpinner';
 import DataGrid from '../components/DataGrid';
 import TickerSubnav from '../components/TickerSubnav';
 import {
@@ -94,7 +94,7 @@ export default function TickerDetailsPage() {
 
       {loading && (
         <div className="text-muted py-4">
-          <Spinner size="sm" className="me-2" /> Loading insider transactions…
+          <StSpinner size="sm" /> Loading insider transactions…
         </div>
       )}
       {!loading && error && <div className="alert alert-danger">{error}</div>}

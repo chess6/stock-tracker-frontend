@@ -1,43 +1,16 @@
 import { useMemo } from 'react';
 import Chart from 'react-apexcharts';
-import { mergeApexOptions } from '../../utils/chartTheme';
+import {
+  ANALYTICS_CHART_HEIGHT_SHORT,
+  analyticsChartOptions,
+} from '../../utils/chartTheme';
 import { formatCompactUsd, formatDecimal, formatPercent } from '../../utils/formatters';
+import { getCapitalStructureSnapshot } from '../../utils/capitalStructureStats';
 
-function annualPeriods(periods = []) {
-  return [...periods]
-    .filter((period) => {
-      const dim = (period.dimension || '').toUpperCase();
-      return dim === 'ARY' || dim === 'MRY';
-    })
-    .sort((a, b) => (a.periodEnd || '').localeCompare(b.periodEnd || ''));
-}
-
-function debtValue(fundamentals = {}) {
-  if (fundamentals.debt != null) return fundamentals.debt;
-  const current = fundamentals.debtcurrent || 0;
-  const longTerm = fundamentals.debtlt || 0;
-  if (fundamentals.debtcurrent != null || fundamentals.debtlt != null) {
-    return current + longTerm;
-  }
-  return null;
-}
-
-export default function CapitalStructurePanel({ periods = [], compact = false }) {
-  const annual = useMemo(() => annualPeriods(periods), [periods]);
-  const latest = annual[annual.length - 1];
-  const latestFundamentals = latest?.fundamentals || {};
-  const latestMetrics = latest?.metrics || {};
-
-  const latestDebt = debtValue(latestFundamentals);
-  const latestEquity = latestFundamentals.equity;
-  const latestCash = latestFundamentals.cashneq;
-  const latestAssets = latestFundamentals.assets;
-  const leverage = latestAssets && latestFundamentals.liabilities != null
-    ? latestFundamentals.liabilities / latestAssets
-    : null;
-  const cashToDebt = latestDebt && latestCash != null && latestDebt !== 0
-    ? latestCash / latestDebt
-    : null;
+export default function CapitalStructurePanel({ periods = [], compact = false, inline = false }) {
+  const snapshot = useMemo(() => getCapitalStructureSnapshot(periods), [periods]);
+  const annual = snapshot?.annual || [];
+  const latest = snapshot?.latest;
 
   const chartData = useMemo(() => {
     const labels = annual.map((period) => (period.periodEnd || '').slice(0, 4));
@@ -54,7 +27,7 @@ export default function CapitalStructurePanel({ periods = [], compact = false })
     };
   }, [annual]);
 
-  const options = useMemo(() => mergeApexOptions({
+  const options = useMemo(() => analyticsChartOptions({
     chart: {
       type: 'area',
       stacked: false,
@@ -69,23 +42,25 @@ export default function CapitalStructurePanel({ periods = [], compact = false })
     dataLabels: { enabled: false },
     xaxis: {
       categories: chartData.labels,
-      labels: { rotate: -45, style: { fontSize: '10px' } },
+      labels: {
+        rotate: chartData.labels.length >= 8 ? 0 : -45,
+        style: { fontSize: '9px' },
+      },
     },
     yaxis: [
       {
         seriesName: 'Debt/Equity',
-        labels: { formatter: (value) => formatDecimal(value, 2) },
-        title: { text: 'Ratios' },
+        labels: { formatter: (value) => formatDecimal(value, 2), style: { fontSize: '9px' } },
+        title: { text: undefined },
       },
       {
         opposite: true,
         seriesName: 'Leverage',
-        labels: { formatter: (value) => formatPercent(value * 100, 0) },
-        title: { text: 'Liabilities / Assets' },
+        labels: { formatter: (value) => formatPercent(value * 100, 0), style: { fontSize: '9px' } },
+        title: { text: undefined },
       },
     ],
-    legend: { position: 'top', fontSize: '11px' },
-    colors: ['#dc3545', '#0d6efd', '#ffc107'],
+    colors: ['#e87882', '#5b9cf5', '#f5a623'],
   }), [chartData.labels]);
 
   const series = useMemo(() => ([
@@ -95,52 +70,56 @@ export default function CapitalStructurePanel({ periods = [], compact = false })
   ]), [chartData]);
 
   if (!latest) {
-    return <div className="small text-muted p-1">No capital structure data available.</div>;
+    return <div className="research-chart-empty">No capital structure data available.</div>;
   }
 
-  const chartHeight = compact ? 150 : 240;
+  const chartHeight = inline || compact ? ANALYTICS_CHART_HEIGHT_SHORT : 240;
 
   return (
-    <div className="research-capital-panel">
-      <div className="row g-1 mb-1">
-        <div className="col-6 col-md-3">
-          <div className="research-capital-stat">
-            <div className="text-muted small">Total Debt</div>
-            <div className="fw-semibold small">{latestDebt == null ? '-' : formatCompactUsd(latestDebt)}</div>
+    <div className={inline ? 'research-capital-panel research-capital-inline research-capital-inline-fixed' : 'research-capital-panel'}>
+      {!inline && (
+        <>
+          <div className="research-stat-strip">
+            <span className="research-stat-strip-item">
+              <span className="research-stat-strip-label">Debt</span>
+              <span className="research-stat-strip-value st-num">
+                {snapshot.latestDebt == null ? '-' : formatCompactUsd(snapshot.latestDebt)}
+              </span>
+            </span>
+            <span className="research-stat-strip-item">
+              <span className="research-stat-strip-label">Equity</span>
+              <span className="research-stat-strip-value st-num">
+                {snapshot.latestEquity == null ? '-' : formatCompactUsd(snapshot.latestEquity)}
+              </span>
+            </span>
+            <span className="research-stat-strip-item">
+              <span className="research-stat-strip-label">Cash</span>
+              <span className="research-stat-strip-value st-num">
+                {snapshot.latestCash == null ? '-' : formatCompactUsd(snapshot.latestCash)}
+              </span>
+            </span>
+            <span className="research-stat-strip-item">
+              <span className="research-stat-strip-label">Cash/Debt</span>
+              <span className="research-stat-strip-value st-num">
+                {snapshot.cashToDebt == null ? '-' : formatDecimal(snapshot.cashToDebt, 2)}
+              </span>
+            </span>
           </div>
-        </div>
-        <div className="col-6 col-md-3">
-          <div className="research-capital-stat">
-            <div className="text-muted small">Equity</div>
-            <div className="fw-semibold small">{latestEquity == null ? '-' : formatCompactUsd(latestEquity)}</div>
+          <div className="research-capital-ratios">
+            D/E {snapshot.de == null ? '-' : formatDecimal(snapshot.de, 2)}
+            {' · '}
+            CR {snapshot.currentRatio == null ? '-' : formatDecimal(snapshot.currentRatio, 2)}
+            {' · '}
+            Lev {snapshot.leverage == null ? '-' : formatPercent(snapshot.leverage * 100, 1)}
           </div>
-        </div>
-        <div className="col-6 col-md-3">
-          <div className="research-capital-stat">
-            <div className="text-muted small">Cash</div>
-            <div className="fw-semibold small">{latestCash == null ? '-' : formatCompactUsd(latestCash)}</div>
-          </div>
-        </div>
-        <div className="col-6 col-md-3">
-          <div className="research-capital-stat">
-            <div className="text-muted small">Cash / Debt</div>
-            <div className="fw-semibold small">{cashToDebt == null ? '-' : formatDecimal(cashToDebt, 2)}</div>
-          </div>
-        </div>
-      </div>
-      {!compact && (
-        <div className="small text-muted mb-1">
-          Latest D/E {latestMetrics.de == null ? '-' : formatDecimal(latestMetrics.de, 2)}
-          {' · '}
-          Current ratio {latestMetrics.currentRatio == null ? '-' : formatDecimal(latestMetrics.currentRatio, 2)}
-          {' · '}
-          Leverage {leverage == null ? '-' : formatPercent(leverage * 100, 1)}
-        </div>
+        </>
       )}
       {annual.length >= 2 ? (
-        <Chart options={options} series={series} type="area" height={chartHeight} />
+        <div className="research-chart-plot research-chart-plot-short">
+          <Chart options={options} series={series} type="area" height={chartHeight} />
+        </div>
       ) : (
-        <div className="small text-muted">Not enough annual history for leverage trends.</div>
+        <div className="research-chart-empty">Not enough annual history for leverage trends.</div>
       )}
     </div>
   );

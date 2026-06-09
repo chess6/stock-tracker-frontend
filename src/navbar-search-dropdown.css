@@ -34,7 +34,7 @@
   border: 0;
 }
 
-.navbar-search-dropdown-wrap .dropdown-menu {
+.navbar-search-dropdown {
   position: absolute !important;
   top: 100% !important;
   left: 0 !important;
@@ -42,9 +42,6 @@
   transform: none !important;
   margin-top: 0.25rem;
   z-index: 1055;
-}
-
-.navbar-search-dropdown {
   min-width: 18rem;
   width: max(100%, 18rem) !important;
   max-width: min(32rem, calc(100vw - 1.5rem));

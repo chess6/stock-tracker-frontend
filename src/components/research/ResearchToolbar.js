@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import API_ENDPOINTS from '../../apiConfig';
+import StIcon from '../StIcon';
+import { COLOR_MODES } from '../../utils/scoringColors';
 import { DIMENSION_OPTIONS, SCREENER_METRIC_GROUPS, YEAR_OPTIONS } from '../../config/researchMetrics';
+import { RESEARCH_ICONS } from '../../icons/researchIcons';
 import { getPortfolio } from '../../utils/portfolio';
 
 const SORT_OPTIONS = SCREENER_METRIC_GROUPS.flatMap((group) => group.metrics.map((metric) => ({
@@ -27,6 +30,10 @@ export default function ResearchToolbar({
   onCopyGrid,
   onCopyShareLink,
   exportDisabled = false,
+  colorMode = 'deep_value',
+  onColorModeChange,
+  showHeatLegend = true,
+  onShowHeatLegendChange,
 }) {
   const [watchlists, setWatchlists] = useState([]);
   const [watchlistName, setWatchlistName] = useState('');
@@ -61,28 +68,28 @@ export default function ResearchToolbar({
   };
 
   return (
-    <div className="research-toolbar card shadow-sm mb-2">
-      <div className="card-body py-2">
-        <div className="row g-2 align-items-end">
+    <div className="st-panel mb-2">
+      <div className="st-panel-body">
+        <div className={`research-toolbar-grid${mode === 'screener' ? ' research-toolbar-grid-mode-screener' : ''}`}>
           {mode === 'screener' && (
             <>
-              <div className="col-lg-4">
-                <label htmlFor="researchTickers" className="form-label mb-1">Tickers</label>
+              <div className="research-toolbar-field">
+                <label htmlFor="researchTickers" className="st-label">Tickers</label>
                 <input
                   id="researchTickers"
                   type="text"
-                  className="form-control form-control-sm"
+                  className="st-input font-mono"
                   placeholder="AAPL,MSFT,GME"
                   value={tickersText}
                   onChange={(e) => onTickersTextChange(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === 'Enter' && onLoad()}
                 />
               </div>
-              <div className="col-lg-2">
-                <label htmlFor="researchWatchlist" className="form-label mb-1">Watchlist</label>
+              <div className="research-toolbar-field">
+                <label htmlFor="researchWatchlist" className="st-label">Watchlist</label>
                 <select
                   id="researchWatchlist"
-                  className="form-select form-select-sm"
+                  className="st-select"
                   value={watchlistName}
                   onChange={(e) => applyWatchlist(e.target.value)}
                 >
@@ -93,11 +100,11 @@ export default function ResearchToolbar({
                   ))}
                 </select>
               </div>
-              <div className="col-lg-2">
-                <label htmlFor="researchSortMetric" className="form-label mb-1">Sort tickers by</label>
+              <div className="research-toolbar-field">
+                <label htmlFor="researchSortMetric" className="st-label">Sort tickers by</label>
                 <select
                   id="researchSortMetric"
-                  className="form-select form-select-sm"
+                  className="st-select"
                   value={sortMetric || ''}
                   onChange={(e) => onSortMetricChange?.(e.target.value || null)}
                 >
@@ -109,14 +116,14 @@ export default function ResearchToolbar({
               </div>
             </>
           )}
-          <div className="col-auto">
-            <label className="form-label d-block mb-1">Period</label>
-            <div className="btn-group btn-group-sm" role="group" aria-label="Financial period">
+          <div className="research-toolbar-field">
+            <span className="st-label block">Period</span>
+            <div className="st-segment" role="group" aria-label="Financial period">
               {DIMENSION_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
-                  className={`btn ${dimension === opt.value ? 'btn-primary' : 'btn-outline-primary'}`}
+                  className={`st-segment-btn ${dimension === opt.value ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`}
                   onClick={() => onDimensionChange(opt.value)}
                 >
                   {opt.label}
@@ -124,13 +131,42 @@ export default function ResearchToolbar({
               ))}
             </div>
           </div>
+          <div className="research-toolbar-field">
+            <label htmlFor="researchColorMode" className="st-label">Color mode</label>
+            <select
+              id="researchColorMode"
+              className="st-select"
+              value={colorMode}
+              onChange={(e) => onColorModeChange?.(e.target.value)}
+            >
+              {COLOR_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode === 'deep_value' ? 'Deep value' : mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="research-toolbar-field">
+            <label className="st-label d-block">&nbsp;</label>
+            <div className="d-flex align-items-center pb-1">
+              <input
+                className="st-check"
+                type="checkbox"
+                id="researchHeatLegend"
+                checked={showHeatLegend}
+                onChange={(e) => onShowHeatLegendChange?.(e.target.checked)}
+              />
+              <label className="st-check-label" htmlFor="researchHeatLegend">Heat legend</label>
+            </div>
+          </div>
           {mode === 'deep-dive' && (
             <>
-              <div className="col-auto">
-                <label htmlFor="researchYears" className="form-label mb-1">Range</label>
+              <div className="research-toolbar-field">
+                <label htmlFor="researchYears" className="st-label">Range</label>
                 <select
                   id="researchYears"
-                  className="form-select form-select-sm"
+                  className="st-select"
+                  style={{ minWidth: '7rem' }}
                   value={years}
                   onChange={(e) => onYearsChange(e.target.value === 'all' ? 'all' : Number(e.target.value))}
                 >
@@ -139,56 +175,54 @@ export default function ResearchToolbar({
                   ))}
                 </select>
               </div>
-              <div className="col-auto">
-                <label className="form-label d-block mb-1">&nbsp;</label>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id="researchHideEmptyRows"
-                    checked={hideEmptyRows}
-                    onChange={(e) => onHideEmptyRowsChange(e.target.checked)}
-                  />
-                  <label className="form-check-label" htmlFor="researchHideEmptyRows">Hide empty rows</label>
+              <div className="research-toolbar-field">
+                <label className="st-label d-block">&nbsp;</label>
+                <div className="d-flex align-items-center pb-1">
+                <input
+                  className="st-check"
+                  type="checkbox"
+                  id="researchHideEmptyRows"
+                  checked={hideEmptyRows}
+                  onChange={(e) => onHideEmptyRowsChange(e.target.checked)}
+                />
+                <label className="st-check-label" htmlFor="researchHideEmptyRows">Hide empty rows</label>
                 </div>
               </div>
             </>
           )}
-          <div className="col-auto ms-lg-auto d-flex flex-wrap gap-1 align-items-end">
+          <div className="research-toolbar-actions d-flex flex-wrap gap-1 align-items-end">
             {onCopyShareLink && (
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-secondary"
-                onClick={onCopyShareLink}
-                title="Copy shareable link"
-              >
+              <button type="button" className="st-btn-ghost" onClick={onCopyShareLink} title="Copy shareable link">
+                <StIcon icon={RESEARCH_ICONS.share} />
                 Share
               </button>
             )}
             {onCopyGrid && (
               <button
                 type="button"
-                className="btn btn-sm btn-outline-secondary"
+                className="st-btn-ghost"
                 onClick={onCopyGrid}
                 disabled={exportDisabled}
                 title="Copy grid to clipboard"
               >
+                <StIcon icon={RESEARCH_ICONS.copy} />
                 Copy
               </button>
             )}
             {onExportCsv && (
               <button
                 type="button"
-                className="btn btn-sm btn-outline-secondary"
+                className="st-btn-ghost"
                 onClick={onExportCsv}
                 disabled={exportDisabled}
                 title="Download CSV"
               >
+                <StIcon icon={RESEARCH_ICONS.csv} />
                 CSV
               </button>
             )}
             {mode === 'screener' && (
-              <button type="button" className="btn btn-sm btn-success" onClick={onLoad} disabled={loading}>
+              <button type="button" className="st-btn-primary" onClick={onLoad} disabled={loading}>
                 {loading ? 'Loading…' : 'Load'}
               </button>
             )}

@@ -33,20 +33,22 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="toast-stack" aria-live="polite" aria-relevant="additions">
+      <div className="st-toast-stack" aria-live="polite" aria-relevant="additions">
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`toast-item alert alert-${toast.type} alert-dismissible fade show mb-0`}
+            className={`st-toast st-toast-${toast.type}`}
             role="status"
           >
             <span>{toast.message}</span>
             <button
               type="button"
-              className="btn-close"
+              className="st-toast-dismiss"
               aria-label="Dismiss notification"
               onClick={() => dismiss(toast.id)}
-            />
+            >
+              ×
+            </button>
           </div>
         ))}
       </div>

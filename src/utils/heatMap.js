@@ -1,5 +1,5 @@
 /**
- * terminal-style conditional cell shading.
+ * Terminal-style conditional cell shading.
  * Maps numeric values to graduated green/red (or blue) backgrounds by magnitude.
  */
 
@@ -12,7 +12,7 @@ function isDarkTheme() {
   return document.documentElement.getAttribute('data-bs-theme') === 'dark';
 }
 
-/** 5-step terminal-style palette: faint → intense */
+/** 5-step heat palette: faint → intense */
 const GREEN_STEPS_LIGHT = [
   { bg: 'rgba(40, 167, 69, 0.08)', fg: '#1e5631' },
   { bg: 'rgba(40, 167, 69, 0.18)', fg: '#155724' },
@@ -128,41 +128,50 @@ export function marginHeatStyle(value, scale = 0.25) {
   return { backgroundColor: step.bg, color: step.fg, fontVariantNumeric: 'tabular-nums' };
 }
 
-/** Piotroski F-score: 0-3 red, 4-6 yellow, 7-9 green. */
+/** Six-tier workstation palette: 0 distress → 5 elite outlier. */
+const TIER_STYLES_LIGHT = [
+  { bg: 'var(--st-heat-red-deep)', fg: 'var(--st-heat-fg-red)' },
+  { bg: 'var(--st-heat-red)', fg: 'var(--st-heat-fg-red)' },
+  { bg: 'var(--st-heat-neutral)', fg: 'var(--st-heat-fg-amber)' },
+  { bg: 'var(--st-heat-green)', fg: 'var(--st-heat-fg-green)' },
+  { bg: 'var(--st-heat-green-deep)', fg: 'var(--st-heat-fg-green)' },
+  { bg: 'var(--st-heat-elite)', fg: 'var(--st-heat-fg-elite)' },
+];
+
+const TIER_STYLES_DARK = TIER_STYLES_LIGHT;
+
+/**
+ * Map tier 0–5 to spreadsheet cell style.
+ * @param {number} tier — 0 (worst) … 5 (elite outlier)
+ */
+export function tierHeatStyle(tier) {
+  if (tier == null || Number.isNaN(Number(tier))) return {};
+  const idx = Math.max(0, Math.min(5, Math.round(Number(tier))));
+  const step = (isDarkTheme() ? TIER_STYLES_DARK : TIER_STYLES_LIGHT)[idx];
+  return {
+    backgroundColor: step.bg,
+    color: step.fg,
+    fontVariantNumeric: 'tabular-nums',
+  };
+}
+
+/** Piotroski F-score: 0-2 red, 3-5 amber, 6-7 green, 8-9 purple. */
 export function piotroskiHeatStyle(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return {};
   const num = Math.round(Number(value));
-  if (num >= 7) {
-    return { backgroundColor: 'rgba(40, 167, 69, 0.45)', color: isDarkTheme() ? '#d4f8e0' : '#0f4419', fontVariantNumeric: 'tabular-nums' };
-  }
-  if (num >= 4) {
-    return { backgroundColor: 'rgba(255, 193, 7, 0.35)', color: isDarkTheme() ? '#fff3cd' : '#664d03', fontVariantNumeric: 'tabular-nums' };
-  }
-  return { backgroundColor: 'rgba(220, 53, 69, 0.35)', color: isDarkTheme() ? '#f8c2c8' : '#842029', fontVariantNumeric: 'tabular-nums' };
+  if (num >= 8) return tierHeatStyle(5);
+  if (num >= 6) return tierHeatStyle(4);
+  if (num >= 3) return tierHeatStyle(2);
+  return tierHeatStyle(0);
 }
 
-/** Altman Z-score zones: <1.81 distress, 1.81-2.99 grey, >2.99 safe. */
+/** Altman Z-score: <1.81 distress, 1.81-2.99 amber, 2.99-4 safe, >4 elite. */
 export function altmanZHeatStyle(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return {};
   const num = Number(value);
-  if (num > 2.99) {
-    return {
-      backgroundColor: 'rgba(40, 167, 69, 0.4)',
-      color: isDarkTheme() ? '#d4f8e0' : '#0f4419',
-      fontVariantNumeric: 'tabular-nums',
-    };
-  }
-  if (num >= 1.81) {
-    return {
-      backgroundColor: 'rgba(255, 193, 7, 0.32)',
-      color: isDarkTheme() ? '#fff3cd' : '#664d03',
-      fontVariantNumeric: 'tabular-nums',
-    };
-  }
-  return {
-    backgroundColor: 'rgba(220, 53, 69, 0.38)',
-    color: isDarkTheme() ? '#f8c2c8' : '#842029',
-    fontVariantNumeric: 'tabular-nums',
-  };
+  if (num > 4) return tierHeatStyle(5);
+  if (num > 2.99) return tierHeatStyle(4);
+  if (num >= 1.81) return tierHeatStyle(2);
+  return tierHeatStyle(0);
 }
 

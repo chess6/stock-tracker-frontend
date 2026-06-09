@@ -1,6 +1,6 @@
 # Stock Tracker Frontend
 
-React UI for the Stock Tracker app — terminal-style portfolio grid, macro dashboard, news hub, and admin console. Requires the [backend API](https://github.com/chess6/stock-tracker-backend) at `http://localhost:5000`.
+React UI for the Stock Tracker app — high-density portfolio grid, macro dashboard, news hub, and admin console. Requires the [backend API](https://github.com/chess6/stock-tracker-backend) at `http://localhost:5000`.
 
 ## Tech stack
 
@@ -27,10 +27,10 @@ The dev server proxies `/api` to `localhost:5000` via `package.json` `"proxy"`.
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/` | Portfolio | terminal-style grid: valuation ratios, insider $, heat maps, SEC/WW/SA/News links |
+| `/` | Portfolio | Valuation ratios, insider $, heat maps, SEC/WW/SA/News links |
 | `/dashboard` | Dashboard | Macro tiles — indices, commodities, rates, sector ETFs |
 | `/news` | News | Deduped RSS articles with filters and portfolio-only toggle |
-| `/screener` | Screener | Insider buying totals with RK dollar heat shading |
+| `/screener` | Screener | Insider buying totals with dollar heat shading |
 | `/admin` | Admin console | Cache bootstrap and refresh controls |
 | `/columns` | Column reference | Legacy SHARADAR field glossary (`/nasdaq-columns` redirects here) |
 | `/:ticker` | Summary | Quote, chart, news for one ticker |
@@ -101,7 +101,7 @@ Comma-separated symbols for refresh actions. Default: `AAPL,MSFT,NVDA,AMD,GOOGL,
 src/
 ├── pages/           PortfolioPage, DashboardPage, NewsPage, AdminConsolePage, …
 ├── components/      DataGrid, ColumnHeader, AppNavbar
-├── config/          portfolioColumns.js — RK column metadata
+├── config/          portfolioColumns.js — column metadata (labels, tooltips, groups)
 ├── utils/           heatMap.js, formatters.js, dataFreshness.js, tickerLinks.js
 └── apiConfig.js     API endpoint constants
 ```

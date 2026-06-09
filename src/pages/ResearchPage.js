@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
+import HeatLegend from '../components/research/HeatLegend';
 import ResearchToolbar from '../components/research/ResearchToolbar';
 import FinancialGrid from '../components/research/FinancialGrid';
 import MetricSparkline from '../components/research/MetricSparkline';
@@ -9,21 +10,20 @@ import ScoreSummaryBar from '../components/research/ScoreSummaryBar';
 import InsiderPanel from '../components/research/InsiderPanel';
 import ResearchDeepDive from '../components/research/ResearchDeepDive';
 import CompareMetricsPanel, { MAX_COMPARE_TICKERS } from '../components/research/CompareMetricsPanel';
+import StTooltip, { StTooltipText } from '../components/StTooltip';
 import {
   RESEARCH_METRIC_GROUPS,
   SCREENER_METRIC_GROUPS,
   buildGteDate,
   getScreenerMetricValue,
-  rowTickerMinMax,
 } from '../config/researchMetrics';
 import { formatDecimal, formatPercent, formatUsd, formatCompactUsd } from '../utils/formatters';
-import { signedHeatStyle, columnHeatStyle } from '../utils/heatMap';
 import {
-  beneishHeatStyle,
-  marginHeatStyle,
-  piotroskiHeatStyle,
-  altmanZHeatStyle,
-  survivabilityHeatStyle,
+  buildHistoricalStats,
+  describeHeat,
+  getMetricBackground,
+  getTrendColor,
+  precomputeRowHeatStyles,
 } from '../utils/scoringColors';
 import { computeCAGR, computeYoY, extractPeriodSeries, trendArrow } from '../utils/researchCalculations';
 import { copyTextToClipboard } from '../utils/gridExport';
@@ -43,27 +43,6 @@ import './research.css';
 
 function parseTickers(text) {
   return [...new Set(String(text || '').split(/[,\s]+/).map((t) => t.trim().toUpperCase()).filter(Boolean))];
-}
-
-function heatmapForType(type, value, rowMinMax) {
-  switch (type) {
-    case 'column':
-      return columnHeatStyle(value, rowMinMax?.min, rowMinMax?.max);
-    case 'margin':
-      return marginHeatStyle(typeof value === 'number' && Math.abs(value) <= 1 ? value : (value || 0) / 100, 0.2);
-    case 'piotroski':
-      return piotroskiHeatStyle(value);
-    case 'altman':
-      return altmanZHeatStyle(value);
-    case 'beneish':
-      return beneishHeatStyle(value);
-    case 'survivability':
-      return survivabilityHeatStyle(value);
-    case 'signed':
-      return signedHeatStyle(value, 8);
-    default:
-      return {};
-  }
 }
 
 function formatCellValue(value, format, { compact = false } = {}) {
@@ -137,6 +116,8 @@ export default function ResearchPage() {
   const [screenerExpandedGroups, setScreenerExpandedGroups] = useState(
     () => parseGroupParam(searchParams.get('groups'), SCREENER_METRIC_GROUPS.map((group) => group.id)),
   );
+  const [colorMode, setColorMode] = useState(() => searchParams.get('colorMode') || 'deep_value');
+  const [showHeatLegend, setShowHeatLegend] = useState(searchParams.get('heatLegend') !== '0');
 
   const syncScreenerParams = useCallback((overrides = {}) => {
     const tickers = overrides.tickers ?? parseTickers(tickersText);
@@ -207,7 +188,31 @@ export default function ResearchPage() {
       const gte = buildGteDate(fetchYears);
       if (gte) params.gte = gte;
       const res = await axios.get(API_ENDPOINTS.RESEARCH_TICKER(symbol), { params });
-      setDetailData(res.data);
+      let payload = res.data || {};
+
+      const requestedHistory = yrs === 'all' || (Number(yrs) || 5) > 1;
+      const periodCount = Array.isArray(payload.periods) ? payload.periods.length : 0;
+      if (dim === 'MRY' && requestedHistory && periodCount < 2) {
+        try {
+          const fallback = await axios.get(API_ENDPOINTS.RESEARCH_TICKER(symbol), {
+            params: { ...(gte ? { gte } : {}), dimension: 'ARY' },
+          });
+          if (Array.isArray(fallback.data?.periods) && fallback.data.periods.length > periodCount) {
+            payload = {
+              ...payload,
+              periods: fallback.data.periods,
+              // ARY score history aligns to annual periods for historical grid columns.
+              scoreHistory: Array.isArray(fallback.data?.scoreHistory)
+                ? fallback.data.scoreHistory
+                : payload.scoreHistory,
+            };
+          }
+        } catch {
+          // Keep MRY payload if ARY fallback fails.
+        }
+      }
+
+      setDetailData(payload);
     } catch {
       setError(`Failed to load research data for ${symbol}.`);
       setDetailData(null);
@@ -319,17 +324,27 @@ export default function ResearchPage() {
         const row = {
           id: metric.id,
           metric: metric.label,
+          metricKey: metric.id,
           format: metric.format,
-          heatmap: metric.heatmap,
+          scoreCategory: metric.scoreCategory,
         };
         screenerTickers.forEach((ticker, idx) => {
           row[`t${idx}`] = getScreenerMetricValue(screenerData[ticker], metric);
         });
+        if (metric.scoreCategory) {
+          row._historicalStats = buildHistoricalStats(
+            screenerTickers.map((_, idx) => row[`t${idx}`]),
+          );
+          row._heatStyles = precomputeRowHeatStyles(row, screenerTickers.length, {
+            mode: colorMode === 'historical' ? 'deep_value' : colorMode,
+            sector: colorMode === 'sector' ? row._historicalStats : undefined,
+          });
+        }
         rows.push(row);
       });
     });
     return rows;
-  }, [screenerTickers, screenerData, screenerExpandedGroups]);
+  }, [screenerTickers, screenerData, screenerExpandedGroups, colorMode]);
 
   const screenerGridColumns = useMemo(() => {
     const cols = [
@@ -358,7 +373,7 @@ export default function ResearchPage() {
                 aria-label={`Compare ${ticker}`}
               />
             </label>
-            <Link to={`/research/${ticker}?dim=${dimension}`} className="fw-semibold link-primary">
+            <Link to={`/research/${ticker}?dim=${dimension}`} className="st-ticker">
               {ticker}
             </Link>
             {data?.companyName && (
@@ -374,22 +389,24 @@ export default function ResearchPage() {
         size: 96,
         meta: { numeric: true, ticker },
         cellStyle: ({ row }) => {
-          if (row.original?._isGroupHeader || !row.original?.heatmap) return {};
-          const val = row.original[`t${idx}`];
-          if (row.original.heatmap === 'column') {
-            const range = rowTickerMinMax(row.original, screenerTickers.length);
-            return heatmapForType('column', val, range);
-          }
-          const display = row.original.format === 'percent' && typeof val === 'number' && Math.abs(val) <= 1
-            ? val
-            : val;
-          return heatmapForType(row.original.heatmap, display);
+          if (row.original?._isGroupHeader || !row.original?.scoreCategory) return {};
+          return row.original._heatStyles?.[`t${idx}`] || {};
         },
-        cell: ({ row }) => formatCellValue(row.original[`t${idx}`], row.original.format),
+        cell: ({ row }) => {
+          const val = row.original[`t${idx}`];
+          const tip = row.original._heatStyles?.[`t${idx}Title`];
+          const formatted = formatCellValue(val, row.original.format);
+          if (!tip) return <span>{formatted}</span>;
+          return (
+            <StTooltip tip={<StTooltipText text={tip} />}>
+              <span>{formatted}</span>
+            </StTooltip>
+          );
+        },
       });
     });
     return cols;
-  }, [screenerTickers, screenerData, dimension, compareTickers, toggleCompareTicker]);
+  }, [screenerTickers, screenerData, dimension, compareTickers, toggleCompareTicker, colorMode]);
 
   const detailPeriods = useMemo(() => {
     if (!detailData?.periods) return [];
@@ -444,7 +461,7 @@ export default function ResearchPage() {
           metric: metric.label,
           metricKey: metric.key,
           format: metric.format,
-          heatmap: metric.heatmap,
+          scoreCategory: metric.scoreCategory,
           sparkline,
           yoy,
           cagr,
@@ -452,12 +469,16 @@ export default function ResearchPage() {
         columnPeriods.forEach((period, idx) => {
           row[`p${idx}`] = columnValues[idx];
         });
+        if (metric.scoreCategory) {
+          row._historicalStats = buildHistoricalStats(columnValues);
+          row._heatStyles = precomputeRowHeatStyles(row, columnPeriods.length, { mode: colorMode });
+        }
         if (hideEmptyRows && !metricRowHasValues(row, columnPeriods.length)) return;
         rows.push(row);
       });
     });
     return rows;
-  }, [columnPeriods, detailPeriods, scoreByPeriod, expandedGroups, hideEmptyRows]);
+  }, [columnPeriods, detailPeriods, scoreByPeriod, expandedGroups, hideEmptyRows, colorMode]);
 
   const detailColumns = useMemo(() => {
     const fmt = (value, format) => formatCellValue(value, format, { compact: true });
@@ -484,16 +505,20 @@ export default function ResearchPage() {
         header: (period.periodEnd || '').slice(0, 10),
         meta: { numeric: true },
         cellStyle: ({ row }) => {
-          if (row.original?.heatmap) {
-            const val = row.original[`p${idx}`];
-            const display = row.original.format === 'percent' && typeof val === 'number' && Math.abs(val) <= 1
-              ? val
-              : val;
-            return heatmapForType(row.original.heatmap, display);
-          }
-          return {};
+          if (row.original?._isGroupHeader || !row.original?.scoreCategory) return {};
+          return row.original._heatStyles?.[`p${idx}`] || {};
         },
-        cell: ({ row }) => fmt(row.original[`p${idx}`], row.original.format),
+        cell: ({ row }) => {
+          const val = row.original[`p${idx}`];
+          const tip = row.original._heatStyles?.[`p${idx}Title`];
+          const formatted = fmt(val, row.original.format);
+          if (!tip) return <span>{formatted}</span>;
+          return (
+            <StTooltip tip={<StTooltipText text={tip} />}>
+              <span>{formatted}</span>
+            </StTooltip>
+          );
+        },
       })),
     ];
     if (columnPeriods.length >= 2) {
@@ -502,15 +527,26 @@ export default function ResearchPage() {
         accessorKey: 'yoy',
         header: 'YoY %',
         meta: { numeric: true },
-        cellStyle: ({ row }) => signedHeatStyle(row.original.yoy, 8),
+        cellStyle: ({ row }) => getMetricBackground('yoy', row.original.yoy, {
+          mode: colorMode,
+          format: 'percent',
+        }),
         cell: ({ row }) => {
           const val = row.original.yoy;
           const arrow = trendArrow(val);
-          return (
-            <span>
+          const arrowColor = getTrendColor(val, 8);
+          const tip = val != null ? describeHeat('yoy', val, { mode: colorMode, format: 'percent' }) : null;
+          const body = (
+            <>
               {val == null ? '-' : formatPercent(val, 2)}
-              {arrow && <span className="research-trend-arrow" style={{ color: arrow.color }}>{arrow.symbol}</span>}
-            </span>
+              {arrow && <span className="research-trend-arrow" style={{ color: arrowColor }}>{arrow.symbol}</span>}
+            </>
+          );
+          if (!tip) return <span>{body}</span>;
+          return (
+            <StTooltip tip={<StTooltipText text={tip} />}>
+              <span>{body}</span>
+            </StTooltip>
           );
         },
       });
@@ -521,12 +557,32 @@ export default function ResearchPage() {
         accessorKey: 'cagr',
         header: 'CAGR %',
         meta: { numeric: true },
-        cellStyle: ({ row }) => signedHeatStyle(row.original.cagr, 10),
-        cell: ({ row }) => (row.original.cagr == null ? '-' : formatPercent(row.original.cagr, 2)),
+        cellStyle: ({ row }) => getMetricBackground('cagr', row.original.cagr, {
+          mode: colorMode,
+          format: 'percent',
+        }),
+        cell: ({ row }) => {
+          const val = row.original.cagr;
+          const arrow = trendArrow(val, 10);
+          const arrowColor = getTrendColor(val, 10);
+          const tip = val != null ? describeHeat('cagr', val, { mode: colorMode, format: 'percent' }) : null;
+          const body = (
+            <>
+              {val == null ? '-' : formatPercent(val, 2)}
+              {arrow && <span className="research-trend-arrow" style={{ color: arrowColor }}>{arrow.symbol}</span>}
+            </>
+          );
+          if (!tip) return <span>{body}</span>;
+          return (
+            <StTooltip tip={<StTooltipText text={tip} />}>
+              <span>{body}</span>
+            </StTooltip>
+          );
+        },
       });
     }
     return cols;
-  }, [columnPeriods]);
+  }, [columnPeriods, colorMode]);
 
   const scoreBadges = useMemo(() => {
     if (!isDeepDive || !detailData?.scoreHistory?.length) return null;
@@ -541,7 +597,7 @@ export default function ResearchPage() {
   }, [isDeepDive, detailData]);
 
   return (
-    <div className="research-page">
+    <div className="st-page research-page">
       {isDeepDive && activeTicker && <TickerSubnav ticker={activeTicker} />}
 
       <ResearchToolbar
@@ -572,9 +628,15 @@ export default function ResearchPage() {
           : () => copyScreener(screenerGridRows, screenerTickers)}
         onCopyShareLink={handleCopyShareLink}
         exportDisabled={isDeepDive ? !detailGridRows.length : !screenerGridRows.length}
+        colorMode={colorMode}
+        onColorModeChange={setColorMode}
+        showHeatLegend={showHeatLegend}
+        onShowHeatLegendChange={setShowHeatLegend}
       />
 
-      {error && <div className="alert alert-warning py-2">{error}</div>}
+      {showHeatLegend && <HeatLegend colorMode={colorMode} />}
+
+      {error && <div className="st-alert-warn">{error}</div>}
 
       {isDeepDive && (
         <ResearchDeepDive
@@ -605,25 +667,25 @@ export default function ResearchPage() {
       )}
 
       {!isDeepDive && screenerTickers.length > 0 && Object.keys(screenerData).length > 0 && (
-        <div className="card shadow-sm mb-2">
-          <div className="card-header py-1 px-2 small fw-semibold">Score Summary</div>
+        <div className="st-panel mb-2">
+          <div className="st-panel-header">Score Summary</div>
           <ScoreSummaryBar tickers={screenerTickers} screenerData={screenerData} />
         </div>
       )}
 
       {!isDeepDive && (
-        <div className="card shadow-sm research-screener-card">
-          <div className="card-header py-2 d-flex flex-wrap gap-2 align-items-center">
+        <div className="st-panel research-screener-card">
+          <div className="st-panel-header">
             <span>Financial Screener</span>
-            <span className="text-muted small">
+            <span className="font-normal text-st-muted">
               {screenerTickers.length} ticker{screenerTickers.length === 1 ? '' : 's'} · metrics × tickers · arrow keys to navigate
             </span>
-            <div className="ms-auto d-flex flex-wrap gap-1">
+            <div className="ml-auto flex flex-wrap gap-1">
               {SCREENER_METRIC_GROUPS.map((group) => (
                 <button
                   key={group.id}
                   type="button"
-                  className={`btn btn-sm ${screenerExpandedGroups.has(group.id) ? 'btn-secondary' : 'btn-outline-secondary'}`}
+                  className={screenerExpandedGroups.has(group.id) ? 'st-btn-active' : 'st-btn-muted'}
                   onClick={() => setScreenerExpandedGroups((prev) => {
                     const next = new Set(prev);
                     if (next.has(group.id)) next.delete(group.id);
@@ -636,11 +698,11 @@ export default function ResearchPage() {
               ))}
             </div>
           </div>
-          <div className="card-body p-1">
+          <div className="st-panel-body p-1">
             {loading && !screenerGridRows.length ? (
-              <div className="p-3">Loading…</div>
+              <div className="p-3 text-xs text-st-muted">Loading…</div>
             ) : screenerTickers.length === 0 ? (
-              <div className="p-3">Enter at least one ticker above.</div>
+              <div className="p-3 text-xs text-st-muted">Enter at least one ticker above.</div>
             ) : (
               <FinancialGrid
                 data={screenerGridRows}

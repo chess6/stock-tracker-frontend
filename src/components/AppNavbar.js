@@ -2,18 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
-import {
-  Container, Navbar, NavbarBrand, NavbarToggler, Collapse,
-  Input, Button, Dropdown, DropdownToggle, DropdownMenu, Nav, NavItem,
-} from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import { summarizeFreshness } from '../utils/dataFreshness';
 import { useToast } from '../context/ToastContext';
-import { useTheme } from '../context/ThemeContext';
 import ThemeProfileMenu from './ThemeProfileMenu';
 import '../navbar-search-dropdown.css';
 import '../navbar-layout.css';
@@ -40,8 +35,8 @@ const AppNavbar = () => {
   const latestSearchValue = useRef('');
   const searchAreaRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { showToast } = useToast();
-  const { isDark } = useTheme();
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +77,7 @@ const AppNavbar = () => {
     };
   }, [dropdownOpen]);
 
-  const handleSearchChange = e => {
+  const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearch(value);
     latestSearchValue.current = value;
@@ -126,7 +121,7 @@ const AppNavbar = () => {
     }
   };
 
-  const handleAddToPortfolio = ticker => {
+  const handleAddToPortfolio = (ticker) => {
     const notif = addToPortfolioWithNotification(ticker);
     showToast(notif.message, notif.type);
     setDropdownOpen(false);
@@ -135,7 +130,7 @@ const AppNavbar = () => {
     setActiveResultIdx(-1);
   };
 
-  const handleSearchTicker = ticker => {
+  const handleSearchTicker = (ticker) => {
     setDropdownOpen(false);
     setSearch('');
     setSearchResults([]);
@@ -145,51 +140,57 @@ const AppNavbar = () => {
   };
 
   return (
-    <Navbar
-      color={isDark ? 'dark' : 'light'}
-      dark={isDark}
-      expand="lg"
-      className={`mb-1 position-relative ${isDark ? '' : 'border-bottom'}`}
-      style={{ minHeight: 64 }}
-    >
-      <Container fluid className="navbar-shell">
-        <NavbarBrand tag={Link} to="/" className="fw-bold fs-4" style={{ cursor: 'pointer' }}>
+    <header className="st-navbar navbar mb-1 position-relative">
+      <div className="container-fluid navbar-shell">
+        <Link to="/" className="navbar-brand fw-bold">
           Stock Portfolio
-        </NavbarBrand>
-        <NavbarToggler onClick={() => setNavOpen((v) => !v)} />
-        <Collapse isOpen={navOpen} navbar className="navbar-shell-collapse">
-          <Nav className="me-auto flex-wrap navbar-nav-links" navbar>
-            {NAV_LINKS.map((link) => (
-              <NavItem key={link.to}>
-                <Link
-                  to={link.to}
-                  className={`nav-link fw-semibold ${isDark ? 'text-light' : 'text-dark'}`}
-                  onClick={() => setNavOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              </NavItem>
-            ))}
+        </Link>
+        <button
+          type="button"
+          className="navbar-toggler"
+          aria-expanded={navOpen}
+          aria-label="Toggle navigation"
+          onClick={() => setNavOpen((v) => !v)}
+        >
+          ☰
+        </button>
+        <nav className={`navbar-shell-collapse navbar-nav-links${navOpen ? ' is-open' : ''}`}>
+          <ul className="navbar-nav-list">
+            {NAV_LINKS.map((link) => {
+              const active = link.to === '/'
+                ? location.pathname === '/'
+                : location.pathname === link.to || location.pathname.startsWith(`${link.to}/`);
+              return (
+                <li key={link.to}>
+                  <Link
+                    to={link.to}
+                    className={`st-nav-link${active ? ' active' : ''}`}
+                    onClick={() => setNavOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
             {staleLabel && (
-              <NavItem>
+              <li>
                 <Link
                   to="/admin"
-                  className="nav-link badge rounded-pill text-bg-warning text-decoration-none"
+                  className="st-nav-link badge rounded-pill text-bg-warning text-decoration-none"
                   title="Local cache may be out of date — open Admin to refresh"
                   onClick={() => setNavOpen(false)}
                 >
                   {staleLabel}
                 </Link>
-              </NavItem>
+              </li>
             )}
-          </Nav>
-        </Collapse>
+          </ul>
+        </nav>
         <div ref={searchAreaRef} className="navbar-tools">
           <div className="navbar-search-area">
-            <Input
+            <input
               type="search"
-              bsSize="sm"
-              className="navbar-search-input"
+              className="navbar-search-input st-input"
               value={search}
               onChange={handleSearchChange}
               onKeyDown={handleSearchKeyDown}
@@ -199,24 +200,17 @@ const AppNavbar = () => {
               autoComplete="off"
             />
             {search && (
-              <Button
-                size="sm"
-                color="secondary"
-                className="navbar-search-clear"
+              <button
+                type="button"
+                className="navbar-search-clear st-btn-ghost"
                 onClick={() => { setSearch(''); setSearchResults([]); setDropdownOpen(false); setActiveResultIdx(-1); }}
                 aria-label="Clear search"
               >
-                &times;
-              </Button>
+                ×
+              </button>
             )}
-            <Dropdown
-              isOpen={dropdownOpen && searchResults.length > 0}
-              toggle={() => setDropdownOpen(!dropdownOpen)}
-              className="navbar-search-dropdown-wrap"
-              direction="down"
-            >
-              <DropdownToggle tag="span" className="navbar-search-dropdown-anchor" />
-              <DropdownMenu className="navbar-search-dropdown shadow">
+            {dropdownOpen && searchResults.length > 0 && (
+              <div className="navbar-search-dropdown shadow navbar-search-dropdown-wrap">
                 {searchResults.map((item, idx) => (
                   <div
                     key={item.ticker}
@@ -229,36 +223,36 @@ const AppNavbar = () => {
                       <small className="text-muted">{item.name}</small>
                     </span>
                     <span className="navbar-search-result-actions">
-                      <Button
-                        size="sm"
-                        color={isInPortfolio(item.ticker) ? 'secondary' : 'success'}
-                        onMouseDown={e => e.preventDefault()}
+                      <button
+                        type="button"
+                        className={isInPortfolio(item.ticker) ? 'st-btn-muted' : 'st-btn-success'}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleAddToPortfolio(item.ticker)}
                         title={isInPortfolio(item.ticker) ? 'Already in portfolio' : 'Add to portfolio'}
                       >
                         <FontAwesomeIcon icon={faPlus} />
-                      </Button>
-                      <Button
-                        size="sm"
-                        color="primary"
-                        onMouseDown={e => e.preventDefault()}
+                      </button>
+                      <button
+                        type="button"
+                        className="st-btn-primary"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleSearchTicker(item.ticker)}
                         title="Open ticker summary"
                       >
                         <FontAwesomeIcon icon={faSearch} />
-                      </Button>
+                      </button>
                     </span>
                   </div>
                 ))}
-              </DropdownMenu>
-            </Dropdown>
+              </div>
+            )}
           </div>
           <div className="navbar-profile-slot">
             <ThemeProfileMenu />
           </div>
         </div>
-      </Container>
-    </Navbar>
+      </div>
+    </header>
   );
 };
 

@@ -23,9 +23,9 @@ export default function TickerSubnav({ ticker }) {
   const location = useLocation();
 
   return (
-    <nav className="mb-2" aria-label={`${ticker} sections`}>
-      <div className="d-flex flex-wrap gap-2 align-items-center">
-        <span className="fw-semibold text-muted me-1">{ticker}</span>
+    <nav className="ticker-subnav mb-2" aria-label={`${ticker} sections`}>
+      <span className="st-ticker ticker-subnav-symbol">{ticker}</span>
+      <div className="st-segment ticker-subnav-tabs" role="tablist">
         {TABS.map((tab) => {
           const path = tabPath(ticker, tab);
           const active = isTabActive(location.pathname, ticker, tab);
@@ -33,16 +33,18 @@ export default function TickerSubnav({ ticker }) {
             <Link
               key={tab.id}
               to={path}
-              className={`btn btn-sm ${active ? 'btn-primary' : 'btn-outline-secondary'}`}
+              role="tab"
+              aria-selected={active}
+              className={`st-segment-btn ${active ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`}
             >
               {tab.label}
             </Link>
           );
         })}
-        <Link to="/research" className="btn btn-sm btn-link ms-auto text-muted">
-          ← Research
-        </Link>
       </div>
+      <Link to="/research" className="st-link-muted ticker-subnav-back">
+        ← Research
+      </Link>
     </nav>
   );
 }

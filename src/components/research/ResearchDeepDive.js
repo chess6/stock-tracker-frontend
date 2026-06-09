@@ -5,8 +5,11 @@ import InsiderPanel from './InsiderPanel';
 import FinancialGrid from './FinancialGrid';
 import MarginTrendChart from './MarginTrendChart';
 import CapitalStructurePanel from './CapitalStructurePanel';
+import CapitalStructureSummary from './CapitalStructureSummary';
 import NarrativePanel from './NarrativePanel';
+import StIcon from '../StIcon';
 import { RESEARCH_METRIC_GROUPS } from '../../config/researchMetrics';
+import { FINANCIAL_GROUP_ICONS, RESEARCH_ICONS } from '../../icons/researchIcons';
 import { formatCompactUsd } from '../../utils/formatters';
 
 export default function ResearchDeepDive({
@@ -30,132 +33,131 @@ export default function ResearchDeepDive({
   return (
     <div className="research-deep-dive">
       {detailData?.company && (
-        <div className="card shadow-sm research-deep-dive-header">
-          <div className="card-body py-1 px-2">
+        <div className="st-panel research-deep-dive-header">
+          <div className="st-panel-body research-deep-dive-header-body">
             <div className="research-deep-dive-top">
               <div className="research-deep-dive-meta">
-                <div className="d-flex flex-wrap align-items-center gap-2">
-                  <h1 className="h5 mb-0">{activeTicker}</h1>
-                  <span className="text-muted">{detailData.company.name}</span>
-                  <span className="text-muted">
+                <div className="research-deep-dive-title-row">
+                  <h1 className="st-ticker research-deep-dive-ticker">{activeTicker}</h1>
+                  <span className="research-deep-dive-company">{detailData.company.name}</span>
+                  <span className="research-deep-dive-sector">
                     {[detailData.company.sector, detailData.company.industry].filter(Boolean).join(' · ')}
                   </span>
                 </div>
                 {scoreBadges && (
-                  <div className="research-score-badges mt-1">
+                  <div className="research-score-badges research-deep-dive-badges">
                     {scoreBadges.map(([label, value]) => (
-                      <span key={label} className="research-score-badge">{label}: {value}</span>
+                      <span key={label} className="st-badge-amber">{label}: {value}</span>
                     ))}
                   </div>
                 )}
               </div>
-              <div className="research-deep-dive-actions">
-                <button
-                  type="button"
-                  className={`btn btn-sm ${isInPortfolio ? 'btn-outline-secondary' : 'btn-success'}`}
-                  onClick={onAddToPortfolio}
-                >
-                  {isInPortfolio ? 'In Portfolio' : 'Add'}
-                </button>
-                <Link to={compareLink || `/research?tickers=${activeTicker}`} className="btn btn-sm btn-outline-primary">
-                  Compare
-                </Link>
-              </div>
+              <CapitalStructureSummary periods={detailPeriods} />
               {detailData.price?.latest != null && (
-                <div className="d-flex align-items-center gap-2 research-header-price-block">
+                <div className="research-header-price-block">
                   <MetricSparkline
                     series={priceSparkline}
                     format="usd"
                     height={22}
                     width={72}
                   />
-                  <div className="fw-semibold research-header-price">
+                  <div className="research-header-price st-num">
                     {formatCompactUsd(detailData.price.latest)}
                   </div>
                 </div>
               )}
+              <div className="research-deep-dive-actions">
+                <button
+                  type="button"
+                  className={isInPortfolio ? 'st-btn-success-outline' : 'st-btn-success'}
+                  onClick={onAddToPortfolio}
+                >
+                  {isInPortfolio ? 'In Portfolio' : 'Add'}
+                </button>
+                <Link to={compareLink || `/research?tickers=${activeTicker}`} className="st-btn-ghost st-link-btn">
+                  Compare
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {detailData?.scoreHistory?.length > 0 && (
-        <details className="research-collapse-panel">
-          <summary>Score Breakdown</summary>
-          <ScoringPanel scoreHistory={detailData.scoreHistory} />
-        </details>
-      )}
-
-      <div className="row g-1 research-deep-dive-charts">
-        <div className="col-xl-4 col-chart">
-          <div className="card shadow-sm h-100">
-            <div className="card-header">Margin Trends</div>
-            <div className="card-body p-1 research-chart-panel">
-              <MarginTrendChart periods={detailPeriods} compact />
+      <div className="research-analytics-row">
+        <div className="research-analytics-col research-analytics-col-primary">
+          <div className="st-panel research-analytics-panel">
+            <div className="st-panel-header">
+              <StIcon icon={RESEARCH_ICONS.marginTrends} />
+              Margin Trends
+            </div>
+            <div className="research-chart-panel st-panel-body research-panel-body-tight">
+              <MarginTrendChart periods={detailPeriods} compact deepDive />
+              <CapitalStructurePanel periods={detailPeriods} compact inline />
             </div>
           </div>
         </div>
-        <div className="col-xl-4 col-chart">
-          <div className="card shadow-sm h-100">
-            <div className="card-header">Capital Structure</div>
-            <div className="card-body p-1 research-chart-panel">
-              <CapitalStructurePanel periods={detailPeriods} compact />
+        <div className="research-analytics-col">
+          <div className="st-panel research-analytics-panel">
+            <div className="st-panel-header">
+              <StIcon icon={RESEARCH_ICONS.narrative} />
+              Narrative
             </div>
-          </div>
-        </div>
-        <div className="col-xl-4 col-chart">
-          <div className="card shadow-sm h-100">
-            <div className="card-header">Narrative Correlation</div>
-            <div className="card-body p-1 research-chart-panel">
+            <div className="research-chart-panel st-panel-body research-panel-body-tight">
               <NarrativePanel
                 narrativeData={narrativeData}
                 loading={narrativeLoading}
-                compact
-                chartsOnly
+                deepDive
               />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="card shadow-sm">
-        <div className="card-header">Narrative Events</div>
-        <div className="card-body p-1">
-          <NarrativePanel
-            narrativeData={narrativeData}
-            loading={narrativeLoading}
-            compact
-            tablesOnly
-          />
-        </div>
+      <div className="research-secondary-row">
+        {detailData?.scoreHistory?.length > 0 && (
+          <details className="st-details research-secondary-col">
+            <summary className="st-details-summary">
+              <StIcon icon={RESEARCH_ICONS.scoreBreakdown} />
+              Score Breakdown
+            </summary>
+            <ScoringPanel scoreHistory={detailData.scoreHistory} embedded />
+          </details>
+        )}
+        <details className="st-details research-secondary-col">
+          <summary className="st-details-summary">
+            <StIcon icon={RESEARCH_ICONS.insiderActivity} />
+            Insider Activity
+          </summary>
+          {detailData && (
+            <InsiderPanel mode="deep-dive" insiderAnalysis={detailData.insiderAnalysis} embedded />
+          )}
+        </details>
       </div>
 
-      <details className="research-collapse-panel" open>
-        <summary>Insider Activity</summary>
-        {detailData && (
-          <InsiderPanel mode="deep-dive" insiderAnalysis={detailData.insiderAnalysis} />
-        )}
-      </details>
-
-      <div className="card shadow-sm research-deep-dive-card">
-        <div className="card-header d-flex flex-wrap gap-1 align-items-center">
-          <span>Historical Financials</span>
-          <div className="ms-auto d-flex flex-wrap gap-1">
+      <div className="st-panel research-deep-dive-card">
+        <div className="st-panel-header research-panel-header-with-actions">
+          <span>
+            <StIcon icon={RESEARCH_ICONS.financials} />
+            Historical Financials
+          </span>
+          <div className="research-panel-header-actions">
             {RESEARCH_METRIC_GROUPS.map((group) => (
               <button
                 key={group.id}
                 type="button"
-                className={`btn btn-sm ${expandedGroups.has(group.id) ? 'btn-secondary' : 'btn-outline-secondary'}`}
+                className={expandedGroups.has(group.id) ? 'st-btn-active' : 'st-btn-muted'}
                 onClick={() => onToggleGroup(group.id)}
+                title={group.label}
               >
+                <StIcon icon={FINANCIAL_GROUP_ICONS[group.id]} />
                 {group.label}
               </button>
             ))}
           </div>
         </div>
-        <div className="card-body p-0">
+        <div className="st-panel-body-flush">
           {loading && !detailGridRows.length ? (
-            <div className="p-1 small">Loading…</div>
+            <div className="research-chart-empty">Loading…</div>
           ) : detailGridRows.length ? (
             <FinancialGrid
               data={detailGridRows}
@@ -163,10 +165,10 @@ export default function ResearchDeepDive({
               stickyColumnIds={['metric']}
               getRowId={(row) => row.id}
               compact
-              maxHeight="calc(100vh - 148px)"
+              scrollMode="page"
             />
           ) : (
-            <div className="p-1 small">No financial history available.</div>
+            <div className="research-chart-empty">No financial history available.</div>
           )}
         </div>
       </div>

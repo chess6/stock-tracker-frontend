@@ -1,4 +1,4 @@
-/** Portfolio grid column metadata (labels, tooltips, formulas, RK groups). */
+/** Portfolio grid column metadata (labels, tooltips, formulas, column groups). */
 
 export const PORTFOLIO_COLUMN_GROUPS = [
   { id: 'quote', label: 'Quote' },
@@ -10,7 +10,7 @@ export const PORTFOLIO_COLUMN_GROUPS = [
   { id: 'links', label: 'Links' },
 ];
 
-/** Default visible columns — extended RK metrics hidden until user enables them. */
+/** Default visible columns — extended metrics hidden until user enables them. */
 export const PORTFOLIO_DEFAULT_VISIBLE_COLUMNS = [
   'select',
   'ticker',

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import ApexCharts from 'react-apexcharts';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
-import { Container, Row, Col, Card, CardBody, CardTitle, Button, Spinner } from 'reactstrap';
+import StSpinner from '../components/StSpinner';
 import TickerSubnav from '../components/TickerSubnav';
 import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
@@ -213,30 +213,29 @@ const SummaryPage = () => {
 
   if (loading) {
     return (
-      <Container className="py-5 text-center text-muted">
-        <Spinner size="sm" className="me-2" /> Loading {ticker}…
-      </Container>
+      <div className="st-page st-spinner-wrap">
+        <StSpinner size="sm" /> Loading {ticker}…
+      </div>
     );
   }
 
   return (
-    <Container className="py-3">
+    <div className="st-page">
       {loadError && <div className="alert alert-warning">{loadError}</div>}
       <TickerSubnav ticker={ticker} />
-      <Row className="mb-4">
-        <Col md={8} className="mx-auto">
-          <Card className="shadow-sm p-3">
-            <CardBody>
+      <div className="row mb-2">
+        <div className="col-12">
+          <div className="st-panel">
+            <div className="st-panel-body">
               <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
-                <CardTitle tag="h3" className="mb-0">{tickerMeta?.name || ticker} Summary</CardTitle>
-                <Button
+                <h1 className="st-page-heading mb-0">{tickerMeta?.name || ticker} Summary</h1>
+                <button
                   type="button"
-                  size="sm"
-                  color={isInPortfolio(ticker) ? 'outline-secondary' : 'success'}
+                  className={isInPortfolio(ticker) ? 'st-btn-success-outline' : 'st-btn-success'}
                   onClick={handleAddToPortfolio}
                 >
                   {isInPortfolio(ticker) ? 'In Portfolio' : 'Add to Portfolio'}
-                </Button>
+                </button>
               </div>
               {metaFields.length > 0 && (
                 <div className="mb-2 small text-muted">
@@ -268,28 +267,29 @@ const SummaryPage = () => {
                   </span>
                 )}
               </div>
-              <div className="mb-1">
-                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('1D')}>1D</Button>
-                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('5D')}>5D</Button>
-                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('1M')}>1M</Button>
-                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('3M')}>3M</Button>
-                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('6M')}>6M</Button>
-                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('YTD')}>YTD</Button>
-                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('1Y')}>1Y</Button>
-                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('5Y')}>5Y</Button>
-                <Button size="sm" color="secondary" className="me-2" onClick={() => setRange('MAX')}>MAX</Button>
+              <div className="mb-1 st-segment">
+                {['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'MAX'].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`st-segment-btn ${range === r ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`}
+                    onClick={() => setRange(r)}
+                  >
+                    {r}
+                  </button>
+                ))}
               </div>
-              <ApexCharts options={chartOptions} series={chartSeries} type="line" height={300} />
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
+              <ApexCharts options={chartOptions} series={chartSeries} type="line" height={240} />
+            </div>
+          </div>
+        </div>
+      </div>
       <h3>News Feed</h3>
       <ul className="list-unstyled">
         {news.length === 0 && <li className="text-muted">No news found.</li>}
         {news.map((item, idx) => (
-          <li key={idx} className="mb-3">
-            <a href={item.url} target="_blank" rel="noopener noreferrer" className="link-primary fw-semibold text-decoration-none">
+          <li key={idx} className="mb-2">
+            <a href={item.url} target="_blank" rel="noopener noreferrer" className="st-link-muted fw-semibold text-decoration-none">
               {item.title}
             </a>
             <div className="small text-muted">{item.publishedDate ? item.publishedDate.slice(0, 10) : ''}</div>
@@ -297,7 +297,7 @@ const SummaryPage = () => {
           </li>
         ))}
       </ul>
-    </Container>
+    </div>
   );
 };
 

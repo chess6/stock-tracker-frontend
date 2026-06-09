@@ -8,18 +8,26 @@ export function isStale(isoDate, maxAgeHours) {
 }
 
 /** Summarize cache freshness from /api/admin/status. */
-export function summarizeFreshness(freshness = {}) {
+export function summarizeFreshness(freshness = {}, coverage = {}) {
   const pricesStale = isStale(freshness.pricesUpdatedAt, 36);
   const feedsStale = isStale(freshness.feedsLastPolledAt, 12);
   const fundamentalsStale = isStale(freshness.fundamentalsUpdatedAt, 168);
   const insidersStale = isStale(freshness.insidersUpdatedAt, 168);
-  const stale = pricesStale || feedsStale || fundamentalsStale || insidersStale;
+  const scoresStale = isStale(freshness.companyScoresUpdatedAt, 168);
+  const stale = pricesStale || feedsStale || fundamentalsStale || insidersStale || scoresStale;
   const reasons = [];
   if (pricesStale) reasons.push('prices');
   if (feedsStale) reasons.push('news');
   if (fundamentalsStale) reasons.push('fundamentals');
   if (insidersStale) reasons.push('insiders');
-  return { stale, reasons, label: stale ? `Stale: ${reasons.join(', ')}` : null };
+  if (scoresStale) reasons.push('scores');
+  const metadataGap = Number(coverage.companiesMissingMetadata || 0) > 0;
+  if (metadataGap) reasons.push(`${coverage.companiesMissingMetadata} missing sector/industry`);
+  return {
+    stale: stale || metadataGap,
+    reasons,
+    label: (stale || metadataGap) ? `Stale: ${reasons.join(', ')}` : null,
+  };
 }
 
 /** Human-readable cache timestamp for UI labels. */

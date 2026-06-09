@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
-import { Container, Card, CardBody, CardTitle } from 'reactstrap';
 import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
 import { signedHeatStyle, insiderDollarStyle, columnHeatStyle, columnMinMax } from '../utils/heatMap';
 import {
@@ -578,31 +577,31 @@ const PortfolioPage = () => {
 
     if (portfolio.length === 0) {
         return (
-            <Container className="py-3">
-                <Card className="shadow-sm">
-                    <CardBody className="text-center py-5">
-                        <CardTitle tag="h3" className="mb-3">Your portfolio is empty</CardTitle>
-                        <p className="text-muted mb-4">
+            <div className="st-page">
+                <div className="st-panel">
+                    <div className="st-panel-body text-center py-5">
+                        <h1 className="st-page-heading mb-3">Your portfolio is empty</h1>
+                        <p className="st-muted-note mb-4">
                             Search for a ticker in the navbar and click <strong>+</strong> to add it.
                             After adding tickers, load fundamentals and prices from the admin console.
                         </p>
                         <div className="d-flex gap-2 justify-content-center flex-wrap">
-                            <Link to="/admin" className="btn btn-primary">Open Admin Console</Link>
-                            <Link to="/screener" className="btn btn-outline-secondary">Browse Insider Screener</Link>
+                            <Link to="/admin" className="st-btn-primary st-link-btn">Open Admin Console</Link>
+                            <Link to="/screener" className="st-btn-ghost st-link-btn">Browse Insider Screener</Link>
                         </div>
-                    </CardBody>
-                </Card>
-            </Container>
+                    </div>
+                </div>
+            </div>
         );
     }
 
     return (
-        <Container className="py-3">
-            <Card className="shadow-sm p-3">
-                <CardBody>
-                    <CardTitle tag="h3" className="mb-1">Portfolio</CardTitle>
+        <div className="st-page">
+            <div className="st-panel">
+                <div className="st-panel-header">Portfolio</div>
+                <div className="st-panel-body">
                     {cacheFreshness && (
-                        <div className="text-muted small mb-2">
+                        <div className="st-muted-note mb-2">
                             Cache: prices {formatFreshnessTimestamp(cacheFreshness.pricesUpdatedAt)}
                             {' · '}fundamentals {formatFreshnessTimestamp(cacheFreshness.fundamentalsUpdatedAt)}
                             {' · '}insiders {formatFreshnessTimestamp(cacheFreshness.insidersUpdatedAt)}
@@ -611,13 +610,14 @@ const PortfolioPage = () => {
                     <div className="mb-2 d-flex gap-2 align-items-center flex-wrap">
                         <button
                             type="button"
-                            className="btn btn-danger"
+                            className="st-btn"
+                            style={{ borderColor: 'var(--st-negative)', color: 'var(--st-negative)' }}
                             disabled={Object.keys(rowSelection).length === 0}
                             onClick={() => setDeleteConfirm(Object.keys(rowSelection))}
                         >
                             Delete Selected
                         </button>
-                        <Link to="/admin" className="btn btn-outline-secondary btn-sm">Refresh data</Link>
+                        <Link to="/admin" className="st-btn-ghost st-link-btn">Refresh data</Link>
                     </div>
                     <ConfirmModal
                         isOpen={Boolean(deleteConfirm?.length)}
@@ -662,9 +662,9 @@ const PortfolioPage = () => {
                             compact
                         />
                     </div>
-                </CardBody>
-            </Card>
-        </Container>
+                </div>
+            </div>
+        </div>
     );
 };
 

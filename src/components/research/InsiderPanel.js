@@ -61,7 +61,7 @@ function ScreenerClusterTable({ clusters, loading }) {
           {clusters.map((row) => (
             <tr key={`${row.ticker}-${row.windowStart}`}>
               <td>
-                <Link to={`/research/${row.ticker}`} className="fw-semibold link-primary">
+                <Link to={`/research/${row.ticker}`} className="st-ticker">
                   {row.ticker}
                 </Link>
                 {row.companyName && (
@@ -97,63 +97,94 @@ function DeepDiveInsiderPanel({ insiderAnalysis }) {
 
   return (
     <>
-      <div className="row g-2 mb-2 px-2 pt-2">
-        <div className="col-auto">
-          <div className="research-insider-stat">
-            <div className="text-muted small">Buys 90d</div>
-            <div className="fw-semibold">{summary.buyCount90d ?? 0}</div>
-          </div>
-        </div>
-        <div className="col-auto">
-          <div className="research-insider-stat">
-            <div className="text-muted small">Sells 90d</div>
-            <div className="fw-semibold">{summary.sellCount90d ?? 0}</div>
-          </div>
-        </div>
-        <div className="col-auto">
-          <div className="research-insider-stat">
-            <div className="text-muted small">Unique Buyers</div>
-            <div className="fw-semibold">{summary.uniqueBuyers90d ?? 0}</div>
-          </div>
-        </div>
-        <div className="col-auto">
-          <div className="research-insider-stat">
-            <div className="text-muted small">Intensity</div>
-            <div className="fw-semibold" style={intensityStyle(summary.intensityScore90d)}>
-              {summary.intensityScore90d != null ? formatDecimal(summary.intensityScore90d, 3) : '-'}
-            </div>
-          </div>
-        </div>
+      <div className="research-stat-strip research-insider-summary-strip">
+        <span className="research-stat-strip-item">
+          <span className="research-stat-strip-label">Buys 90d</span>
+          <span className="research-stat-strip-value st-num">{summary.buyCount90d ?? 0}</span>
+        </span>
+        <span className="research-stat-strip-item">
+          <span className="research-stat-strip-label">Sells 90d</span>
+          <span className="research-stat-strip-value st-num">{summary.sellCount90d ?? 0}</span>
+        </span>
+        <span className="research-stat-strip-item">
+          <span className="research-stat-strip-label">Buyers</span>
+          <span className="research-stat-strip-value st-num">{summary.uniqueBuyers90d ?? 0}</span>
+        </span>
+        <span className="research-stat-strip-item">
+          <span className="research-stat-strip-label">Intensity</span>
+          <span className="research-stat-strip-value st-num" style={intensityStyle(summary.intensityScore90d)}>
+            {summary.intensityScore90d != null ? formatDecimal(summary.intensityScore90d, 3) : '-'}
+          </span>
+        </span>
       </div>
 
-      <div className="px-2 pb-2">
-        <div className="small fw-semibold mb-1">Buy/Sell Ratios</div>
-        <div className="table-responsive">
-          <table className="table table-sm mb-2 research-insider-table">
-            <thead>
-              <tr>
-                <th>Window</th>
-                <th className="text-end">Buys</th>
-                <th className="text-end">Sells</th>
-                <th className="text-end">Ratio</th>
-                <th className="text-end">Buy Value</th>
-                <th className="text-end">Intensity</th>
-              </tr>
-            </thead>
-            <tbody>
-              <RatioCell label="90d" data={summary.ratios?.['90d']} />
-              <RatioCell label="180d" data={summary.ratios?.['180d']} />
-              <RatioCell label="365d" data={summary.ratios?.['365d']} />
-            </tbody>
-          </table>
+      <div className="research-insider-tables-row">
+        <div className="research-insider-section">
+          <div className="research-section-label">Buy/Sell Ratios</div>
+          <div className="research-narrative-table-wrap research-insider-ratios-wrap">
+            <table className="st-grid-table research-insider-table mb-0">
+              <thead>
+                <tr>
+                  <th>Window</th>
+                  <th className="text-end">Buys</th>
+                  <th className="text-end">Sells</th>
+                  <th className="text-end">Ratio</th>
+                  <th className="text-end">Buy Value</th>
+                  <th className="text-end">Intensity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <RatioCell label="90d" data={summary.ratios?.['90d']} />
+                <RatioCell label="180d" data={summary.ratios?.['180d']} />
+                <RatioCell label="365d" data={summary.ratios?.['365d']} />
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        {recent.length > 0 && (
+          <div className="research-insider-section">
+            <div className="research-section-label">Recent Transactions</div>
+            <div className="research-narrative-table-wrap research-insider-recent">
+              <table className="st-grid-table research-insider-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Owner</th>
+                    <th>Code</th>
+                    <th className="text-end">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent.slice(0, 25).map((txn, idx) => (
+                    <tr key={`${txn.transactionDate}-${txn.ownerName}-${idx}`}>
+                      <td className="small">{(txn.transactionDate || txn.filingDate || '').slice(0, 10)}</td>
+                      <td className="small">{txn.ownerName || '-'}</td>
+                      <td className="small">
+                        <span className={txn.isBuy ? 'text-success' : txn.isSell ? 'text-danger' : ''}>
+                          {txn.transactionCode || '-'}
+                        </span>
+                      </td>
+                      <td
+                        className="small text-end"
+                        style={insiderDollarStyle(txn.isBuy ? txn.transactionValue : -(txn.transactionValue || 0))}
+                      >
+                        {txn.transactionValue != null ? formatCompactUsd(txn.transactionValue) : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {clusters.length > 0 && (
-        <div className="px-2 pb-2">
-          <div className="small fw-semibold mb-1">Buy Clusters (3+ buyers / 30d)</div>
-          <div className="table-responsive">
-            <table className="table table-sm mb-0 research-insider-table">
+        <div className="research-insider-section">
+          <div className="research-section-label">Buy Clusters (3+ buyers / 30d)</div>
+          <div className="research-narrative-table-wrap research-insider-ratios-wrap">
+            <table className="st-grid-table research-insider-table mb-0">
               <thead>
                 <tr>
                   <th>Window</th>
@@ -189,47 +220,11 @@ function DeepDiveInsiderPanel({ insiderAnalysis }) {
         </div>
       )}
 
-      {recent.length > 0 && (
-        <div className="px-2 pb-2">
-          <div className="small fw-semibold mb-1">Recent Transactions</div>
-          <div className="table-responsive research-insider-recent">
-            <table className="table table-sm mb-0 research-insider-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Owner</th>
-                  <th>Code</th>
-                  <th className="text-end">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.slice(0, 25).map((txn, idx) => (
-                  <tr key={`${txn.transactionDate}-${txn.ownerName}-${idx}`}>
-                    <td className="small">{(txn.transactionDate || txn.filingDate || '').slice(0, 10)}</td>
-                    <td className="small">{txn.ownerName || '-'}</td>
-                    <td className="small">
-                      <span className={txn.isBuy ? 'text-success' : txn.isSell ? 'text-danger' : ''}>
-                        {txn.transactionCode || '-'}
-                      </span>
-                    </td>
-                    <td
-                      className="small text-end"
-                      style={insiderDollarStyle(txn.isBuy ? txn.transactionValue : -(txn.transactionValue || 0))}
-                    >
-                      {txn.transactionValue != null ? formatCompactUsd(txn.transactionValue) : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </>
   );
 }
 
-export default function InsiderPanel({ mode, tickers, insiderAnalysis }) {
+export default function InsiderPanel({ mode, tickers, insiderAnalysis, embedded = false }) {
   const [clusters, setClusters] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -259,12 +254,24 @@ export default function InsiderPanel({ mode, tickers, insiderAnalysis }) {
     return () => { cancelled = true; };
   }, [mode, tickerKey, tickers]);
 
+  if (embedded) {
+    return (
+      <div className="research-insider-panel">
+        {mode === 'screener' ? (
+          <ScreenerClusterTable clusters={clusters} loading={loading} />
+        ) : (
+          <DeepDiveInsiderPanel insiderAnalysis={insiderAnalysis} />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="card shadow-sm mb-2 research-insider-panel">
-      <div className="card-header py-1 px-2 small fw-semibold">
+    <div className="st-panel mb-2 research-insider-panel">
+      <div className="st-panel-header">
         {mode === 'screener' ? 'Insider Buy Clusters' : 'Insider Activity'}
       </div>
-      <div className="card-body p-0">
+      <div className="st-panel-body-flush">
         {mode === 'screener' ? (
           <ScreenerClusterTable clusters={clusters} loading={loading} />
         ) : (

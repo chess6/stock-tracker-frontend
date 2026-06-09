@@ -6,7 +6,6 @@ import NasdaqColumnsGrid from './pages/NasdaqColumnsGrid';
 import GridDemoPage from './pages/GridDemoPage';
 import './App.css';
 import "@svar-ui/react-grid/all.css";
-import 'bootstrap/dist/css/bootstrap.min.css';
 import AppNavbar from './components/AppNavbar';
 import StockScreenerPage from './pages/StockScreenerPage';
 import { Provider } from 'react-redux';

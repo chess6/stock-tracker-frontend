@@ -1,6 +1,10 @@
 import { useMemo } from 'react';
 import Chart from 'react-apexcharts';
-import { mergeApexOptions } from '../../utils/chartTheme';
+import {
+  ANALYTICS_CHART_HEIGHT,
+  analyticsChartOptions,
+  tightPercentBounds,
+} from '../../utils/chartTheme';
 import { formatPercent } from '../../utils/formatters';
 
 function annualPeriods(periods = []) {
@@ -31,7 +35,12 @@ function fcfMargin(period) {
   return fcf / revenue;
 }
 
-export default function MarginTrendChart({ periods = [], compact = false }) {
+const MARGIN_COLORS = ['#6ecf97', '#5b9cf5', '#f5a623', '#e87882'];
+
+/** Deep-dive left column — total Apex height (plot + axes + legend). */
+const MARGIN_DEEP_DIVE_HEIGHT = 310;
+
+export default function MarginTrendChart({ periods = [], compact = false, deepDive = false }) {
   const annual = useMemo(() => annualPeriods(periods), [periods]);
 
   const chartData = useMemo(() => {
@@ -51,31 +60,6 @@ export default function MarginTrendChart({ periods = [], compact = false }) {
     };
   }, [annual]);
 
-  const options = useMemo(() => mergeApexOptions({
-    chart: {
-      type: 'line',
-      toolbar: { show: false },
-      zoom: { enabled: false },
-    },
-    stroke: { width: 2, curve: 'smooth' },
-    dataLabels: { enabled: false },
-    xaxis: {
-      categories: chartData.labels,
-      labels: { rotate: -45, style: { fontSize: '10px' } },
-    },
-    yaxis: {
-      labels: {
-        formatter: (value) => formatPercent(value, 0),
-      },
-      title: { text: 'Margin %' },
-    },
-    legend: { position: 'top', fontSize: '11px' },
-    tooltip: {
-      y: { formatter: (value) => (value == null ? '-' : formatPercent(value, 1)) },
-    },
-    colors: ['#20c997', '#0d6efd', '#6610f2', '#fd7e14'],
-  }), [chartData.labels]);
-
   const series = useMemo(() => ([
     { name: 'Gross', data: chartData.gross },
     { name: 'Operating', data: chartData.operating },
@@ -83,11 +67,69 @@ export default function MarginTrendChart({ periods = [], compact = false }) {
     { name: 'FCF', data: chartData.fcf },
   ]), [chartData]);
 
+  const yBounds = useMemo(
+    () => tightPercentBounds(
+      series.map((item) => item.data),
+      deepDive ? 1 : 3,
+      deepDive ? 1 : 2,
+    ),
+    [series, deepDive],
+  );
+
+  const options = useMemo(() => analyticsChartOptions({
+    chart: {
+      type: 'line',
+      toolbar: { show: false },
+      zoom: { enabled: false },
+      redrawOnParentResize: true,
+    },
+    legend: deepDive ? {
+      position: 'top',
+      horizontalAlign: 'left',
+      offsetY: -4,
+      height: 18,
+      fontSize: '9px',
+      itemMargin: { horizontal: 5, vertical: 0 },
+    } : undefined,
+    stroke: { width: compact ? 2.5 : 2, curve: 'smooth' },
+    dataLabels: { enabled: false },
+    grid: deepDive ? {
+      padding: { top: 0, right: 4, bottom: -4, left: 0 },
+    } : undefined,
+    xaxis: {
+      categories: chartData.labels,
+      labels: {
+        rotate: chartData.labels.length >= 8 ? 0 : -45,
+        style: { fontSize: '9px' },
+        offsetY: deepDive ? -2 : 0,
+      },
+    },
+    yaxis: {
+      min: yBounds.min,
+      max: yBounds.max,
+      labels: {
+        formatter: (value) => formatPercent(value, 0),
+        style: { fontSize: '9px' },
+      },
+      title: { text: undefined },
+    },
+    tooltip: {
+      y: { formatter: (value) => (value == null ? '-' : formatPercent(value, 1)) },
+    },
+    colors: MARGIN_COLORS,
+  }), [chartData.labels, compact, deepDive, yBounds.max, yBounds.min]);
+
   if (annual.length < 2) {
-    return <div className="small text-muted p-1">Not enough annual history for margin trends.</div>;
+    return <div className="research-chart-empty">Not enough annual history for margin trends.</div>;
   }
 
+  const height = deepDive
+    ? MARGIN_DEEP_DIVE_HEIGHT
+    : (compact ? ANALYTICS_CHART_HEIGHT : 260);
+
   return (
-    <Chart options={options} series={series} type="line" height={compact ? 165 : 260} />
+    <div className={deepDive ? 'research-chart-plot research-chart-plot-margin' : 'research-chart-plot'}>
+      <Chart options={options} series={series} type="line" height={height} />
+    </div>
   );
 }

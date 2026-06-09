@@ -20,10 +20,12 @@ export default function FinancialGrid({
   getRowId = (row) => String(row.id ?? row.key ?? Math.random()),
   rowHeight,
   maxHeight = 'calc(100vh - 220px)',
+  scrollMode = 'panel',
   enableKeyboardNav = true,
   compact = false,
 }) {
   const scrollRef = useRef(null);
+  const pageScroll = scrollMode === 'page';
   const [focusedCell, setFocusedCell] = useState(null);
   const [measuredStickyWidths, setMeasuredStickyWidths] = useState({});
   const effectiveRowHeight = rowHeight ?? (compact ? COMPACT_ROW_HEIGHT : DEFAULT_ROW_HEIGHT);
@@ -106,7 +108,7 @@ export default function FinancialGrid({
     [rows, effectiveGroupRowHeight, effectiveRowHeight],
   );
 
-  const virtualizer = useVirtualizer({
+  const panelVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: (index) => getRowHeight(index),
@@ -120,7 +122,7 @@ export default function FinancialGrid({
       position: 'sticky',
       left: stickyLeftByColId[colId] ?? 0,
       zIndex: baseStyle.zIndex ?? 3,
-      background: baseStyle.background ?? 'var(--bs-body-bg)',
+      background: baseStyle.background ?? 'var(--st-surface)',
     };
   }, [stickyIds, stickyLeftByColId]);
 
@@ -188,23 +190,87 @@ export default function FinancialGrid({
     }
   }, [dataRowIndices, visibleHeaders.length, focusedCell]);
 
-  const virtualRows = virtualizer.getVirtualItems();
-  const paddingTop = virtualRows.length ? virtualRows[0].start : 0;
-  const paddingBottom = virtualRows.length
-    ? virtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end
+  const virtualRows = pageScroll ? null : panelVirtualizer.getVirtualItems();
+  const paddingTop = virtualRows?.length ? virtualRows[0].start : 0;
+  const paddingBottom = virtualRows?.length
+    ? panelVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end
     : 0;
+
+  const rowIndexes = pageScroll
+    ? rows.map((_, index) => index)
+    : (virtualRows || []).map((item) => item.index);
+
+  const renderBodyRow = (rowIndex) => {
+    const row = rows[rowIndex];
+    if (row.original?._isGroupHeader) {
+      return (
+        <tr key={row.id} className="group-header" style={{ height: effectiveGroupRowHeight }}>
+          <td colSpan={visibleHeaders.length}>{row.original._groupLabel}</td>
+        </tr>
+      );
+    }
+    return (
+      <tr key={row.id} data-index={rowIndex} style={{ height: effectiveRowHeight }}>
+        {row.getVisibleCells().map((cell, colIndex) => {
+          const colId = cell.column.id;
+          const header = visibleHeaders.find((item) => item.column.id === colId);
+          const width = getColumnWidth(colId, header);
+          const isFocused = focusedCell
+            && focusedCell.rowIndex === rowIndex
+            && focusedCell.colIndex === colIndex;
+          let cellStyle = applyWidthStyle(
+            applyStickyStyle(colId, {
+              zIndex: stickyIds.includes(colId) ? 4 : undefined,
+            }),
+            width,
+          );
+          if (cell.column.columnDef.meta?.numeric) {
+            cellStyle.textAlign = 'right';
+          }
+          if (typeof cell.column.columnDef.cellStyle === 'function') {
+            Object.assign(cellStyle, cell.column.columnDef.cellStyle(cell.getContext()));
+          } else if (cell.column.columnDef.cellStyle) {
+            Object.assign(cellStyle, cell.column.columnDef.cellStyle);
+          }
+          if (isFocused) {
+            cellStyle = { ...cellStyle, outline: '2px solid var(--st-focus-ring)', outlineOffset: '-2px' };
+          }
+          return (
+            <td
+              key={cell.id}
+              data-col-id={colId}
+              tabIndex={isFocused ? 0 : -1}
+              className={cell.column.columnDef.meta?.numeric ? 'numeric-cell' : undefined}
+              style={cellStyle}
+              onClick={() => setFocusedCell({
+                dataRowPos: dataRowIndices.findIndex((item) => item.idx === rowIndex),
+                colIndex,
+                rowIndex,
+              })}
+            >
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </td>
+          );
+        })}
+      </tr>
+    );
+  };
 
   return (
     <div className="research-grid-shell">
-      <div ref={scrollRef} className="research-grid-scroll" style={{ maxHeight }}>
+      <div
+        ref={scrollRef}
+        className={`research-grid-scroll${pageScroll ? ' research-grid-scroll-page' : ''}`}
+        style={pageScroll ? undefined : { maxHeight }}
+      >
         <table
-          className={`table table-sm table-bordered research-grid-table${compact ? ' research-grid-table-compact' : ''}`}
+          className={`st-grid-table research-grid-table${compact ? ' st-grid-table-compact research-grid-table-compact' : ''}`}
           style={{
             tableLayout: compact ? 'auto' : 'fixed',
             width: 'max-content',
           }}
         >
-          <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
+          <thead className={pageScroll ? 'research-grid-thead-page' : undefined}>
             {columnGroups.length > 0 && (
               <tr style={{ ...headerStyle, background: 'var(--st-grid-group-header-bg)' }}>
                 {columnGroups.map((group) => (
@@ -246,67 +312,13 @@ export default function FinancialGrid({
             ))}
           </thead>
           <tbody>
-            {paddingTop > 0 && (
+            {!pageScroll && paddingTop > 0 && (
               <tr aria-hidden="true">
                 <td colSpan={visibleHeaders.length} style={{ height: paddingTop, padding: 0, border: 'none' }} />
               </tr>
             )}
-            {virtualRows.map((virtualRow) => {
-              const row = rows[virtualRow.index];
-              if (row.original?._isGroupHeader) {
-                return (
-                  <tr key={row.id} className="group-header" style={{ height: effectiveGroupRowHeight }}>
-                    <td colSpan={visibleHeaders.length}>{row.original._groupLabel}</td>
-                  </tr>
-                );
-              }
-              return (
-                <tr key={row.id} data-index={virtualRow.index} style={{ height: effectiveRowHeight }}>
-                  {row.getVisibleCells().map((cell, colIndex) => {
-                    const colId = cell.column.id;
-                    const header = visibleHeaders.find((item) => item.column.id === colId);
-                    const width = getColumnWidth(colId, header);
-                    const isFocused = focusedCell
-                      && focusedCell.rowIndex === virtualRow.index
-                      && focusedCell.colIndex === colIndex;
-                    let cellStyle = applyWidthStyle(
-                      applyStickyStyle(colId, {
-                        zIndex: stickyIds.includes(colId) ? 4 : undefined,
-                      }),
-                      width,
-                    );
-                    if (cell.column.columnDef.meta?.numeric) {
-                      cellStyle.textAlign = 'right';
-                    }
-                    if (typeof cell.column.columnDef.cellStyle === 'function') {
-                      Object.assign(cellStyle, cell.column.columnDef.cellStyle(cell.getContext()));
-                    } else if (cell.column.columnDef.cellStyle) {
-                      Object.assign(cellStyle, cell.column.columnDef.cellStyle);
-                    }
-                    if (isFocused) {
-                      cellStyle = { ...cellStyle, outline: '2px solid var(--bs-primary)', outlineOffset: '-2px' };
-                    }
-                    return (
-                      <td
-                        key={cell.id}
-                        data-col-id={colId}
-                        tabIndex={isFocused ? 0 : -1}
-                        className={cell.column.columnDef.meta?.numeric ? 'numeric-cell' : undefined}
-                        style={cellStyle}
-                        onClick={() => setFocusedCell({
-                          dataRowPos: dataRowIndices.findIndex((item) => item.idx === virtualRow.index),
-                          colIndex,
-                          rowIndex: virtualRow.index,
-                        })}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-            {paddingBottom > 0 && (
+            {rowIndexes.map((rowIndex) => renderBodyRow(rowIndex))}
+            {!pageScroll && paddingBottom > 0 && (
               <tr aria-hidden="true">
                 <td colSpan={visibleHeaders.length} style={{ height: paddingBottom, padding: 0, border: 'none' }} />
               </tr>

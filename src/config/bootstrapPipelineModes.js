@@ -18,6 +18,7 @@ export const FAST_LIMITS = {
   prices: { days: 90 },
   insiders: { maxFilingsPerCompany: 10 },
   dedup_articles: { enrichLimit: 200 },
+  market_reactions: { limit: 200 },
 };
 
 export const FULL_LIMITS = {
@@ -30,6 +31,7 @@ export const FULL_LIMITS = {
   prices: { days: 400 },
   insiders: { maxFilingsPerCompany: 40 },
   dedup_articles: { enrichLimit: 5000 },
+  market_reactions: { limit: 500 },
 };
 
 function limitsForMode(mode) {
@@ -64,6 +66,10 @@ function stepEstimate(stepId, mode, tickerCount) {
         return { min: perTicker * 8, max: perTicker * 20 };
       case 'dedup_articles':
         return { min: 60, max: 300 };
+      case 'macro':
+        return { min: 15, max: 45 };
+      case 'market_reactions':
+        return { min: perTicker * 2, max: perTicker * 8 };
       default:
         return { min: 0, max: 0 };
     }
@@ -82,6 +88,10 @@ function stepEstimate(stepId, mode, tickerCount) {
       return { min: perTicker * 3, max: perTicker * 8 };
     case 'dedup_articles':
       return { min: 10, max: 45 };
+    case 'macro':
+      return { min: 10, max: 30 };
+    case 'market_reactions':
+      return { min: perTicker * 1, max: perTicker * 4 };
     default:
       return { min: 0, max: 0 };
   }
@@ -174,6 +184,10 @@ export function buildStepRequestUrl(stepId, { tickersCsv, mode }) {
       return `?tickers=${tickersParam}&${buildQuery(limits.insiders)}`;
     case 'dedup_articles':
       return `?${buildQuery(limits.dedup_articles)}`;
+    case 'macro':
+      return null;
+    case 'market_reactions':
+      return `?${buildQuery(limits.market_reactions)}`;
     default:
       throw new Error(`Unknown pipeline step: ${stepId}`);
   }
@@ -203,6 +217,10 @@ export function stepDescriptionForMode(stepId, mode) {
       return `Fetch Form 4 insider transactions for selected tickers (up to ${limits.insiders.maxFilingsPerCompany} filings per company).`;
     case 'dedup_articles':
       return `Normalize dates, fuzzy dedupe titles, and enrich sentiment (up to ${limits.dedup_articles.enrichLimit} articles).`;
+    case 'macro':
+      return 'Refresh SPY/QQQ/sector ETF benchmark prices for narrative abnormal returns.';
+    case 'market_reactions':
+      return `Recompute article price reactions per ticker (up to ${limits.market_reactions.limit} articles each).`;
     default:
       return step.description;
   }

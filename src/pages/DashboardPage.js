@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { Badge, Card, CardBody, Col, Container, Row, Spinner, Table } from 'reactstrap';
 import API_ENDPOINTS from '../apiConfig';
+import StSpinner from '../components/StSpinner';
+import MacroHeatmap from '../components/dashboard/MacroHeatmap';
 import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
 import { signedHeatStyle } from '../utils/heatMap';
-import { formatDecimal, formatPercent, formatUsd } from '../utils/formatters';
+import { formatPercent, formatUsd } from '../utils/formatters';
+import './dashboard.css';
 
 const GROUP_ORDER = ['indices', 'commodities', 'rates', 'risk', 'industries'];
 const GROUP_LABELS = {
@@ -118,114 +120,88 @@ export default function DashboardPage() {
   const unavailableCount = meta?.unavailable ?? items.filter((item) => !item.available).length;
 
   return (
-    <Container className="py-3">
-      <Row className="mb-3">
-        <Col>
-          <h1 className="h3 mb-1">Dashboard</h1>
-          <div className="text-muted">
-            terminal-style macro context: indices, commodities, rates, and sector ETFs.
-          </div>
-        </Col>
-      </Row>
-
-      <div className="mb-4">
-        <div className="d-flex justify-content-between align-items-center mb-2">
-          <h2 className="h5 mb-0">Your Portfolio</h2>
-          <Link to="/" className="small">Open full portfolio →</Link>
+    <div className="st-page">
+      <div className="mb-2">
+        <h1 className="st-page-heading">Dashboard</h1>
+        <div className="st-page-subtitle">
+          Macro context: indices, commodities, rates, and sector ETFs.
         </div>
-        {portfolioTickers.length === 0 ? (
-          <div className="alert alert-secondary mb-0">
-            No tickers in your portfolio yet.{' '}
-            <Link to="/screener">Browse the screener</Link> or search above to add symbols.
+      </div>
+
+      <div className="st-panel mb-2">
+        <div className="st-panel-header">Your Portfolio</div>
+        <div className="st-panel-body">
+          <div className="d-flex justify-content-between align-items-center mb-1">
+            <span className="small text-muted">Quick snapshot</span>
+            <Link to="/" className="small st-link-muted">Open full portfolio →</Link>
           </div>
-        ) : portfolioLoading ? (
-          <div className="text-muted py-2"><Spinner size="sm" /> Loading portfolio quotes…</div>
-        ) : (
-          <div className="table-responsive">
-            <Table size="sm" bordered hover className="mb-0">
-              <thead className="table-light">
-                <tr>
-                  <th>Ticker</th>
-                  <th>Name</th>
-                  <th className="text-end">Price</th>
-                  <th className="text-end">D% Ch</th>
-                  <th>Sector</th>
-                </tr>
-              </thead>
-              <tbody>
-                {portfolioRows.map((row) => (
-                  <tr key={row.ticker}>
-                    <td><Link to={`/${row.ticker}`} className="fw-semibold">{row.ticker}</Link></td>
-                    <td className="small text-muted">{row.name || '—'}</td>
-                    <td className="text-end">{row.price != null ? formatUsd(row.price) : '—'}</td>
-                    <td className="text-end" style={signedHeatStyle(row.change, 5)}>
-                      {row.change != null ? formatPercent(row.change, 2) : '—'}
-                    </td>
-                    <td className="small">{row.sector || '—'}</td>
+          {portfolioTickers.length === 0 ? (
+            <div className="alert alert-secondary mb-0 py-2">
+              No tickers in your portfolio yet.{' '}
+              <Link to="/screener" className="st-link-muted">Browse the screener</Link> or search above to add symbols.
+            </div>
+          ) : portfolioLoading ? (
+            <div className="text-muted py-1"><StSpinner size="sm" /> Loading portfolio quotes…</div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-sm table-bordered mb-0 st-grid-table st-grid-table-compact">
+                <thead>
+                  <tr>
+                    <th>Ticker</th>
+                    <th>Name</th>
+                    <th className="text-end">Price</th>
+                    <th className="text-end">D% Ch</th>
+                    <th>Sector</th>
                   </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {portfolioRows.map((row) => (
+                    <tr key={row.ticker}>
+                      <td><Link to={`/${row.ticker}`} className="st-ticker fw-semibold">{row.ticker}</Link></td>
+                      <td className="small text-muted">{row.name || '—'}</td>
+                      <td className="text-end st-num">{row.price != null ? formatUsd(row.price) : '—'}</td>
+                      <td className="text-end st-num" style={signedHeatStyle(row.change, 5)}>
+                        {row.change != null ? formatPercent(row.change, 2) : '—'}
+                      </td>
+                      <td className="small">{row.sector || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {loading && (
-        <div className="text-center py-5"><Spinner /> Loading macro data…</div>
+        <div className="st-spinner-wrap"><StSpinner /> Loading macro data…</div>
       )}
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && <div className="alert alert-danger py-2">{error}</div>}
       {!loading && !error && items.length === 0 && (
-        <div className="alert alert-secondary">Macro data unavailable. Ensure yfinance can reach market data sources.</div>
+        <div className="alert alert-secondary py-2">Macro data unavailable. Ensure yfinance can reach market data sources.</div>
       )}
 
       {!loading && unavailableCount > 0 && (
-        <div className="alert alert-warning py-2 small mb-3">
+        <div className="alert alert-warning py-2 small mb-2">
           {unavailableCount} of {items.length} macro symbols could not be quoted (shown as —). Market data may be delayed or blocked for some tickers.
         </div>
       )}
 
-      {grouped.map((section) => (
-        <div key={section.id} className="mb-4">
-          <h2 className="h5 mb-2">{section.label}</h2>
-          <Row className="g-3">
-            {section.items.map((item) => (
-              <Col key={item.id} xs={12} sm={6} md={4} lg={3}>
-                <Card className={`h-100 shadow-sm border-0 ${item.available === false ? 'opacity-75' : ''}`}>
-                  <CardBody
-                    className="py-3"
-                    style={item.available !== false ? signedHeatStyle(item.changePct, 5) : undefined}
-                  >
-                    <div className="d-flex justify-content-between align-items-start gap-2">
-                      <div>
-                        <div className="fw-semibold">{item.label}</div>
-                        <div className="text-muted small">{item.symbol}</div>
-                      </div>
-                      {item.available !== false && item.changePct != null ? (
-                        <span className="badge rounded-pill border border-current">{formatPercent(item.changePct, 2)}</span>
-                      ) : (
-                        <Badge color="secondary" pill>—</Badge>
-                      )}
-                    </div>
-                    <div className="mt-2 fs-5 fw-bold">
-                      {item.price != null ? formatDecimal(item.price, 2) : '—'}
-                    </div>
-                    {item.available === false && (
-                      <div className="text-muted small mt-1">Quote unavailable</div>
-                    )}
-                  </CardBody>
-                </Card>
-              </Col>
-            ))}
-          </Row>
+      {!loading && grouped.length > 0 && (
+        <div className="st-panel mb-2">
+          <div className="st-panel-header">Macro Heatmap</div>
+          <div className="st-panel-body">
+            <MacroHeatmap sections={grouped} />
+          </div>
         </div>
-      ))}
+      )}
 
       {meta?.source && (
-        <div className="text-muted small">
+        <div className="st-muted-note">
           Source: {meta.source}
           {meta.total != null && ` · ${meta.total} symbols`}
         </div>
       )}
-    </Container>
+    </div>
   );
 }

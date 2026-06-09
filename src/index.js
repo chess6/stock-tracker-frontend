@@ -1,8 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { applyTheme, getStoredTheme } from './context/ThemeContext';
-import './index.css';
 import './themes.css';
+import './styles/index.css';
+import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
