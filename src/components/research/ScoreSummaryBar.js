@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom';
+import StTooltip, { StTooltipMetricHelp } from '../StTooltip';
+import { getMetricTooltipMeta } from '../../config/tooltipRegistry';
 import { formatDecimal } from '../../utils/formatters';
 import {
   altmanZHeatStyle,
@@ -6,13 +9,39 @@ import {
   survivabilityHeatStyle,
 } from '../../utils/scoringColors';
 
+const SCORE_COLUMNS = [
+  { key: 'piotroskiF', label: 'F' },
+  { key: 'altmanZ', label: 'Z' },
+  { key: 'beneishM', label: 'M' },
+  { key: 'survivability', label: 'Surv' },
+];
+
 function ScoreBadge({ label, value, style }) {
   return (
-    <span className="research-score-summary-badge" style={style} title={label}>
+    <span className="research-score-summary-badge" style={style}>
       <span className="research-score-summary-label">{label}</span>
       <span className="research-score-summary-value">{value ?? '-'}</span>
     </span>
   );
+}
+
+function formatScoreValue(key, scores) {
+  const value = scores?.[key];
+  if (value == null) return '-';
+  if (key === 'altmanZ' || key === 'beneishM') return formatDecimal(value, 2);
+  if (key === 'survivability') return Math.round(value);
+  return value;
+}
+
+function scoreBadgeStyle(key, scores) {
+  const value = scores?.[key];
+  switch (key) {
+    case 'piotroskiF': return piotroskiHeatStyle(value);
+    case 'altmanZ': return altmanZHeatStyle(value);
+    case 'beneishM': return beneishHeatStyle(value);
+    case 'survivability': return survivabilityHeatStyle(value);
+    default: return {};
+  }
 }
 
 function tickerScores(screenerData, ticker) {
@@ -29,39 +58,40 @@ export default function ScoreSummaryBar({ tickers, screenerData }) {
         const row = screenerData?.[ticker];
         if (!scores && row?.error) {
           return (
-            <div key={ticker} className="research-score-summary-ticker">
-              <div className="research-score-summary-ticker-name">{ticker}</div>
-              <span className="text-2xs text-st-muted">No data</span>
+            <div key={ticker} className="research-score-summary-row">
+              <span className="research-score-summary-ticker-name st-ticker">{ticker}</span>
+              <span className="research-score-summary-empty small text-muted">No data</span>
             </div>
           );
         }
         if (!scores) return null;
 
         return (
-          <div key={ticker} className="research-score-summary-ticker">
-            <div className="research-score-summary-ticker-name">{ticker}</div>
-            <div className="research-score-summary-badges">
-              <ScoreBadge
-                label="F"
-                value={scores.piotroskiF}
-                style={piotroskiHeatStyle(scores.piotroskiF)}
-              />
-              <ScoreBadge
-                label="Z"
-                value={scores.altmanZ != null ? formatDecimal(scores.altmanZ, 2) : '-'}
-                style={altmanZHeatStyle(scores.altmanZ)}
-              />
-              <ScoreBadge
-                label="M"
-                value={scores.beneishM != null ? formatDecimal(scores.beneishM, 2) : '-'}
-                style={beneishHeatStyle(scores.beneishM)}
-              />
-              <ScoreBadge
-                label="Surv"
-                value={scores.survivability != null ? Math.round(scores.survivability) : '-'}
-                style={survivabilityHeatStyle(scores.survivability)}
-              />
-            </div>
+          <div key={ticker} className="research-score-summary-row">
+            <Link to={`/research/${ticker}`} className="research-score-summary-ticker-name st-ticker">
+              {ticker}
+            </Link>
+            {SCORE_COLUMNS.map((col) => {
+              const meta = getMetricTooltipMeta(col.key, col.label);
+              const badge = (
+                <ScoreBadge
+                  label={col.label}
+                  value={formatScoreValue(col.key, scores)}
+                  style={scoreBadgeStyle(col.key, scores)}
+                />
+              );
+              if (!meta) return <span key={col.key}>{badge}</span>;
+              return (
+                <StTooltip
+                  key={col.key}
+                  className="research-score-summary-tip"
+                  placement="bottom-start"
+                  tip={<StTooltipMetricHelp {...meta} />}
+                >
+                  {badge}
+                </StTooltip>
+              );
+            })}
           </div>
         );
       })}

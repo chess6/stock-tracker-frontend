@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import API_ENDPOINTS from '../../apiConfig';
+import ColumnHeader from '../ColumnHeader';
+import StTooltip, { StTooltipMetricHelp } from '../StTooltip';
+import { getMetricTooltipMeta } from '../../config/tooltipRegistry';
 import { formatCompactUsd, formatDecimal } from '../../utils/formatters';
 import { insiderDollarStyle } from '../../utils/heatMap';
+import { computeClusterColumns, splitEvenly } from '../../utils/clusterGrid';
 
 function intensityStyle(score) {
   if (score == null || Number.isNaN(Number(score))) return {};
@@ -35,53 +39,120 @@ function RatioCell({ label, data }) {
   );
 }
 
+function formatClusterWindow(row) {
+  const start = (row.windowStart || '').slice(0, 10);
+  const end = (row.windowEnd || '').slice(0, 10);
+  if (!start && !end) return '';
+  return `${start} → ${end}`;
+}
+
+function RegistryHeader({ label, metricKey, align = 'end' }) {
+  const meta = getMetricTooltipMeta(metricKey, label);
+  const className = align === 'end' ? 'text-end' : '';
+  if (!meta) return <th className={className}>{label}</th>;
+  return (
+    <th className={className}>
+      <ColumnHeader label={label} meta={meta} />
+    </th>
+  );
+}
+
+function ScreenerClusterTableHead() {
+  return (
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <RegistryHeader label="Buyers" metricKey="uniqueBuyers" />
+        <RegistryHeader label="Buy Value" metricKey="totalBuyValue" />
+        <RegistryHeader label="Int." metricKey="intensityScore" />
+      </tr>
+    </thead>
+  );
+}
+
+function ScreenerClusterTableBody({ rows }) {
+  return (
+    <tbody>
+      {rows.map((row) => (
+        <tr key={`${row.ticker}-${row.windowStart}`}>
+          <td>
+            <Link to={`/research/${row.ticker}`} className="st-ticker">
+              {row.ticker}
+            </Link>
+            <div className="text-muted research-insider-subtitle">
+              {formatClusterWindow(row)}
+              {row.companyName ? ` · ${row.companyName}` : ''}
+            </div>
+          </td>
+          <td className="text-end">{row.uniqueBuyers ?? '-'}</td>
+          <td className="text-end" style={insiderDollarStyle(row.totalBuyValue)}>
+            {row.totalBuyValue != null ? formatCompactUsd(row.totalBuyValue) : '-'}
+          </td>
+          <td className="text-end" style={intensityStyle(row.intensityScore)}>
+            {row.intensityScore != null ? formatDecimal(row.intensityScore, 3) : '-'}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  );
+}
+
+function ScreenerClusterColumn({ rows }) {
+  return (
+    <div className="research-insider-cluster-grid-col">
+      <table className="table table-sm table-hover mb-0 research-insider-table research-insider-table-compact">
+        <ScreenerClusterTableHead />
+        <ScreenerClusterTableBody rows={rows} />
+      </table>
+    </div>
+  );
+}
+
 function ScreenerClusterTable({ clusters, loading }) {
+  const gridRef = useRef(null);
+  const [columnCount, setColumnCount] = useState(1);
+
+  useEffect(() => {
+    const node = gridRef.current;
+    if (!node) return undefined;
+
+    const updateColumns = (width) => {
+      setColumnCount(computeClusterColumns(width, clusters?.length ?? 0));
+    };
+
+    updateColumns(node.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect?.width ?? 0;
+      updateColumns(width);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [clusters?.length]);
+
+  const columnGroups = useMemo(
+    () => splitEvenly(clusters, columnCount),
+    [clusters, columnCount],
+  );
+
   if (loading) return <div className="p-2 small">Loading insider clusters…</div>;
   if (!clusters?.length) {
     return (
       <div className="p-2 small text-muted">
-        No insider buy clusters detected. Clusters require 3+ unique buyers within 30 days.
+        No insider buy clusters detected. Clusters require 3+ unique open-market buyers (code P) with buy value within 30 days.
       </div>
     );
   }
 
   return (
-    <div className="table-responsive">
-      <table className="table table-sm table-hover mb-0 research-insider-table">
-        <thead>
-          <tr>
-            <th>Ticker</th>
-            <th>Window</th>
-            <th className="text-end">Buyers</th>
-            <th className="text-end">Buy Value</th>
-            <th className="text-end">Intensity</th>
-          </tr>
-        </thead>
-        <tbody>
-          {clusters.map((row) => (
-            <tr key={`${row.ticker}-${row.windowStart}`}>
-              <td>
-                <Link to={`/research/${row.ticker}`} className="st-ticker">
-                  {row.ticker}
-                </Link>
-                {row.companyName && (
-                  <div className="text-muted research-insider-subtitle">{row.companyName}</div>
-                )}
-              </td>
-              <td className="small">
-                {(row.windowStart || '').slice(0, 10)} → {(row.windowEnd || '').slice(0, 10)}
-              </td>
-              <td className="text-end">{row.uniqueBuyers ?? '-'}</td>
-              <td className="text-end" style={insiderDollarStyle(row.totalBuyValue)}>
-                {row.totalBuyValue != null ? formatCompactUsd(row.totalBuyValue) : '-'}
-              </td>
-              <td className="text-end" style={intensityStyle(row.intensityScore)}>
-                {row.intensityScore != null ? formatDecimal(row.intensityScore, 3) : '-'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div
+      ref={gridRef}
+      className="research-insider-cluster-grid"
+      style={{ '--cluster-cols': columnGroups.length }}
+    >
+      {columnGroups.map((rows, index) => (
+        <ScreenerClusterColumn key={`cluster-col-${index}`} rows={rows} />
+      ))}
     </div>
   );
 }
@@ -111,7 +182,13 @@ function DeepDiveInsiderPanel({ insiderAnalysis }) {
           <span className="research-stat-strip-value st-num">{summary.uniqueBuyers90d ?? 0}</span>
         </span>
         <span className="research-stat-strip-item">
-          <span className="research-stat-strip-label">Intensity</span>
+          <StTooltip
+            className="column-header-help"
+            placement="bottom-start"
+            tip={<StTooltipMetricHelp {...getMetricTooltipMeta('intensityScore90d', 'Intensity')} />}
+          >
+            <span className="research-stat-strip-label">Intensity</span>
+          </StTooltip>
           <span className="research-stat-strip-value st-num" style={intensityStyle(summary.intensityScore90d)}>
             {summary.intensityScore90d != null ? formatDecimal(summary.intensityScore90d, 3) : '-'}
           </span>
@@ -129,8 +206,8 @@ function DeepDiveInsiderPanel({ insiderAnalysis }) {
                   <th className="text-end">Buys</th>
                   <th className="text-end">Sells</th>
                   <th className="text-end">Ratio</th>
-                  <th className="text-end">Buy Value</th>
-                  <th className="text-end">Intensity</th>
+                  <RegistryHeader label="Buy Value" metricKey="totalBuyValue" />
+                  <RegistryHeader label="Intensity" metricKey="intensityScore90d" />
                 </tr>
               </thead>
               <tbody>
@@ -190,9 +267,9 @@ function DeepDiveInsiderPanel({ insiderAnalysis }) {
                   <th>Window</th>
                   <th className="text-end">Buyers</th>
                   <th className="text-end">Buys</th>
-                  <th className="text-end">Buy Value</th>
+                  <RegistryHeader label="Buy Value" metricKey="totalBuyValue" />
                   <th className="text-end">Avg Price</th>
-                  <th className="text-end">Intensity</th>
+                  <RegistryHeader label="Intensity" metricKey="intensityScore" />
                 </tr>
               </thead>
               <tbody>

@@ -95,6 +95,16 @@
     box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.15);
 }
 
+/* Sticky quote columns (ticker, price): lift header on hover so tooltips clear later stickies */
+.data-grid-table thead th[style*="position: sticky"] {
+    overflow: visible;
+}
+
+.data-grid-table thead th[style*="position: sticky"]:hover,
+.data-grid-table thead th[style*="position: sticky"]:focus-within {
+    z-index: 30 !important;
+}
+
 .portfolio-grid-table tbody td[style*="position: sticky"],
 .portfolio-grid-table thead th[style*="position: sticky"] {
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);

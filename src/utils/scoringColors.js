@@ -3,6 +3,7 @@
  * @see docs/HEATMAP_AND_SCORING_PHILOSOPHY.md
  */
 
+import { formatMetricCellTooltip } from '../config/tooltipRegistry';
 import {
   tierHeatStyle,
   signedHeatStyle,
@@ -434,7 +435,10 @@ export function precomputeRowHeatStyles(row, periodCount, context = {}) {
       legacyHeatmap: row.heatmap,
     };
     styles[`${prefix}${idx}`] = getMetricBackground(metricKey, val, cellContext);
-    styles[`${prefix}${idx}Title`] = describeHeat(metricKey, val, cellContext);
+    styles[`${prefix}${idx}Title`] = formatMetricCellTooltip(
+      metricKey,
+      describeHeat(metricKey, val, cellContext),
+    );
   }
   return styles;
 }

@@ -224,13 +224,17 @@ export default function DataGrid({
     };
   }, [compact, stickyIds, visibleColumnsKey, sorting, globalFilter, data.length]);
 
+  const stickyStackIndex = (colId) => stickyIds.indexOf(colId);
+
   const applyStickyStyle = (colId, baseStyle = {}) => {
-    if (!stickyIds.includes(colId)) return baseStyle;
+    const stackIdx = stickyStackIndex(colId);
+    if (stackIdx < 0) return baseStyle;
+    const stackBoost = baseStyle.zIndex ?? 3;
     return {
       ...baseStyle,
       position: 'sticky',
       left: stickyLeftByColId[colId] ?? 0,
-      zIndex: baseStyle.zIndex ?? 3,
+      zIndex: stackBoost + stackIdx,
       background: baseStyle.background ?? 'inherit',
     };
   };
@@ -351,7 +355,7 @@ export default function DataGrid({
                             data-col-id={colId}
                             style={{
                               ...applyWidthStyle(
-                                applyStickyStyle(colId, { ...headerStyle, zIndex: 6 }),
+                                applyStickyStyle(colId, { ...headerStyle, zIndex: 5 }),
                                 colId,
                                 width,
                               ),
@@ -403,7 +407,7 @@ export default function DataGrid({
                     let thStyle = applyWidthStyle(
                       applyStickyStyle(colId, {
                         ...headerStyle,
-                        zIndex: stickyIds.includes(colId) ? 6 : headerStyle.zIndex,
+                        zIndex: stickyStackIndex(colId) >= 0 ? 5 : headerStyle.zIndex,
                       }),
                       colId,
                       width,
@@ -479,8 +483,8 @@ export default function DataGrid({
                     const width = getColumnWidth(colId, header);
                     let cellStyle = applyWidthStyle(
                       applyStickyStyle(colId, {
-                        background: row.getIsSelected() ? undefined : (stickyIds.includes(colId) ? 'var(--bs-body-bg)' : undefined),
-                        zIndex: stickyIds.includes(colId) ? 4 : undefined,
+                        background: row.getIsSelected() ? undefined : (stickyStackIndex(colId) >= 0 ? 'var(--bs-body-bg)' : undefined),
+                        zIndex: stickyStackIndex(colId) >= 0 ? 3 : undefined,
                       }),
                       colId,
                       width,

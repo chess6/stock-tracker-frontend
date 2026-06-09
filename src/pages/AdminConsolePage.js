@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -37,8 +37,8 @@ export default function AdminConsolePage() {
   const [tickers, setTickers] = useState(initialTickersField);
   const [portfolioCount, setPortfolioCount] = useState(() => getPortfolio().length);
   const [busyAction, setBusyAction] = useState(null);
-  const [message, setMessage] = useState('');
   const { showToast } = useToast();
+  const staleToastKeyRef = useRef(null);
   const dispatch = useDispatch();
 
   const tickersQuery = () => encodeURIComponent(resolveTickersForRequest(tickers));
@@ -60,9 +60,21 @@ export default function AdminConsolePage() {
 
   useEffect(() => {
     loadStatus().catch(() => {
-      setMessage('Failed to load admin status');
+      showToast('Failed to load admin status', 'danger', 6000);
     });
-  }, []);
+  }, [showToast]);
+
+  useEffect(() => {
+    if (!statusLoaded || !freshnessSummary.stale) return;
+    const key = freshnessSummary.reasons.join('|');
+    if (staleToastKeyRef.current === key) return;
+    staleToastKeyRef.current = key;
+    showToast(
+      `Cache is stale: ${freshnessSummary.reasons.join(', ')}. Run bootstrap or the relevant refresh action below.`,
+      'warning',
+      8000,
+    );
+  }, [freshnessSummary.reasons, freshnessSummary.stale, showToast, statusLoaded]);
 
   useEffect(() => {
     loadUserPreferences().then(() => setPortfolioCount(getPortfolio().length));
@@ -73,17 +85,14 @@ export default function AdminConsolePage() {
 
   const runAction = async (action, request) => {
     setBusyAction(action);
-    setMessage('');
     try {
       const response = await request();
       await loadStatus();
       const successText = typeof response.data === 'object' ? `${action} complete` : String(response.data);
-      setMessage(successText);
       showToast(successText, 'success', 5000);
       dispatch(clearScreener());
     } catch (error) {
       const errorText = error?.response?.data?.error || `${action} failed`;
-      setMessage(errorText);
       showToast(errorText, 'danger', 6000);
     } finally {
       setBusyAction(null);
@@ -103,18 +112,6 @@ export default function AdminConsolePage() {
         </div>
         </div>
       </div>
-
-      {freshnessSummary.stale && (
-        <div className="st-alert-warn" role="alert">
-          Cache is stale: {freshnessSummary.reasons.join(', ')}. Run bootstrap or the relevant refresh action below.
-        </div>
-      )}
-
-      {message && (
-        <div className={message.includes('failed') ? 'st-alert-danger' : 'st-alert-info'} role="alert">
-          {message}
-        </div>
-      )}
 
       <div className="st-panel">
         <div className="st-panel-header">Data refresh</div>
@@ -167,17 +164,9 @@ export default function AdminConsolePage() {
             counts={status.counts}
             coverage={status.coverage}
             statusLoaded={statusLoaded}
-            onComplete={async (stepResults) => {
+            onComplete={async () => {
               await loadStatus();
               dispatch(clearScreener());
-              const errors = Object.entries(stepResults)
-                .filter(([, result]) => result.status === 'error')
-                .map(([id, result]) => `${id}: ${result.error}`);
-              if (errors.length) {
-                setMessage(`Pipeline errors — ${errors.join('; ')}`);
-              } else {
-                setMessage('Pipeline complete');
-              }
             }}
           />
           <div className="admin-actions-row">

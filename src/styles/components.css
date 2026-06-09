@@ -404,9 +404,9 @@ a.st-ticker:focus-visible {
 .st-tooltip-popup {
   position: absolute;
   z-index: 40;
-  min-width: 12rem;
-  max-width: 18rem;
-  padding: 0.45rem 0.55rem;
+  min-width: 11rem;
+  max-width: 15rem;
+  padding: 0.38rem 0.48rem;
   border: 1px solid var(--st-border);
   border-radius: 0.3rem;
   background: var(--st-surface);

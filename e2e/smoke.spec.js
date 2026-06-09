@@ -1,11 +1,7 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 const { mockStockTrackerApi } = require('./support/mock-api');
-
-async function waitForPageReady(page) {
-  await page.waitForLoadState('networkidle');
-  await page.locator('.spinner-border').first().waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-}
+const { waitForPageReady } = require('./support/page-ready');
 
 const ERROR_ALERT = '.alert-danger, .st-alert-danger';
 

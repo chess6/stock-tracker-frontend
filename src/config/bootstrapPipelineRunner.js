@@ -14,6 +14,19 @@ const STEP_ENDPOINTS = {
   market_reactions: API_ENDPOINTS.ADMIN_BACKFILL_MARKET_REACTIONS,
 };
 
+export function formatStepError(error) {
+  const data = error?.response?.data;
+  if (typeof data === 'string' && data.trim()) return data.trim();
+  if (data?.error) return String(data.error);
+  if (data?.message) return String(data.message);
+  const status = error?.response?.status;
+  if (status) {
+    const base = error?.message || 'Request failed';
+    return `HTTP ${status}: ${base}`;
+  }
+  return error?.message || 'Request failed';
+}
+
 function parseTickersCsv(tickersCsv) {
   return [...new Set(
     String(tickersCsv || '')
@@ -23,23 +36,57 @@ function parseTickersCsv(tickersCsv) {
   )];
 }
 
+async function runMarketReactionsStep(endpoint, tickersCsv, mode) {
+  const tickers = parseTickersCsv(tickersCsv);
+  if (!tickers.length) {
+    throw new Error('No tickers to backfill — enter symbols in the tickers field');
+  }
+
+  const querySuffix = buildStepRequestUrl('market_reactions', { tickersCsv, mode }) || '';
+  const queryParams = querySuffix.startsWith('?') ? querySuffix.slice(1) : querySuffix;
+
+  const outcomes = await Promise.allSettled(
+    tickers.map(async (ticker) => {
+      const url = queryParams
+        ? `${endpoint}?ticker=${encodeURIComponent(ticker)}&${queryParams}`
+        : `${endpoint}?ticker=${encodeURIComponent(ticker)}`;
+      const response = await axios.post(url);
+      return { ticker, ...response.data };
+    }),
+  );
+
+  const successes = [];
+  const failures = [];
+  outcomes.forEach((outcome, index) => {
+    const ticker = tickers[index];
+    if (outcome.status === 'fulfilled') {
+      successes.push(outcome.value);
+      return;
+    }
+    failures.push(`${ticker}: ${formatStepError(outcome.reason)}`);
+  });
+
+  const data = { tickers: successes, failures };
+  if (failures.length === tickers.length) {
+    throw new Error(failures.join('; '));
+  }
+  if (failures.length > 0) {
+    return { data, error: failures.join('; ') };
+  }
+  return { data };
+}
+
 async function runStep(step, tickersCsv, mode) {
   const endpoint = STEP_ENDPOINTS[step.id];
   if (!endpoint) {
     throw new Error(`Unknown pipeline step: ${step.id}`);
   }
   if (step.id === 'market_reactions') {
-    const tickers = parseTickersCsv(tickersCsv);
-    const querySuffix = buildStepRequestUrl(step.id, { tickersCsv, mode }) || '';
-    const results = [];
-    for (const ticker of tickers) {
-      const response = await axios.post(`${endpoint}?ticker=${encodeURIComponent(ticker)}${querySuffix ? `&${querySuffix.slice(1)}` : ''}`);
-      results.push({ ticker, ...response.data });
-    }
-    return { data: { tickers: results } };
+    return runMarketReactionsStep(endpoint, tickersCsv, mode);
   }
   const querySuffix = buildStepRequestUrl(step.id, { tickersCsv, mode }) || '';
-  return axios.post(`${endpoint}${querySuffix}`);
+  const response = await axios.post(`${endpoint}${querySuffix}`);
+  return { data: response.data };
 }
 
 /**
@@ -61,8 +108,11 @@ export async function runBootstrapPipeline({
 
   for (const wave of waves) {
     const runnable = wave.filter((step) => {
-      if (step.requiresTickers && !tickersCsv.trim()) {
-        stepResults[step.id] = { status: 'skipped', error: 'No tickers provided' };
+      if (step.requiresTickers && !parseTickersCsv(tickersCsv).length) {
+        stepResults[step.id] = {
+          status: 'skipped',
+          error: 'No tickers provided — enter symbols in the tickers field',
+        };
         setStatus(step.id, 'skipped');
         return false;
       }
@@ -74,10 +124,10 @@ export async function runBootstrapPipeline({
     const outcomes = await Promise.allSettled(
       runnable.map(async (step) => {
         try {
-          const response = await runStep(step, tickersCsv, mode);
-          return { step, response };
+          const result = await runStep(step, tickersCsv, mode);
+          return { step, result };
         } catch (error) {
-          const message = error?.response?.data?.error || error?.message || 'Request failed';
+          const message = error?.response ? formatStepError(error) : (error?.message || 'Request failed');
           throw new Error(message);
         }
       }),
@@ -87,8 +137,15 @@ export async function runBootstrapPipeline({
       const outcome = outcomes[index];
       const step = runnable[index];
       if (outcome.status === 'fulfilled') {
-        stepResults[step.id] = { status: 'success', data: outcome.value.response.data };
-        setStatus(step.id, 'success');
+        const { result } = outcome.value;
+        if (result.error) {
+          failedCount += 1;
+          stepResults[step.id] = { status: 'error', error: result.error, data: result.data };
+          setStatus(step.id, 'error');
+        } else {
+          stepResults[step.id] = { status: 'success', data: result.data };
+          setStatus(step.id, 'success');
+        }
       } else {
         failedCount += 1;
         const error = outcome.reason?.message || 'Failed';
@@ -99,4 +156,30 @@ export async function runBootstrapPipeline({
   }
 
   return { stepResults, failedCount };
+}
+
+export function formatPipelineStepResult(stepId, result) {
+  if (!result) return '';
+  const { status, data } = result;
+
+  if (stepId === 'market_reactions' && data?.tickers) {
+    const lines = data.tickers.map((row) => {
+      const count = row.articlesUpdated ?? 0;
+      return `${row.ticker}: ${count} article${count === 1 ? '' : 's'} updated`;
+    });
+    if (data.failures?.length) {
+      lines.push(`Failures: ${data.failures.join('; ')}`);
+    }
+    return lines.join(' · ');
+  }
+  if (status === 'skipped') {
+    return '';
+  }
+  if (data && typeof data === 'object') {
+    if (typeof data.message === 'string') return data.message;
+    if (typeof data.articlesUpdated === 'number') {
+      return `${data.articlesUpdated} articles updated`;
+    }
+  }
+  return '';
 }

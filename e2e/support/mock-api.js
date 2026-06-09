@@ -1,13 +1,19 @@
 /** Deterministic API mocks for stable Playwright screenshots. */
 
+function hoursAgo(hours) {
+  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+}
+
 const FRESHNESS = {
-  companiesUpdatedAt: '2026-06-01T12:00:00Z',
-  fundamentalsUpdatedAt: '2026-06-01T12:00:00Z',
-  feedsLastPolledAt: '2026-06-01T11:00:00Z',
-  pricesUpdatedAt: '2026-06-01T09:30:00Z',
-  insidersUpdatedAt: '2026-06-01T08:00:00Z',
-  latestArticlePublishedAt: '2026-06-01T10:00:00Z',
-  latestArticleFetchedAt: '2026-06-01T10:05:00Z',
+  companiesUpdatedAt: hoursAgo(2),
+  fundamentalsUpdatedAt: hoursAgo(3),
+  feedsLastPolledAt: hoursAgo(1),
+  pricesUpdatedAt: hoursAgo(2),
+  insidersUpdatedAt: hoursAgo(4),
+  companyScoresUpdatedAt: hoursAgo(3),
+  insiderClustersUpdatedAt: hoursAgo(4),
+  latestArticlePublishedAt: hoursAgo(1),
+  latestArticleFetchedAt: hoursAgo(1),
 };
 
 const ADMIN_STATUS = {
@@ -20,7 +26,14 @@ const ADMIN_STATUS = {
     insider_transactions: 120,
   },
   freshness: FRESHNESS,
+  coverage: {
+    companiesMissingMetadata: 0,
+    articlesWithMarketReactions: 20,
+    linkedArticles: 20,
+  },
   jobs: { queued: 0, running: 0, failed: 0 },
+  feeds: [],
+  recentJobRuns: [],
 };
 
 const MACRO_ITEMS = [
@@ -37,25 +50,21 @@ const NEWS_ARTICLES = [
     id: 1,
     title: 'Markets steady as earnings season continues',
     url: 'https://example.com/a1',
-    source: 'Example Finance',
-    source_domain: 'example.com',
-    published_at: '2026-06-01T09:00:00Z',
-    summary: 'Major indices were little changed ahead of economic data.',
-    category: 'finance',
+    sourceDomain: 'example.com',
+    publishedDate: hoursAgo(2),
+    description: 'Major indices were little changed ahead of economic data.',
     tickers: ['JPM'],
-    sentiment_label: 'neutral',
+    sentimentLabel: 'neutral',
   },
   {
     id: 2,
     title: 'JPMorgan expands consumer banking footprint',
     url: 'https://example.com/a2',
-    source: 'Example Finance',
-    source_domain: 'example.com',
-    published_at: '2026-06-01T08:30:00Z',
-    summary: 'The bank announced new branch openings in three states.',
-    category: 'finance',
+    sourceDomain: 'example.com',
+    publishedDate: hoursAgo(3),
+    description: 'The bank announced new branch openings in three states.',
     tickers: ['JPM'],
-    sentiment_label: 'positive',
+    sentimentLabel: 'positive',
   },
 ];
 

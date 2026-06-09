@@ -132,6 +132,103 @@
   }
 }
 
+/* —— Screener: score summary + insider clusters side-by-side —— */
+.research-screener-summary-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+  align-items: stretch;
+  margin-bottom: 0.25rem;
+}
+
+@media (min-width: 992px) {
+  .research-screener-summary-row {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .research-screener-summary-row:has(> .research-screener-summary-col:only-child) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.research-screener-summary-col {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.research-screener-summary-col--scores {
+  width: max-content;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.research-screener-summary-col.st-details {
+  margin-bottom: 0;
+}
+
+/* Allow header tooltips to escape; cluster tables don't need inner scroll. */
+.st-details.research-insider-panel {
+  overflow: visible;
+}
+
+.research-insider-cluster-grid .research-insider-table thead th {
+  overflow: visible;
+  position: relative;
+}
+
+.research-insider-cluster-grid th.text-end .st-tooltip {
+  display: inline-flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.research-insider-cluster-grid th.text-end .st-tooltip-popup {
+  left: auto;
+  right: 0;
+  z-index: 60;
+}
+
+.research-screener-summary-col .st-details-summary {
+  border-bottom: 0;
+}
+
+.research-screener-summary-col[open] > .st-details-summary {
+  border-bottom: 1px solid var(--st-border);
+}
+
+.research-insider-cluster-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cluster-cols, 1), minmax(0, 1fr));
+  gap: 0.2rem 0.35rem;
+  padding: 0.2rem 0.35rem 0.28rem;
+  align-items: start;
+}
+
+.research-insider-cluster-grid-col {
+  min-width: 0;
+  overflow: visible;
+}
+
+.research-insider-cluster-grid .research-insider-table {
+  width: 100%;
+}
+
+.research-insider-table-compact th,
+.research-insider-table-compact td {
+  padding: 0.1rem 0.28rem;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.research-insider-cluster-grid .research-insider-subtitle {
+  max-width: none;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  font-size: 0.58rem;
+  line-height: 1.2;
+}
+
 /* —— Score + insider side-by-side —— */
 .research-secondary-row {
   display: grid;
@@ -533,36 +630,47 @@
 }
 
 .research-score-summary-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  padding: 0.25rem 0.45rem 0.35rem;
+  width: max-content;
+  max-width: 100%;
+  padding: 0.2rem 0.38rem 0.28rem;
+  overflow-x: auto;
 }
 
-.research-score-summary-ticker {
-  min-width: 120px;
+.research-score-summary-row {
+  display: grid;
+  grid-template-columns: 3.75rem repeat(4, 3rem);
+  column-gap: 0.2rem;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+}
+
+.research-score-summary-row + .research-score-summary-row {
+  margin-top: 0.18rem;
 }
 
 .research-score-summary-ticker-name {
   font-size: 0.68rem;
   font-weight: 600;
-  margin-bottom: 0.15rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   color: var(--st-accent-amber);
+  text-decoration: none;
 }
 
-.research-score-summary-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.2rem;
+a.research-score-summary-ticker-name:hover,
+a.research-score-summary-ticker-name:focus-visible {
+  color: var(--st-accent-blue);
+  text-decoration: underline;
 }
 
 .research-score-summary-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
+  justify-content: center;
+  gap: 0.18rem;
+  width: 100%;
   font-size: 0.64rem;
-  padding: 0.08rem 0.3rem;
+  padding: 0.08rem 0.28rem;
   border-radius: 999px;
   border: 1px solid var(--st-border);
 }
@@ -574,6 +682,39 @@
 .research-score-summary-value {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+.research-score-summary-empty {
+  grid-column: 2 / -1;
+}
+
+.research-screener-card.st-details {
+  margin-bottom: 0.25rem;
+}
+
+.research-screener-card-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+}
+
+.research-screener-card-meta {
+  font-weight: 400;
+  font-size: 0.66rem;
+  color: var(--st-text-muted);
+}
+
+.research-screener-card-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  padding: 0.2rem 0.38rem;
+  border-bottom: 1px solid var(--st-border);
+}
+
+.research-screener-card-body {
+  padding: 0.15rem;
 }
 
 .research-scoring-panel .research-score-card {

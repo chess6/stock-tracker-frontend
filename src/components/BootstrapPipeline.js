@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ConfirmModal from './ConfirmModal';
 import {
   BOOTSTRAP_STEPS,
   WAVE_LABELS,
@@ -7,10 +8,14 @@ import {
   recommendedSelectedStepIds,
   stepDisplayIndex,
 } from '../config/bootstrapPipeline';
-import { runBootstrapPipeline } from '../config/bootstrapPipelineRunner';
 import {
+  formatPipelineStepResult,
+  runBootstrapPipeline,
+} from '../config/bootstrapPipelineRunner';
+import {
+  FULL_LIMITS,
   PIPELINE_MODES,
-  buildFullRunConfirmationMessage,
+  buildFullRunConfirmationContent,
   estimatePipelineDuration,
   formatSecondsRange,
   modeSummary,
@@ -105,9 +110,11 @@ export default function BootstrapPipeline({
   const hasAppliedRecommended = useRef(false);
   const [selected, setSelected] = useState(() => new Set());
   const [stepStatus, setStepStatus] = useState({});
+  const [stepResults, setStepResults] = useState({});
   const [focusedStepId, setFocusedStepId] = useState(BOOTSTRAP_STEPS[0]?.id);
   const [running, setRunning] = useState(false);
   const [fullSlowRun, setFullSlowRun] = useState(false);
+  const [fullRunConfirmOpen, setFullRunConfirmOpen] = useState(false);
 
   const selectedCount = selected.size;
   const pipelineMode = fullSlowRun ? PIPELINE_MODES.FULL : PIPELINE_MODES.FAST;
@@ -115,6 +122,10 @@ export default function BootstrapPipeline({
   const durationEstimate = useMemo(
     () => estimatePipelineDuration(selectedStepIds, pipelineMode, tickersCsv),
     [selectedStepIds, pipelineMode, tickersCsv],
+  );
+  const fullRunConfirmContent = useMemo(
+    () => (fullSlowRun ? buildFullRunConfirmationContent(selectedStepIds, tickersCsv) : null),
+    [fullSlowRun, selectedStepIds, tickersCsv],
   );
   const tickersMissing = !tickersCsv.trim();
   const tickerStepsSelected = BOOTSTRAP_STEPS.some(
@@ -135,6 +146,8 @@ export default function BootstrapPipeline({
   );
   const focusedEstimate = durationEstimate.steps.find((step) => step.stepId === focusedStep.id);
   const focusedStatus = stepStatusLabel(stepStatus[focusedStep.id], selected.has(focusedStep.id));
+  const focusedResult = stepResults[focusedStep.id];
+  const focusedResultText = formatPipelineStepResult(focusedStep.id, focusedResult);
 
   const toggleStep = (stepId) => {
     setSelected((prev) => {
@@ -158,9 +171,55 @@ export default function BootstrapPipeline({
       setSelected(new Set());
     }
     setStepStatus({});
+    setStepResults({});
   };
 
-  const handleRun = async () => {
+  const executePipeline = useCallback(async () => {
+    setRunning(true);
+    const initialStatus = {};
+    selected.forEach((id) => { initialStatus[id] = 'idle'; });
+    setStepStatus(initialStatus);
+    setStepResults({});
+
+    try {
+      const { stepResults: results, failedCount } = await runBootstrapPipeline({
+        selectedStepIds,
+        tickersCsv,
+        mode: pipelineMode,
+        onStepStatus: (stepId, status) => {
+          setStepStatus((prev) => ({ ...prev, [stepId]: status }));
+        },
+      });
+
+      setStepResults(results);
+      await onComplete?.(results);
+
+      if (failedCount === 0) {
+        const completed = Object.values(results).filter((r) => r.status === 'success').length;
+        showToast?.(`Pipeline complete — ${completed} step${completed === 1 ? '' : 's'} succeeded`, 'success', 5000);
+      } else {
+        const errorLines = Object.entries(results)
+          .filter(([, result]) => result.status === 'error')
+          .map(([stepId, result]) => {
+            const step = BOOTSTRAP_STEPS.find((item) => item.id === stepId);
+            const label = step?.shortLabel || stepId;
+            return `${label}: ${result.error}`;
+          });
+        const detail = errorLines.length ? ` — ${errorLines.join('; ')}` : '';
+        showToast?.(
+          `Pipeline finished with ${failedCount} failed step${failedCount === 1 ? '' : 's'}${detail}`,
+          'danger',
+          10000,
+        );
+      }
+    } catch (error) {
+      showToast?.(error?.message || 'Pipeline failed', 'danger', 6000);
+    } finally {
+      setRunning(false);
+    }
+  }, [onComplete, pipelineMode, selected, selectedStepIds, showToast, tickersCsv]);
+
+  const handleRun = () => {
     if (selectedCount === 0) {
       showToast?.('Select at least one pipeline step', 'warning', 4000);
       return;
@@ -170,40 +229,10 @@ export default function BootstrapPipeline({
       return;
     }
     if (fullSlowRun) {
-      const confirmed = window.confirm(
-        buildFullRunConfirmationMessage(selectedStepIds, tickersCsv),
-      );
-      if (!confirmed) return;
+      setFullRunConfirmOpen(true);
+      return;
     }
-
-    setRunning(true);
-    const initialStatus = {};
-    selected.forEach((id) => { initialStatus[id] = 'idle'; });
-    setStepStatus(initialStatus);
-
-    try {
-      const { stepResults, failedCount } = await runBootstrapPipeline({
-        selectedStepIds,
-        tickersCsv,
-        mode: pipelineMode,
-        onStepStatus: (stepId, status) => {
-          setStepStatus((prev) => ({ ...prev, [stepId]: status }));
-        },
-      });
-
-      await onComplete?.(stepResults);
-
-      if (failedCount === 0) {
-        const completed = Object.values(stepResults).filter((r) => r.status === 'success').length;
-        showToast?.(`Pipeline complete — ${completed} step${completed === 1 ? '' : 's'} succeeded`, 'success', 5000);
-      } else {
-        showToast?.(`Pipeline finished with ${failedCount} failed step${failedCount === 1 ? '' : 's'}`, 'danger', 6000);
-      }
-    } catch (error) {
-      showToast?.(error?.message || 'Pipeline failed', 'danger', 6000);
-    } finally {
-      setRunning(false);
-    }
+    executePipeline();
   };
 
   return (
@@ -320,6 +349,24 @@ export default function BootstrapPipeline({
               </div>
             )}
           </div>
+          {focusedResult?.status === 'error' && (
+            <div className="jx-step-detail-error" role="alert">
+              <span className="jx-step-detail-label">Error</span>
+              {focusedResult.error}
+            </div>
+          )}
+          {focusedResult?.status === 'skipped' && focusedResult.error && (
+            <div className="jx-step-detail-warn" role="status">
+              <span className="jx-step-detail-label">Skipped</span>
+              {focusedResult.error}
+            </div>
+          )}
+          {focusedResultText && (
+            <div className="jx-step-detail-result" role="status">
+              <span className="jx-step-detail-label">Result</span>
+              {focusedResultText}
+            </div>
+          )}
         </div>
       )}
 
@@ -334,7 +381,7 @@ export default function BootstrapPipeline({
             onChange={(event) => setFullSlowRun(event.target.checked)}
           />
           <label className="form-check-label small" htmlFor="bootstrap-full-slow-run">
-            Full slow run (no feed caps, full article extraction, longer history)
+            {`Full slow run (${FULL_LIMITS.ingest_feeds.maxArticlesPerFeed} articles/feed, full article extraction, longer history)`}
           </label>
         </div>
         <div className="text-muted small mt-1">
@@ -372,6 +419,43 @@ export default function BootstrapPipeline({
           ? 'Running pipeline…'
           : `Run ${fullSlowRun ? 'full' : 'fast'} pipeline (${selectedCount} stage${selectedCount === 1 ? '' : 's'})`}
       </button>
+
+      <ConfirmModal
+        isOpen={fullRunConfirmOpen}
+        title="Start full slow pipeline?"
+        confirmLabel="Start full run"
+        confirmColor="primary"
+        message={fullRunConfirmContent ? (
+          <div className="bootstrap-pipeline-confirm">
+            <p className="bootstrap-pipeline-confirm-lead">
+              Estimated total: <strong>{fullRunConfirmContent.totalRange}</strong>
+            </p>
+            <p className="bootstrap-pipeline-confirm-copy">
+              Full article HTML extraction, up to {fullRunConfirmContent.maxArticlesPerFeed} articles
+              per feed, longer price history, and more insider filings.
+              {fullRunConfirmContent.ingestRange && (
+                <>
+                  {' '}Feed ingest alone is estimated at {fullRunConfirmContent.ingestRange}.
+                </>
+              )}
+            </p>
+            <div className="bootstrap-pipeline-confirm-steps-label">Selected steps</div>
+            <ul className="bootstrap-pipeline-confirm-steps">
+              {fullRunConfirmContent.steps.map((step) => (
+                <li key={step.label}>
+                  <span>{step.label}</span>
+                  <span className="bootstrap-pipeline-confirm-step-range">{step.range}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : ''}
+        onCancel={() => setFullRunConfirmOpen(false)}
+        onConfirm={() => {
+          setFullRunConfirmOpen(false);
+          executePipeline();
+        }}
+      />
     </div>
   );
 }

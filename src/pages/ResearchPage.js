@@ -7,6 +7,7 @@ import ResearchToolbar from '../components/research/ResearchToolbar';
 import FinancialGrid from '../components/research/FinancialGrid';
 import MetricSparkline from '../components/research/MetricSparkline';
 import ScoreSummaryBar from '../components/research/ScoreSummaryBar';
+import MetricTooltipLabel from '../components/research/MetricTooltipLabel';
 import InsiderPanel from '../components/research/InsiderPanel';
 import ResearchDeepDive from '../components/research/ResearchDeepDive';
 import CompareMetricsPanel, { MAX_COMPARE_TICKERS } from '../components/research/CompareMetricsPanel';
@@ -17,6 +18,7 @@ import {
   buildGteDate,
   getScreenerMetricValue,
 } from '../config/researchMetrics';
+import { formatMetricCellTooltip } from '../config/tooltipRegistry';
 import { formatDecimal, formatPercent, formatUsd, formatCompactUsd } from '../utils/formatters';
 import {
   buildHistoricalStats,
@@ -354,7 +356,11 @@ export default function ResearchPage() {
         header: 'Metric',
         size: 176,
         cell: ({ row }) => (
-          <span style={{ whiteSpace: 'nowrap' }}>{row.original.metric}</span>
+          <MetricTooltipLabel
+            metricKey={row.original.metricKey || row.original.id}
+            label={row.original.metric}
+            className="research-metric-label"
+          />
         ),
       },
     ];
@@ -489,7 +495,10 @@ export default function ResearchPage() {
         header: 'Metric',
         cell: ({ row }) => (
           <span className="research-metric-cell">
-            {row.original.metric}
+            <MetricTooltipLabel
+              metricKey={row.original.metricKey || row.original.id}
+              label={row.original.metric}
+            />
             <MetricSparkline
               series={row.original.sparkline}
               format={row.original.format}
@@ -535,7 +544,9 @@ export default function ResearchPage() {
           const val = row.original.yoy;
           const arrow = trendArrow(val);
           const arrowColor = getTrendColor(val, 8);
-          const tip = val != null ? describeHeat('yoy', val, { mode: colorMode, format: 'percent' }) : null;
+          const tip = val != null
+            ? formatMetricCellTooltip('yoy', describeHeat('yoy', val, { mode: colorMode, format: 'percent' }))
+            : null;
           const body = (
             <>
               {val == null ? '-' : formatPercent(val, 2)}
@@ -565,7 +576,9 @@ export default function ResearchPage() {
           const val = row.original.cagr;
           const arrow = trendArrow(val, 10);
           const arrowColor = getTrendColor(val, 10);
-          const tip = val != null ? describeHeat('cagr', val, { mode: colorMode, format: 'percent' }) : null;
+          const tip = val != null
+            ? formatMetricCellTooltip('cagr', describeHeat('cagr', val, { mode: colorMode, format: 'percent' }))
+            : null;
           const body = (
             <>
               {val == null ? '-' : formatPercent(val, 2)}
@@ -666,43 +679,36 @@ export default function ResearchPage() {
         <CompareMetricsPanel compareTickers={compareTickers} />
       )}
 
-      {!isDeepDive && screenerTickers.length > 0 && Object.keys(screenerData).length > 0 && (
-        <div className="st-panel mb-2">
-          <div className="st-panel-header">Score Summary</div>
-          <ScoreSummaryBar tickers={screenerTickers} screenerData={screenerData} />
-        </div>
-      )}
-
       {!isDeepDive && (
-        <div className="st-panel research-screener-card">
-          <div className="st-panel-header">
+        <details className="st-details research-screener-card" open>
+          <summary className="st-details-summary research-screener-card-summary">
             <span>Financial Screener</span>
-            <span className="font-normal text-st-muted">
+            <span className="research-screener-card-meta">
               {screenerTickers.length} ticker{screenerTickers.length === 1 ? '' : 's'} · metrics × tickers · arrow keys to navigate
             </span>
-            <div className="ml-auto flex flex-wrap gap-1">
-              {SCREENER_METRIC_GROUPS.map((group) => (
-                <button
-                  key={group.id}
-                  type="button"
-                  className={screenerExpandedGroups.has(group.id) ? 'st-btn-active' : 'st-btn-muted'}
-                  onClick={() => setScreenerExpandedGroups((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(group.id)) next.delete(group.id);
-                    else next.add(group.id);
-                    return next;
-                  })}
-                >
-                  {group.label}
-                </button>
-              ))}
-            </div>
+          </summary>
+          <div className="research-screener-card-toolbar">
+            {SCREENER_METRIC_GROUPS.map((group) => (
+              <button
+                key={group.id}
+                type="button"
+                className={screenerExpandedGroups.has(group.id) ? 'st-btn-active' : 'st-btn-muted'}
+                onClick={() => setScreenerExpandedGroups((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(group.id)) next.delete(group.id);
+                  else next.add(group.id);
+                  return next;
+                })}
+              >
+                {group.label}
+              </button>
+            ))}
           </div>
-          <div className="st-panel-body p-1">
+          <div className="research-screener-card-body">
             {loading && !screenerGridRows.length ? (
-              <div className="p-3 text-xs text-st-muted">Loading…</div>
+              <div className="p-2 text-xs text-st-muted">Loading…</div>
             ) : screenerTickers.length === 0 ? (
-              <div className="p-3 text-xs text-st-muted">Enter at least one ticker above.</div>
+              <div className="p-2 text-xs text-st-muted">Enter at least one ticker above.</div>
             ) : (
               <FinancialGrid
                 data={screenerGridRows}
@@ -712,12 +718,24 @@ export default function ResearchPage() {
               />
             )}
           </div>
-        </div>
+        </details>
       )}
 
       {!isDeepDive && screenerTickers.length > 0 && (
-        <InsiderPanel mode="screener" tickers={screenerTickers} />
+        <div className="research-screener-summary-row">
+          {Object.keys(screenerData).length > 0 && (
+            <details className="st-details research-screener-summary-col research-screener-summary-col--scores" open>
+              <summary className="st-details-summary">Score Summary</summary>
+              <ScoreSummaryBar tickers={screenerTickers} screenerData={screenerData} />
+            </details>
+          )}
+          <details className="st-details research-screener-summary-col research-insider-panel" open>
+            <summary className="st-details-summary">Insider Buy Clusters</summary>
+            <InsiderPanel mode="screener" tickers={screenerTickers} embedded />
+          </details>
+        </div>
       )}
+
     </div>
   );
 }
