@@ -120,15 +120,18 @@ export default function DashboardPage() {
   const unavailableCount = meta?.unavailable ?? items.filter((item) => !item.available).length;
 
   return (
-    <div className="st-page">
-      <div className="mb-2">
-        <h1 className="st-page-heading">Dashboard</h1>
-        <div className="st-page-subtitle">
-          Macro context: indices, commodities, rates, and sector ETFs.
+    <div className="st-page st-page--split-wide">
+      <div className="st-page-header">
+        <div className="st-page-header-title">
+          <h1 className="st-page-heading">Dashboard</h1>
+          <div className="st-page-subtitle">
+            Macro context: indices, commodities, rates, and sector ETFs.
+          </div>
         </div>
       </div>
 
-      <div className="st-panel mb-2">
+      <div className="dashboard-layout">
+      <div className="st-panel">
         <div className="st-panel-header">Your Portfolio</div>
         <div className="st-panel-body">
           <div className="d-flex justify-content-between align-items-center mb-1">
@@ -136,7 +139,7 @@ export default function DashboardPage() {
             <Link to="/" className="small st-link-muted">Open full portfolio →</Link>
           </div>
           {portfolioTickers.length === 0 ? (
-            <div className="alert alert-secondary mb-0 py-2">
+            <div className="st-alert-secondary mb-0">
               No tickers in your portfolio yet.{' '}
               <Link to="/screener" className="st-link-muted">Browse the screener</Link> or search above to add symbols.
             </div>
@@ -176,25 +179,26 @@ export default function DashboardPage() {
       {loading && (
         <div className="st-spinner-wrap"><StSpinner /> Loading macro data…</div>
       )}
-      {error && <div className="alert alert-danger py-2">{error}</div>}
+      {error && <div className="st-alert-danger">{error}</div>}
       {!loading && !error && items.length === 0 && (
-        <div className="alert alert-secondary py-2">Macro data unavailable. Ensure yfinance can reach market data sources.</div>
+        <div className="st-alert-secondary">Macro data unavailable. Ensure yfinance can reach market data sources.</div>
       )}
 
       {!loading && unavailableCount > 0 && (
-        <div className="alert alert-warning py-2 small mb-2">
+        <div className="st-alert-warn">
           {unavailableCount} of {items.length} macro symbols could not be quoted (shown as —). Market data may be delayed or blocked for some tickers.
         </div>
       )}
 
       {!loading && grouped.length > 0 && (
-        <div className="st-panel mb-2">
+        <div className="st-panel">
           <div className="st-panel-header">Macro Heatmap</div>
           <div className="st-panel-body">
             <MacroHeatmap sections={grouped} />
           </div>
         </div>
       )}
+      </div>
 
       {meta?.source && (
         <div className="st-muted-note">

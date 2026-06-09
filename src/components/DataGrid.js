@@ -248,26 +248,25 @@ export default function DataGrid({
   return (
     <div style={{ position: 'relative', maxWidth: '100%', ...style }}>
       {/* Controls aligned to the right edge of the table area (stay fixed while grid scrolls) */}
-      <div className="d-flex justify-content-end align-items-center mb-2" style={{ gap: '0.5rem' }}>
+      <div className="data-grid-toolbar d-flex justify-content-end align-items-center mb-1">
         <div className="position-relative">
           <button
             type="button"
-            className="btn btn-light btn-sm border"
-            style={{ padding: '2px 8px', borderRadius: 4 }}
+            className="st-btn-ghost st-btn-icon"
             onClick={() => setShowColumnDropdown((v) => !v)}
             title="Show/hide columns"
+            aria-label="Show/hide columns"
           >
-            <span style={{ fontSize: 18, verticalAlign: 'middle' }}>☰</span>
+            ☰
           </button>
           {showColumnDropdown && (
             <div
               ref={dropdownRef}
-              className="position-absolute bg-body border rounded shadow-sm"
-              style={{ right: 0, top: '110%', minWidth: 180, zIndex: 10, padding: 8 }}
+              className="data-grid-column-menu st-dropdown-menu"
             >
-              <div className="d-flex justify-content-between align-items-center mb-2">
+              <div className="data-grid-column-menu-header">
                 <div className="fw-bold">Columns</div>
-                <button type="button" className="btn btn-link btn-sm p-0" onClick={resetVisibleColumns}>
+                <button type="button" className="st-link-muted" onClick={resetVisibleColumns}>
                   Reset
                 </button>
               </div>
@@ -276,17 +275,17 @@ export default function DataGrid({
                 if (!colKey || colKey === 'select') return null;
                 const groupLabel = col.meta?.group;
                 return (
-                  <div key={colKey} className="form-check mb-1">
+                  <div key={colKey} className="st-check-row">
                     <input
-                      className="form-check-input"
+                      className="st-check"
                       type="checkbox"
                       id={`col-toggle-${colKey}`}
                       checked={effectiveVisibleColumns.includes(colKey)}
                       onChange={() => handleToggleColumn(colKey)}
                     />
-                    <label className="form-check-label" htmlFor={`col-toggle-${colKey}`} style={{ fontSize: 13 }}>
+                    <label className="st-check-label" htmlFor={`col-toggle-${colKey}`}>
                       {col.meta?.label ?? (typeof col.header === 'string' ? col.header : colKey)}
-                      {groupLabel && <span className="text-muted ms-1" style={{ fontSize: 11 }}>({groupLabel})</span>}
+                      {groupLabel && <span className="st-muted-note ms-1">({groupLabel})</span>}
                     </label>
                   </div>
                 );
@@ -296,8 +295,7 @@ export default function DataGrid({
         </div>
         {enableGlobalFilter && (
           <input
-            className="form-control form-control-sm"
-            style={{ maxWidth: 220 }}
+            className="st-input data-grid-filter"
             placeholder="Filter rows…"
             aria-label="Filter table rows"
             value={globalFilter ?? ''}

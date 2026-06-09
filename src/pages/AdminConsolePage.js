@@ -5,22 +5,12 @@ import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import BootstrapPipeline from '../components/BootstrapPipeline';
 import { getPortfolio, getPortfolioTickersCsv, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
-import { formatFreshnessTimestamp, isStale, summarizeFreshness } from '../utils/dataFreshness';
+import { formatFreshnessTimestamp, FRESHNESS_THRESHOLDS, isStale, summarizeFreshness } from '../utils/dataFreshness';
 import { useToast } from '../context/ToastContext';
 import { clearScreener } from '../store';
+import './admin.css';
 
 const DEFAULT_TICKERS = 'AAPL,MSFT,NVDA,AMD,GOOGL,AMZN,META,TSLA';
-
-const FRESHNESS_THRESHOLDS = {
-  companiesUpdatedAt: 168,
-  fundamentalsUpdatedAt: 168,
-  companyScoresUpdatedAt: 168,
-  feedsLastPolledAt: 12,
-  pricesUpdatedAt: 36,
-  insidersUpdatedAt: 168,
-  insiderClustersUpdatedAt: 168,
-  latestArticleFetchedAt: 12,
-};
 
 function initialTickersField() {
   return getPortfolioTickersCsv() || DEFAULT_TICKERS;
@@ -42,6 +32,7 @@ function staleClass(value, maxAgeHours) {
 
 export default function AdminConsolePage() {
   const [status, setStatus] = useState({ counts: {}, freshness: {}, feeds: [], jobs: {}, recentJobRuns: [] });
+  const [statusLoaded, setStatusLoaded] = useState(false);
   const [feeds, setFeeds] = useState([]);
   const [tickers, setTickers] = useState(initialTickersField);
   const [portfolioCount, setPortfolioCount] = useState(() => getPortfolio().length);
@@ -64,6 +55,7 @@ export default function AdminConsolePage() {
     ]);
     setStatus(statusRes.data || { counts: {}, freshness: {}, feeds: [], jobs: {}, recentJobRuns: [] });
     setFeeds(feedsRes.data?.feeds || []);
+    setStatusLoaded(true);
   };
 
   useEffect(() => {
@@ -101,51 +93,53 @@ export default function AdminConsolePage() {
   const feedHealthRows = status.feeds?.length ? status.feeds : [];
 
   return (
-    <div className="st-page">
-      <div className="row mb-3">
-        <div className="col">
-          <h1 className="h3 mb-1">Admin Console</h1>
-          <div className="text-muted">
-            Manage local cache bootstrap, fundamentals refreshes, and default RSS ingestion.
-            {' '}<Link to="/columns">Column reference</Link> (legacy fundamentals field glossary).
-          </div>
+    <div className="st-page st-page--constrained admin-page">
+      <div className="st-page-header">
+        <div className="st-page-header-title">
+        <h1 className="st-page-heading">Admin Console</h1>
+        <div className="st-page-subtitle">
+          Manage local cache bootstrap, fundamentals refreshes, and default RSS ingestion.
+          {' '}<Link to="/columns" className="st-link-muted">Column reference</Link> (legacy fundamentals field glossary).
+        </div>
         </div>
       </div>
 
       {freshnessSummary.stale && (
-        <div className="alert alert-warning" role="alert">
+        <div className="st-alert-warn" role="alert">
           Cache is stale: {freshnessSummary.reasons.join(', ')}. Run bootstrap or the relevant refresh action below.
         </div>
       )}
 
       {message && (
-        <div className={`alert ${message.includes('failed') ? 'alert-danger' : 'alert-info'}`} role="alert">
+        <div className={message.includes('failed') ? 'st-alert-danger' : 'st-alert-info'} role="alert">
           {message}
         </div>
       )}
 
-      <div className="card shadow-sm mb-3">
-        <div className="card-body">
-          <div className="row g-3 align-items-end">
-            <div className="col-lg-8">
-              <label className="form-label">Tickers to refresh</label>
+      <div className="st-panel">
+        <div className="st-panel-header">Data refresh</div>
+        <div className="st-panel-body">
+          <div className="admin-toolbar-grid">
+            <div>
+              <label className="st-label" htmlFor="adminTickers">Tickers to refresh</label>
               <input
-                className="form-control"
+                id="adminTickers"
+                className="st-input"
                 value={tickers}
                 onChange={e => setTickers(e.target.value)}
                 placeholder="AAPL,MSFT,NVDA"
               />
-              <div className="form-text">
+              <div className="st-muted-note mt-1">
                 {portfolioCount > 0
                   ? `Pre-filled from portfolio (${portfolioCount} ticker${portfolioCount === 1 ? '' : 's'}). Clear the field to still use portfolio on bootstrap.`
                   : 'Portfolio empty — using default tickers unless you enter symbols.'}
               </div>
             </div>
-            <div className="col-lg-4 d-flex gap-2 flex-wrap">
+            <div className="admin-toolbar-actions">
               {portfolioCount > 0 && (
                 <button
                   type="button"
-                  className="btn btn-outline-secondary"
+                  className="st-btn-ghost"
                   disabled={busyAction !== null}
                   onClick={() => {
                     setTickers(getPortfolioTickersCsv());
@@ -156,7 +150,8 @@ export default function AdminConsolePage() {
                 </button>
               )}
               <button
-                className="btn btn-outline-secondary"
+                type="button"
+                className="st-btn-ghost"
                 disabled={busyAction !== null}
                 onClick={() => loadStatus()}
               >
@@ -168,6 +163,10 @@ export default function AdminConsolePage() {
             tickersCsv={resolvedTickersCsv}
             disabled={busyAction !== null}
             showToast={showToast}
+            freshness={status.freshness}
+            counts={status.counts}
+            coverage={status.coverage}
+            statusLoaded={statusLoaded}
             onComplete={async (stepResults) => {
               await loadStatus();
               dispatch(clearScreener());
@@ -181,66 +180,75 @@ export default function AdminConsolePage() {
               }
             }}
           />
-          <div className="d-flex gap-2 flex-wrap mt-3 pt-3 border-top">
-            <span className="align-self-center small text-muted me-1">Individual actions:</span>
+          <div className="admin-actions-row">
+            <span className="st-muted-note align-self-center me-1">Individual actions:</span>
             <button
-              className="btn btn-outline-primary"
+              type="button"
+              className="st-btn-muted"
               disabled={busyAction !== null}
               onClick={() => runAction('Company sync', () => axios.post(API_ENDPOINTS.ADMIN_SYNC_COMPANIES))}
             >
               {busyAction === 'Company sync' ? 'Running...' : 'Sync Companies'}
             </button>
             <button
-              className="btn btn-outline-primary"
+              type="button"
+              className="st-btn-muted"
               disabled={busyAction !== null}
               onClick={() => runAction('Fundamentals refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_FUNDAMENTALS}?tickers=${tickersQuery()}`))}
             >
               {busyAction === 'Fundamentals refresh' ? 'Running...' : 'Refresh Fundamentals'}
             </button>
             <button
-              className="btn btn-outline-primary"
+              type="button"
+              className="st-btn-muted"
               disabled={busyAction !== null}
               onClick={() => runAction('Feed ingest', () => axios.post(API_ENDPOINTS.ADMIN_INGEST_DEFAULT_FEEDS))}
             >
               {busyAction === 'Feed ingest' ? 'Running...' : 'Ingest Default Feeds'}
             </button>
             <button
-              className="btn btn-outline-primary"
+              type="button"
+              className="st-btn-muted"
               disabled={busyAction !== null}
               onClick={() => runAction('Price refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_PRICES}?tickers=${tickersQuery()}`))}
             >
               {busyAction === 'Price refresh' ? 'Running...' : 'Refresh Prices'}
             </button>
             <button
-              className="btn btn-outline-primary"
+              type="button"
+              className="st-btn-muted"
               disabled={busyAction !== null}
               onClick={() => runAction('Insider refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_INSIDERS}?tickers=${tickersQuery()}`))}
             >
               {busyAction === 'Insider refresh' ? 'Running...' : 'Refresh Insiders'}
             </button>
             <button
-              className="btn btn-outline-primary"
+              type="button"
+              className="st-btn-muted"
               disabled={busyAction !== null}
               onClick={() => runAction('Enrich metadata', () => axios.post(`${API_ENDPOINTS.ADMIN_ENRICH_METADATA}?tickers=${tickersQuery()}`))}
             >
               {busyAction === 'Enrich metadata' ? 'Running...' : 'Enrich Metadata'}
             </button>
             <button
-              className="btn btn-outline-secondary"
+              type="button"
+              className="st-btn-ghost"
               disabled={busyAction !== null}
               onClick={() => runAction('Enrich all missing metadata', () => axios.post(`${API_ENDPOINTS.ADMIN_ENRICH_METADATA}?all=true`))}
             >
               {busyAction === 'Enrich all missing metadata' ? 'Running...' : 'Enrich All Missing'}
             </button>
             <button
-              className="btn btn-outline-warning"
+              type="button"
+              className="st-btn-muted"
               disabled={busyAction !== null}
               onClick={() => runAction('Article dedup', () => axios.post(API_ENDPOINTS.ADMIN_DEDUP_ARTICLES))}
             >
               {busyAction === 'Article dedup' ? 'Running...' : 'Dedup Articles'}
             </button>
             <button
-              className="btn btn-outline-secondary"
+              type="button"
+              className="st-btn-ghost"
               disabled={busyAction !== null}
               onClick={() => runAction('Queue RSS poll', () => axios.post(API_ENDPOINTS.ADMIN_ENQUEUE_JOB, {
                 job_type: 'ingest_default_feeds',
@@ -253,12 +261,11 @@ export default function AdminConsolePage() {
         </div>
       </div>
 
-      <div className="row g-3">
-        <div className="col-lg-6">
-          <div className="card shadow-sm h-100">
-            <div className="card-body">
-              <h2 className="h5">Counts</h2>
-              <ul className="mb-0">
+      <div className="admin-stats-grid">
+        <div className="st-panel">
+          <div className="st-panel-header">Counts</div>
+          <div className="st-panel-body">
+            <ul className="admin-stat-list mb-0">
                 <li>Companies: {status.counts?.companies ?? 0}</li>
                 <li>Feeds: {status.counts?.feeds ?? 0}</li>
                 <li>Articles: {status.counts?.articles ?? 0}</li>
@@ -278,14 +285,12 @@ export default function AdminConsolePage() {
                   {' '}/ linked: {status.coverage?.linkedArticles ?? 0}
                 </li>
               </ul>
-            </div>
           </div>
         </div>
-        <div className="col-lg-6">
-          <div className="card shadow-sm h-100">
-            <div className="card-body">
-              <h2 className="h5">Freshness</h2>
-              <ul className="mb-0">
+        <div className="st-panel">
+          <div className="st-panel-header">Freshness</div>
+          <div className="st-panel-body">
+            <ul className="admin-stat-list mb-0">
                 <li className={staleClass(status.freshness?.companiesUpdatedAt, FRESHNESS_THRESHOLDS.companiesUpdatedAt)}>
                   Companies updated: {formatDate(status.freshness?.companiesUpdatedAt)}
                 </li>
@@ -312,19 +317,18 @@ export default function AdminConsolePage() {
                   Latest article fetched: {formatDate(status.freshness?.latestArticleFetchedAt)}
                 </li>
               </ul>
-            </div>
           </div>
         </div>
       </div>
 
-      <div className="card shadow-sm mt-3">
-        <div className="card-body">
-          <h2 className="h5">Feed Health</h2>
+      <div className="st-panel">
+        <div className="st-panel-header">Feed Health</div>
+        <div className="st-panel-body-flush">
           {feedHealthRows.length === 0 ? (
-            <div className="text-muted small">No feed poll history yet. Run ingest to populate health data.</div>
+            <div className="st-panel-body st-muted-note">No feed poll history yet. Run ingest to populate health data.</div>
           ) : (
             <div className="table-responsive">
-              <table className="table table-sm align-middle mb-0">
+              <table className="table table-sm align-middle mb-0 st-grid-table st-grid-table-compact">
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -353,14 +357,14 @@ export default function AdminConsolePage() {
         </div>
       </div>
 
-      <div className="card shadow-sm mt-3">
-        <div className="card-body">
-          <h2 className="h5">Recent Job Runs</h2>
+      <div className="st-panel">
+        <div className="st-panel-header">Recent Job Runs</div>
+        <div className="st-panel-body-flush">
           {(status.recentJobRuns || []).length === 0 ? (
-            <div className="text-muted small">No completed job runs yet.</div>
+            <div className="st-panel-body st-muted-note">No completed job runs yet.</div>
           ) : (
             <div className="table-responsive">
-              <table className="table table-sm align-middle mb-0">
+              <table className="table table-sm align-middle mb-0 st-grid-table st-grid-table-compact">
                 <thead>
                   <tr>
                     <th>Job</th>
@@ -385,11 +389,11 @@ export default function AdminConsolePage() {
         </div>
       </div>
 
-      <div className="card shadow-sm mt-3">
-        <div className="card-body">
-          <h2 className="h5">Default RSS Feeds</h2>
+      <div className="st-panel">
+        <div className="st-panel-header">Default RSS Feeds</div>
+        <div className="st-panel-body-flush">
           <div className="table-responsive">
-            <table className="table table-sm align-middle mb-0">
+            <table className="table table-sm align-middle mb-0 st-grid-table st-grid-table-compact">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -402,7 +406,7 @@ export default function AdminConsolePage() {
                   <tr key={feed.feed_url}>
                     <td>{feed.name}</td>
                     <td>{feed.category}</td>
-                    <td><a href={feed.feed_url} target="_blank" rel="noopener noreferrer">{feed.feed_url}</a></td>
+                    <td><a href={feed.feed_url} target="_blank" rel="noopener noreferrer" className="st-link-muted">{feed.feed_url}</a></td>
                   </tr>
                 ))}
               </tbody>

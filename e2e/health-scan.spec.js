@@ -69,9 +69,9 @@ test.describe('health scan', () => {
         });
       }
 
-      const hasErrorAlert = await page.locator('.alert-danger').count();
+      const hasErrorAlert = await page.locator('.alert-danger, .st-alert-danger').count();
       if (hasErrorAlert > 0) {
-        const text = await page.locator('.alert-danger').first().textContent();
+        const text = await page.locator('.alert-danger, .st-alert-danger').first().textContent();
         if (text && !text.includes('Stale')) {
           report.broken_ui.push({ route, reason: text.trim().slice(0, 200) });
         }

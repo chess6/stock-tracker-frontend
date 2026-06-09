@@ -24,7 +24,7 @@ function formatPublished(value) {
   return Number.isNaN(date.getTime()) ? value.slice(0, 16) : date.toLocaleString();
 }
 
-function snippet(text, maxLen = 220) {
+function snippet(text, maxLen = 140) {
   if (!text) return '';
   const clean = String(text).replace(/\s+/g, ' ').trim();
   return clean.length <= maxLen ? clean : `${clean.slice(0, maxLen)}…`;
@@ -149,20 +149,20 @@ export default function NewsPage() {
   const hasNext = offset + PAGE_SIZE < total;
 
   return (
-    <div className="st-page">
-      <div className="row mb-2 align-items-end">
-        <div className="col">
+    <div className="st-page st-page--constrained">
+      <div className="st-page-header">
+        <div className="st-page-header-title">
           <h1 className="st-page-heading">News</h1>
           <div className="st-page-subtitle">
             Unique articles from ingested RSS feeds, deduplicated by URL and near-duplicate titles.
           </div>
         </div>
-        <div className="col-auto">
+        <div className="st-page-header-actions">
           <Link to="/admin" className="st-btn-ghost st-link-btn">Ingest feeds in Admin</Link>
         </div>
       </div>
 
-      <form onSubmit={applyFilters} className="st-panel mb-2">
+      <form onSubmit={applyFilters} className="st-panel">
         <div className="st-panel-body">
         <div className="row g-2 align-items-end">
           <div className="col-md-4">
@@ -220,23 +220,23 @@ export default function NewsPage() {
         </div>
       </form>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && <div className="st-alert-danger">{error}</div>}
 
       {loading ? (
         <div className="st-spinner-wrap"><StSpinner /> Loading news…</div>
       ) : articles.length === 0 ? (
-        <div className="alert alert-secondary">
+        <div className="st-alert-secondary">
           No articles found. Run <strong>Ingest Default Feeds</strong> from the{' '}
           <Link to="/admin">Admin</Link> console to populate the feed.
         </div>
       ) : (
         <>
-          <div className="text-muted small mb-2">
+          <div className="text-muted small mb-1">
             Showing {pageStart}–{pageEnd} of {total}
           </div>
-          <div className="list-group mb-3">
+          <div className="list-group news-feed">
             {articles.map((item) => (
-              <div key={item.id} className="list-group-item list-group-item-action list-group-item-compact flex-column align-items-start">
+              <div key={item.id} className="list-group-item list-group-item-action list-group-item-compact news-feed-item flex-column align-items-start">
                 <div className="d-flex w-100 justify-content-between gap-2">
                   <a
                     href={item.url}
@@ -249,10 +249,10 @@ export default function NewsPage() {
                   </a>
                   <small className="text-muted text-nowrap">{formatPublished(item.publishedDate)}</small>
                 </div>
-                <div className="small text-muted mb-1">{item.sourceDomain || 'Unknown source'}</div>
-                {item.description && <div className="small text-secondary">{snippet(item.description)}</div>}
+                <div className="news-feed-meta text-muted">{item.sourceDomain || 'Unknown source'}</div>
+                {item.description && <div className="small text-secondary news-snippet">{snippet(item.description)}</div>}
                 {(item.tickerMatches?.length > 0 || item.tickers?.length > 0) && (
-                  <div className="mt-2 d-flex flex-wrap gap-1">
+                  <div className="mt-1 d-flex flex-wrap gap-1">
                     {(item.tickerMatches?.length ? item.tickerMatches : item.tickers.map((ticker) => ({ ticker }))).map((match) => (
                       item.tickerMatches?.length
                         ? tickerMatchBadge(match)

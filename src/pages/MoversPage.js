@@ -54,7 +54,7 @@ export default function MoversPage() {
         return (
           <button
             type="button"
-            className={`btn btn-sm ${isInPortfolio(ticker) ? 'btn-outline-secondary' : 'btn-success'}`}
+            className={isInPortfolio(ticker) ? 'st-btn-success-outline st-btn-icon' : 'st-btn-success st-btn-icon'}
             title={isInPortfolio(ticker) ? 'Already in portfolio' : 'Add to portfolio'}
             onClick={() => handleAdd(ticker)}
           >
@@ -91,22 +91,24 @@ export default function MoversPage() {
   ], [window, handleAdd]);
 
   return (
-    <div className="st-page">
-      <div className="d-flex flex-wrap align-items-center justify-content-between mb-2 gap-2">
-        <div>
-          <h1 className="h3 mb-1">Price Movers</h1>
-          <div className="text-muted">±10% {window === 'd' ? 'daily' : 'weekly'} movers from cached prices.</div>
+    <div className="st-page st-page--narrow">
+      <div className="st-page-header">
+        <div className="st-page-header-title">
+          <h1 className="st-page-heading">Price Movers</h1>
+          <div className="st-page-subtitle">±10% {window === 'd' ? 'daily' : 'weekly'} movers from cached prices.</div>
         </div>
-        <div className="btn-group" role="group">
-          <button type="button" className={`btn btn-sm ${window === 'd' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setWindow('d')}>Daily (d)</button>
-          <button type="button" className={`btn btn-sm ${window === 'w' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setWindow('w')}>Weekly (w)</button>
+        <div className="st-page-header-actions">
+        <div className="st-segment" role="group" aria-label="Mover window">
+          <button type="button" className={`st-segment-btn ${window === 'd' ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`} onClick={() => setWindow('d')}>Daily (d)</button>
+          <button type="button" className={`st-segment-btn ${window === 'w' ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`} onClick={() => setWindow('w')}>Weekly (w)</button>
+        </div>
         </div>
       </div>
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && <div className="st-alert-danger">{error}</div>}
       {loading ? (
         <div className="st-spinner-wrap"><StSpinner size="sm" /> Loading movers…</div>
       ) : movers.length === 0 ? (
-        <div className="alert alert-secondary">No movers found. Bootstrap prices for more tickers via Admin.</div>
+        <div className="st-alert-secondary">No movers found. Bootstrap prices for more tickers via Admin.</div>
       ) : (
         <DataGrid
           columns={columns}

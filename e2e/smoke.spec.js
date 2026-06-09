@@ -7,6 +7,8 @@ async function waitForPageReady(page) {
   await page.locator('.spinner-border').first().waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
 }
 
+const ERROR_ALERT = '.alert-danger, .st-alert-danger';
+
 test.describe('smoke', () => {
   test('portfolio loads holdings from preferences API', async ({ page }) => {
     await mockStockTrackerApi(page, { portfolio: ['JPM', 'MCD'], theme: 'dark' });
@@ -47,7 +49,7 @@ test.describe('smoke', () => {
     for (const route of ['/', '/dashboard', '/news', '/admin', '/screener', '/research/AAPL']) {
       await page.goto(route);
       await waitForPageReady(page);
-      await expect(page.locator('.alert-danger')).toHaveCount(0);
+      await expect(page.locator(ERROR_ALERT)).toHaveCount(0);
     }
     expect(apiFailures).toEqual([]);
   });

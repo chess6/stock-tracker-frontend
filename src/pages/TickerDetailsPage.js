@@ -84,40 +84,48 @@ export default function TickerDetailsPage() {
   }, [rows]);
 
   return (
-    <div className="container py-3">
+    <div className="st-page st-page--full">
       <TickerSubnav ticker={ticker} />
-      <h2 className="h4 mb-1">Insider Transactions — {ticker}</h2>
-      <p className="text-muted small mb-3">
-        SEC Form 4 filings from local cache
-        {source && <> · source: <code>{source}</code></>}
-      </p>
+      <div className="st-panel mb-2">
+        <div className="st-panel-header">Insider Transactions — {ticker}</div>
+        <div className="st-panel-body">
+          <p className="st-muted-note mb-2">
+            SEC Form 4 filings from local cache
+            {source && <> · source: <code>{source}</code></>}
+          </p>
 
-      {loading && (
-        <div className="text-muted py-4">
-          <StSpinner size="sm" /> Loading insider transactions…
+          {loading && (
+            <div className="st-spinner-wrap py-2">
+              <StSpinner size="sm" /> Loading insider transactions…
+            </div>
+          )}
+          {!loading && error && <div className="st-alert-danger">{error}</div>}
+          {!loading && !error && rows.length === 0 && (
+            <div className="st-alert-secondary">
+              No insider transactions cached for {ticker}. Run{' '}
+              <Link to="/admin" className="st-link-muted">Admin → Refresh Insiders</Link> or bootstrap your portfolio tickers.
+            </div>
+          )}
         </div>
-      )}
-      {!loading && error && <div className="alert alert-danger">{error}</div>}
-      {!loading && !error && rows.length === 0 && (
-        <div className="alert alert-secondary">
-          No insider transactions cached for {ticker}. Run{' '}
-          <Link to="/admin">Admin → Refresh Insiders</Link> or bootstrap your portfolio tickers.
-        </div>
-      )}
-      {!loading && rows.length > 0 && (
-        <DataGrid
-          data={rows}
-          columns={columns}
-          enableRowSelection={false}
-          enableSorting
-          enableGlobalFilter
-          style={{ minWidth: 800 }}
-          pageChunkSize={50}
-          getRowId={(row) => String(row.id)}
-          maxHeight="calc(100vh - 260px)"
-          compact
-        />
-      )}
+        {!loading && rows.length > 0 && (
+          <div className="st-panel-body-flush">
+            <DataGrid
+              data={rows}
+              columns={columns}
+              enableRowSelection={false}
+              enableSorting
+              enableGlobalFilter
+              style={{ minWidth: 800 }}
+              pageChunkSize={50}
+              getRowId={(row) => String(row.id)}
+              maxHeight="calc(100vh - 260px)"
+              compact
+              tableExtraClassName="portfolio-grid-table"
+              tableClassName="table table-sm table-bordered st-grid-table"
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

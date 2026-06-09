@@ -66,15 +66,15 @@
 
 .macro-heatmap-cells {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(4.75rem, 1fr));
-  gap: 0.15rem;
+  grid-template-columns: repeat(auto-fill, minmax(4.25rem, 1fr));
+  gap: 0.1rem;
 }
 
 .macro-heatmap-cell {
   border: 1px solid var(--st-border);
   border-radius: 0.2rem;
-  padding: 0.18rem 0.22rem;
-  min-height: 3.1rem;
+  padding: 0.12rem 0.18rem;
+  min-height: 2.45rem;
   display: flex;
   flex-direction: column;
   justify-content: center;

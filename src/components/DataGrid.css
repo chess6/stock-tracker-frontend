@@ -2,10 +2,60 @@
     font-variant-numeric: tabular-nums;
 }
 
+.data-grid-toolbar {
+    gap: 0.35rem;
+}
+
+.data-grid-filter {
+    max-width: 14rem;
+    min-height: 1.62rem;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.76rem;
+}
+
+.data-grid-column-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.15rem);
+    min-width: 11rem;
+    z-index: 20;
+    padding: 0.35rem 0.45rem;
+}
+
+.data-grid-column-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.72rem;
+}
+
+.st-check-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+    margin-bottom: 0.15rem;
+}
+
+.st-btn-icon {
+    min-width: 1.62rem;
+    padding: 0.12rem 0.35rem;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
 .data-grid-table th,
 .data-grid-table td {
-    padding: 0.2rem 0.45rem !important;
+    padding: 0.12rem 0.32rem !important;
     vertical-align: middle;
+    font-size: 0.78rem;
+}
+
+.data-grid-table thead th {
+    padding-top: 0.14rem !important;
+    padding-bottom: 0.14rem !important;
+    font-size: 0.7rem;
 }
 
 .data-grid-table td.numeric-cell {

@@ -221,83 +221,99 @@ const SummaryPage = () => {
   }
 
   return (
-    <div className="st-page">
-      {loadError && <div className="alert alert-warning">{loadError}</div>}
+    <div className="st-page st-page--split-wide">
+      {loadError && <div className="st-alert-warn">{loadError}</div>}
       <TickerSubnav ticker={ticker} />
-      <div className="row mb-2">
-        <div className="col-12">
-          <div className="st-panel">
-            <div className="st-panel-body">
-              <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
-                <h1 className="st-page-heading mb-0">{tickerMeta?.name || ticker} Summary</h1>
-                <button
-                  type="button"
-                  className={isInPortfolio(ticker) ? 'st-btn-success-outline' : 'st-btn-success'}
-                  onClick={handleAddToPortfolio}
-                >
-                  {isInPortfolio(ticker) ? 'In Portfolio' : 'Add to Portfolio'}
-                </button>
-              </div>
-              {metaFields.length > 0 && (
-                <div className="mb-2 small text-muted">
-                  {metaFields.map(([label, value]) => (
-                    <div key={label}><strong>{label}:</strong> {value}</div>
-                  ))}
-                  {(tickerMeta?.sec_filings_url || tickerMeta?.secfilings) && (
-                    <div><strong>SEC Filings:</strong> <a href={tickerMeta.sec_filings_url || tickerMeta.secfilings} target="_blank" rel="noopener noreferrer">Link</a></div>
-                  )}
-                  {(tickerMeta?.company_site || tickerMeta?.companysite) && (
-                    <div><strong>Company Site:</strong> <a href={tickerMeta.company_site || tickerMeta.companysite} target="_blank" rel="noopener noreferrer">{tickerMeta.company_site || tickerMeta.companysite}</a></div>
-                  )}
-                </div>
-              )}
-              <div className="mb-1 text-muted">
-                {latestClose != null && (
-                  <span>
-                    Latest Close: <strong>${latestClose.toFixed(2)}</strong>
-                  </span>
-                )}
-                {prevClose != null && (
-                  <span style={{ marginLeft: 12 }}>
-                    Prev Close: <strong>${prevClose.toFixed(2)}</strong>
-                  </span>
-                )}
-                {changeInfo && (
-                  <span className={changeInfo.up ? 'st-change-up' : 'st-change-down'} style={{ marginLeft: 12 }}>
-                    {changeInfo.up ? '+' : ''}{changeInfo.diff.toFixed(2)} ({changeInfo.up ? '+' : ''}{changeInfo.pct.toFixed(2)}%)
-                  </span>
-                )}
-              </div>
-              <div className="mb-1 st-segment">
-                {['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'MAX'].map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    className={`st-segment-btn ${range === r ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`}
-                    onClick={() => setRange(r)}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-              <ApexCharts options={chartOptions} series={chartSeries} type="line" height={240} />
+      <div className="summary-layout">
+      <div className="st-panel">
+        <div className="st-panel-body">
+          <div className="st-page-header">
+            <div className="st-page-header-title">
+              <h1 className="st-page-heading">{tickerMeta?.name || ticker} Summary</h1>
             </div>
+            <div className="st-page-header-actions">
+              <button
+                type="button"
+                className={isInPortfolio(ticker) ? 'st-btn-success-outline' : 'st-btn-success'}
+                onClick={handleAddToPortfolio}
+              >
+                {isInPortfolio(ticker) ? 'In Portfolio' : 'Add to Portfolio'}
+              </button>
+            </div>
+          </div>
+          {metaFields.length > 0 && (
+            <div className="summary-meta-strip">
+              {metaFields.map(([label, value]) => (
+                <span key={label}><strong>{label}:</strong> {value}</span>
+              ))}
+              {(tickerMeta?.sec_filings_url || tickerMeta?.secfilings) && (
+                <span>
+                  <strong>SEC:</strong>{' '}
+                  <a href={tickerMeta.sec_filings_url || tickerMeta.secfilings} target="_blank" rel="noopener noreferrer" className="st-link-muted">Filings</a>
+                </span>
+              )}
+              {(tickerMeta?.company_site || tickerMeta?.companysite) && (
+                <span>
+                  <strong>Site:</strong>{' '}
+                  <a href={tickerMeta.company_site || tickerMeta.companysite} target="_blank" rel="noopener noreferrer" className="st-link-muted">
+                    {tickerMeta.company_site || tickerMeta.companysite}
+                  </a>
+                </span>
+              )}
+            </div>
+          )}
+          <div className="summary-meta-strip">
+            {latestClose != null && (
+              <span>
+                Latest: <strong className="st-num">${latestClose.toFixed(2)}</strong>
+              </span>
+            )}
+            {prevClose != null && (
+              <span>
+                Prev: <strong className="st-num">${prevClose.toFixed(2)}</strong>
+              </span>
+            )}
+            {changeInfo && (
+              <span className={changeInfo.up ? 'st-change-up' : 'st-change-down'}>
+                {changeInfo.up ? '+' : ''}{changeInfo.diff.toFixed(2)} ({changeInfo.up ? '+' : ''}{changeInfo.pct.toFixed(2)}%)
+              </span>
+            )}
+          </div>
+          <div className="mb-1 st-segment">
+            {['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'MAX'].map((r) => (
+              <button
+                key={r}
+                type="button"
+                className={`st-segment-btn ${range === r ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`}
+                onClick={() => setRange(r)}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          <div className="summary-chart-plot">
+            <ApexCharts options={chartOptions} series={chartSeries} type="line" height={200} />
           </div>
         </div>
       </div>
-      <h3>News Feed</h3>
-      <ul className="list-unstyled">
-        {news.length === 0 && <li className="text-muted">No news found.</li>}
-        {news.map((item, idx) => (
-          <li key={idx} className="mb-2">
-            <a href={item.url} target="_blank" rel="noopener noreferrer" className="st-link-muted fw-semibold text-decoration-none">
-              {item.title}
-            </a>
-            <div className="small text-muted">{item.publishedDate ? item.publishedDate.slice(0, 10) : ''}</div>
-            {item.description && <div className="small text-secondary">{item.description}</div>}
-          </li>
-        ))}
-      </ul>
+      <div className="st-panel">
+        <div className="st-panel-header">News Feed</div>
+        <div className="st-panel-body">
+          <ul className="summary-news-list">
+            {news.length === 0 && <li className="st-muted-note">No news found.</li>}
+            {news.map((item, idx) => (
+              <li key={idx} className="summary-news-item">
+                <a href={item.url} target="_blank" rel="noopener noreferrer" className="st-link-muted fw-semibold text-decoration-none">
+                  {item.title}
+                </a>
+                <div className="small st-muted-note">{item.publishedDate ? item.publishedDate.slice(0, 10) : ''}</div>
+                {item.description && <div className="small st-muted-note news-snippet">{item.description}</div>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      </div>
     </div>
   );
 };

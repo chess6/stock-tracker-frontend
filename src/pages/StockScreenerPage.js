@@ -143,7 +143,7 @@ const StockScreenerPage = () => {
         return (
           <button
             type="button"
-            className={`btn btn-sm ${isInPortfolio(ticker) ? 'btn-outline-secondary' : 'btn-success'}`}
+            className={isInPortfolio(ticker) ? 'st-btn-success-outline st-btn-icon' : 'st-btn-success st-btn-icon'}
             title={isInPortfolio(ticker) ? 'Already in portfolio' : 'Add to portfolio'}
             onClick={() => handleAdd(ticker)}
           >
@@ -264,7 +264,7 @@ const StockScreenerPage = () => {
         return (
           <button
             type="button"
-            className={`btn btn-sm ${isInPortfolio(ticker) ? 'btn-outline-secondary' : 'btn-success'}`}
+            className={isInPortfolio(ticker) ? 'st-btn-success-outline st-btn-icon' : 'st-btn-success st-btn-icon'}
             onClick={() => handleAdd(ticker)}
           >
             <FontAwesomeIcon icon={faPlus} />
@@ -318,29 +318,31 @@ const StockScreenerPage = () => {
   const activeColumns = mode === 'cluster' ? clusterColumns : dollarColumns;
 
   return (
-    <div className="st-page">
-      <div className="row mb-1">
-        <div className="col">
-          <h1 className="h3 mb-0">Stock Screener</h1>
-          <div className="text-muted">
+    <div className="st-page st-page--full">
+      <div className="st-page-header">
+        <div className="st-page-header-title">
+          <h1 className="st-page-heading">Stock Screener</h1>
+          <div className="st-page-subtitle">
             {mode === 'cluster'
               ? 'Cluster $+ — 3+ insiders buying within 30 days with cluster buy value ≥ $100k'
               : 'Insider buying totals by ticker (6M > $100k)'}
             {insidersUpdatedAt && (
-              <span className="ms-2">· insiders cached {formatFreshnessTimestamp(insidersUpdatedAt)}</span>
+              <span className="ms-1">· insiders cached {formatFreshnessTimestamp(insidersUpdatedAt)}</span>
             )}
           </div>
-          <div className="btn-group btn-group-sm mt-2" role="group" aria-label="Screener mode">
+        </div>
+        <div className="st-page-header-actions">
+          <div className="st-segment" role="group" aria-label="Screener mode">
             <button
               type="button"
-              className={`btn ${mode === 'dollar' ? 'btn-primary' : 'btn-outline-primary'}`}
+              className={`st-segment-btn ${mode === 'dollar' ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`}
               onClick={() => setMode('dollar')}
             >
               $ (6M buys)
             </button>
             <button
               type="button"
-              className={`btn ${mode === 'cluster' ? 'btn-primary' : 'btn-outline-primary'}`}
+              className={`st-segment-btn ${mode === 'cluster' ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`}
               onClick={() => setMode('cluster')}
             >
               $+ (clusters)
@@ -352,7 +354,7 @@ const StockScreenerPage = () => {
       <div className="st-panel">
         <div className="st-panel-body-flush" style={{ overflowX: 'auto' }}>
           {loading ? (
-            <div className="text-center py-4 text-muted">
+            <div className="st-spinner-wrap py-2">
               <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
               Loading screener…
             </div>

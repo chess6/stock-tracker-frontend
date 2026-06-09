@@ -133,7 +133,7 @@ export default function IndustryPage() {
         return (
           <button
             type="button"
-            className={`btn btn-sm ${isInPortfolio(ticker) ? 'btn-outline-secondary' : 'btn-success'}`}
+            className={isInPortfolio(ticker) ? 'st-btn-success-outline st-btn-icon' : 'st-btn-success st-btn-icon'}
             title={isInPortfolio(ticker) ? 'Already in portfolio' : 'Add to portfolio'}
             onClick={() => handleAdd(ticker)}
           >
@@ -177,9 +177,9 @@ export default function IndustryPage() {
   ], [heatRanges, handleAdd]);
 
   return (
-    <div className="st-page">
-      <h1 className="st-page-heading mb-1">Industry Peers</h1>
-      <p className="st-page-subtitle mb-2">Sub-industry peer view — companies grouped by SEC SIC industry (populated on fundamentals refresh).</p>
+    <div className="st-page st-page--full">
+      <h1 className="st-page-heading">Industry Peers</h1>
+      <p className="st-page-subtitle">Sub-industry peer view — companies grouped by SEC SIC industry (populated on fundamentals refresh).</p>
       {error && <div className="alert alert-danger py-2">{error}</div>}
       <div className="industry-layout">
         <div className="st-panel industry-sidebar">

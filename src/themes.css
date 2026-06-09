@@ -127,6 +127,10 @@ body {
   border-color: var(--st-pipeline-surface);
 }
 
+[data-bs-theme='dark'] .jx-pipeline-mode {
+  border-top-color: var(--st-pipeline-border);
+}
+
 [data-bs-theme='light'] .bootstrap-pipeline {
   background: var(--st-pipeline-bg);
 }

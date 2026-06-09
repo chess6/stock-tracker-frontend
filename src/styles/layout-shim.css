@@ -293,13 +293,13 @@
 }
 
 .list-group-item {
-  padding: 0.55rem 0.65rem;
+  padding: 0.38rem 0.42rem;
   border-bottom: 1px solid var(--st-border);
   background: var(--st-surface);
 }
 
 .list-group-item-compact {
-  padding: 0.35rem 0.45rem;
+  padding: 0.25rem 0.38rem;
 }
 
 .list-group-item:last-child { border-bottom: 0; }

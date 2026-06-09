@@ -134,15 +134,17 @@
 
 /* Page layout helpers */
 .st-page-heading {
-  margin: 0 0 0.35rem;
-  font-size: 1rem;
+  margin: 0 0 0.18rem;
+  font-size: 0.92rem;
   font-weight: 600;
+  line-height: 1.2;
   color: var(--st-accent-amber);
 }
 
 .st-page-subtitle {
-  margin: 0 0 0.5rem;
-  font-size: 0.72rem;
+  margin: 0 0 0.28rem;
+  font-size: 0.68rem;
+  line-height: 1.3;
   color: var(--st-text-muted);
 }
 

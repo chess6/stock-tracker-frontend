@@ -1,8 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BOOTSTRAP_STEPS,
+  WAVE_LABELS,
   buildPipelineStages,
-  defaultSelectedStepIds,
+  explainStepRecommendation,
+  recommendedSelectedStepIds,
+  stepDisplayIndex,
 } from '../config/bootstrapPipeline';
 import { runBootstrapPipeline } from '../config/bootstrapPipelineRunner';
 import {
@@ -27,8 +30,18 @@ function connectorClass(stageIndex, stages, selected, stepStatus) {
   return '';
 }
 
+function stepStatusLabel(status, isSelected) {
+  if (status === 'running') return { text: 'Running', className: 'jx-step-status--running' };
+  if (status === 'success') return { text: 'Done', className: 'jx-step-status--success' };
+  if (status === 'error') return { text: 'Failed', className: 'jx-step-status--error' };
+  if (status === 'skipped') return { text: 'Skipped', className: 'jx-step-status--idle' };
+  if (isSelected) return { text: 'Queued', className: 'jx-step-status--queued' };
+  return { text: 'Excluded', className: 'jx-step-status--excluded' };
+}
+
 function PipelineNode({
   step,
+  stepIndex,
   selected,
   status,
   disabled,
@@ -40,6 +53,7 @@ function PipelineNode({
   const classes = [
     'jx-node',
     isOn ? 'jx-node--on' : 'jx-node--off',
+    focused ? 'jx-node--focused' : '',
     status === 'running' ? 'jx-node--running' : '',
     status === 'success' ? 'jx-node--success' : '',
     status === 'error' ? 'jx-node--error' : '',
@@ -52,7 +66,7 @@ function PipelineNode({
         type="button"
         className={classes}
         disabled={disabled}
-        title={`${step.label}${step.requiresTickers ? ' (requires tickers)' : ''}`}
+        title={step.label}
         aria-pressed={isOn}
         aria-label={`${step.label}, ${isOn ? 'included' : 'excluded'}`}
         onClick={() => onToggle(step.id)}
@@ -60,7 +74,7 @@ function PipelineNode({
         onMouseEnter={() => onFocus(step.id)}
       >
         <span className={`jx-node-badge ${isOn ? '' : 'jx-node-badge--off'}`} aria-hidden="true" />
-        <span className="jx-node-abbr">{step.shortLabel}</span>
+        <span className="jx-node-index">{stepIndex}</span>
       </button>
       <div className={`jx-node-label ${isOn ? '' : 'jx-node-label--off'} ${focused ? 'text-primary' : ''}`}>
         {step.shortLabel}
@@ -74,9 +88,22 @@ export default function BootstrapPipeline({
   disabled = false,
   onComplete,
   showToast,
+  freshness = {},
+  counts = {},
+  coverage = {},
+  statusLoaded = false,
 }) {
   const stages = useMemo(() => buildPipelineStages(), []);
-  const [selected, setSelected] = useState(() => new Set(defaultSelectedStepIds()));
+  const cacheContext = useMemo(
+    () => ({ freshness, counts, coverage }),
+    [freshness, counts, coverage],
+  );
+  const recommendedIds = useMemo(
+    () => recommendedSelectedStepIds(cacheContext),
+    [cacheContext],
+  );
+  const hasAppliedRecommended = useRef(false);
+  const [selected, setSelected] = useState(() => new Set());
   const [stepStatus, setStepStatus] = useState({});
   const [focusedStepId, setFocusedStepId] = useState(BOOTSTRAP_STEPS[0]?.id);
   const [running, setRunning] = useState(false);
@@ -94,7 +121,20 @@ export default function BootstrapPipeline({
     (step) => selected.has(step.id) && step.requiresTickers,
   );
 
+  useEffect(() => {
+    if (!statusLoaded) return;
+    if (hasAppliedRecommended.current) return;
+    setSelected(new Set(recommendedSelectedStepIds(cacheContext)));
+    hasAppliedRecommended.current = true;
+  }, [statusLoaded, cacheContext]);
+
   const focusedStep = BOOTSTRAP_STEPS.find((step) => step.id === focusedStepId) || BOOTSTRAP_STEPS[0];
+  const focusedRecommend = useMemo(
+    () => (statusLoaded ? explainStepRecommendation(focusedStep.id, cacheContext) : null),
+    [statusLoaded, focusedStep.id, cacheContext],
+  );
+  const focusedEstimate = durationEstimate.steps.find((step) => step.stepId === focusedStep.id);
+  const focusedStatus = stepStatusLabel(stepStatus[focusedStep.id], selected.has(focusedStep.id));
 
   const toggleStep = (stepId) => {
     setSelected((prev) => {
@@ -107,7 +147,11 @@ export default function BootstrapPipeline({
 
   const applyPreset = (preset) => {
     if (preset === 'recommended') {
-      setSelected(new Set(defaultSelectedStepIds()));
+      if (!statusLoaded) {
+        showToast?.('Loading cache status… try again in a moment', 'warning', 4000);
+        return;
+      }
+      setSelected(new Set(recommendedSelectedStepIds(cacheContext)));
     } else if (preset === 'all') {
       setSelected(new Set(BOOTSTRAP_STEPS.map((step) => step.id)));
     } else {
@@ -168,13 +212,19 @@ export default function BootstrapPipeline({
         <div>
           <h2 className="h6 mb-1">Bootstrap Pipeline</h2>
           <div className="text-muted small">
-            Click stages to include or exclude. Parallel stages run together. Fast mode by default.
+            Click numbered stages to include or exclude. Hover or focus a stage for details.
+            {statusLoaded && (
+              <span className="d-block mt-1">
+                Recommended selects {recommendedIds.length} of {BOOTSTRAP_STEPS.length} stages from cache freshness.
+                {recommendedIds.length === 0 ? ' Cache is up to date.' : ''}
+              </span>
+            )}
           </div>
         </div>
         <div className="d-flex gap-2 flex-wrap">
           <button
             type="button"
-            className="btn btn-sm btn-outline-secondary"
+            className="st-btn-ghost"
             disabled={disabled || running}
             onClick={() => applyPreset('recommended')}
           >
@@ -182,7 +232,7 @@ export default function BootstrapPipeline({
           </button>
           <button
             type="button"
-            className="btn btn-sm btn-outline-secondary"
+            className="st-btn-ghost"
             disabled={disabled || running}
             onClick={() => applyPreset('all')}
           >
@@ -190,7 +240,7 @@ export default function BootstrapPipeline({
           </button>
           <button
             type="button"
-            className="btn btn-sm btn-outline-secondary"
+            className="st-btn-ghost"
             disabled={disabled || running}
             onClick={() => applyPreset('none')}
           >
@@ -201,7 +251,7 @@ export default function BootstrapPipeline({
 
       <div className="jx-pipeline-track" role="list" aria-label="Bootstrap pipeline stages">
         {stages.map((stage, stageIndex) => (
-          <div key={stage.wave} className="d-flex align-items-center flex-shrink-0" role="presentation">
+          <div key={stage.wave} className="d-flex align-items-start flex-shrink-0" role="presentation">
             {stageIndex > 0 && (
               <div
                 className={`jx-connector ${connectorClass(stageIndex, stages, selected, stepStatus)}`}
@@ -213,11 +263,13 @@ export default function BootstrapPipeline({
               role="listitem"
               aria-label={stage.label}
             >
+              <div className="jx-stage-title">{stage.label}</div>
               <div className="jx-stage-nodes">
                 {stage.steps.map((step) => (
                   <PipelineNode
                     key={step.id}
                     step={step}
+                    stepIndex={stepDisplayIndex(step.id)}
                     selected={selected}
                     status={stepStatus[step.id] || 'idle'}
                     disabled={disabled || running}
@@ -234,17 +286,39 @@ export default function BootstrapPipeline({
 
       {focusedStep && (
         <div className="jx-step-detail">
-          <div className="fw-semibold small">
-            {focusedStep.label}
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            <span className="fw-semibold small">
+              {stepDisplayIndex(focusedStep.id)}. {focusedStep.label}
+            </span>
+            <span className={`jx-step-status ${focusedStatus.className}`}>{focusedStatus.text}</span>
             {focusedStep.requiresTickers && (
-              <span className="badge bg-secondary-subtle text-secondary-emphasis ms-2">tickers</span>
+              <span className="badge bg-secondary-subtle text-secondary-emphasis">tickers</span>
             )}
             {!selected.has(focusedStep.id) && (
-              <span className="badge text-bg-secondary ms-2">excluded</span>
+              <span className="badge text-bg-secondary">excluded</span>
             )}
           </div>
-          <div className="text-muted small">
-            {stepDescriptionForMode(focusedStep.id, pipelineMode)}
+          <div className="text-muted small mt-1">{focusedStep.description}</div>
+          <div className="text-muted small">{stepDescriptionForMode(focusedStep.id, pipelineMode)}</div>
+          <div className="jx-step-detail-grid">
+            <div className="jx-step-detail-item">
+              <span className="jx-step-detail-label">Phase</span>
+              {WAVE_LABELS[focusedStep.wave]}
+            </div>
+            <div className="jx-step-detail-item">
+              <span className="jx-step-detail-label">Est. duration</span>
+              {selected.has(focusedStep.id) && focusedEstimate
+                ? formatSecondsRange(focusedEstimate.minSeconds, focusedEstimate.maxSeconds)
+                : 'Not selected'}
+            </div>
+            {statusLoaded && focusedRecommend && (
+              <div className="jx-step-detail-item">
+                <span className="jx-step-detail-label">Recommended</span>
+                {focusedRecommend.included ? 'Yes' : 'No'}
+                {' — '}
+                {focusedRecommend.reason}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -276,6 +350,12 @@ export default function BootstrapPipeline({
         </div>
       </div>
 
+      {statusLoaded && recommendedIds.length === 0 && selectedCount === 0 && (
+        <div className="alert alert-success py-2 small mb-3 mt-2" role="status">
+          Cache is fresh — no bootstrap stages are needed right now. Use Select all for a full refresh.
+        </div>
+      )}
+
       {tickerStepsSelected && tickersMissing && (
         <div className="alert alert-warning py-2 small mb-3 mt-2" role="alert">
           Ticker-scoped stages need symbols in the field above (or a non-empty portfolio).
@@ -284,7 +364,7 @@ export default function BootstrapPipeline({
 
       <button
         type="button"
-        className="btn btn-primary mt-2"
+        className="st-btn-primary mt-2"
         disabled={disabled || running || selectedCount === 0}
         onClick={handleRun}
       >
