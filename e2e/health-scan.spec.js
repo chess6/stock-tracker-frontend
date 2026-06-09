@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { test } = require('@playwright/test');
 const { mockStockTrackerApi } = require('./support/mock-api');
+const { waitForPageReady } = require('./support/page-ready');
 
 const REPORT_PATH = path.join(__dirname, '..', 'agent_tasks', 'health-scan-report.json');
 
@@ -45,7 +46,7 @@ test.describe('health scan', () => {
 
     for (const route of ROUTES) {
       await page.goto(route);
-      await page.waitForLoadState('networkidle');
+      await waitForPageReady(page);
 
       const overflow = await page.evaluate(() => {
         const doc = document.documentElement;
