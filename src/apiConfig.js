@@ -30,7 +30,7 @@ export const API_ENDPOINTS = {
   INSIDER_BUYING_SUMS: `${API_BASE}/insiders/buying-sums`,
   /** SEC Form 4 insider transactions (SQLite; response keeps SF2-compatible datatable shape). */
   INSIDER_TRANSACTIONS: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
-  // legacy: SHARADAR-era client name — same URL as INSIDER_TRANSACTIONS
+  // legacy client alias — same URL as INSIDER_TRANSACTIONS
   // SF2: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
   ADMIN_STATUS: `${API_BASE}/admin/status`,
   ADMIN_JOB_RUNS: `${API_BASE}/admin/job-runs`,

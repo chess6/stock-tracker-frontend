@@ -50,7 +50,7 @@ The research financial grid should feel like an institutional deep-value researc
 - margin/quality stabilization visibility
 - survivability scanning
 
-Visual reference: Bloomberg terminal, institutional research spreadsheet, deep-value workstation.
+Visual reference: institutional research spreadsheet, deep-value workstation, high-density terminal grid.
 
 **Avoid:** giant cards, over-rounded borders, decorative animations, generic blue→green column heatmaps for valuation ratios.
 

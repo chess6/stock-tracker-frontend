@@ -1,1 +1,0 @@
-https://data.nasdaq.com/api/v3/datatables/SHARADAR/INDICATORS

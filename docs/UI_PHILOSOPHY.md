@@ -5,7 +5,7 @@
 This application is NOT:
 
 * a beginner investing app,
-* a Robinhood clone,
+* a consumer trading app clone,
 * a low-density finance dashboard,
 * a generic “AI stock predictor.”
 
@@ -19,11 +19,9 @@ The application is a:
 Primary inspiration:
 
 * Classic deep-value research spreadsheets,
-* Bloomberg Terminal,
-* WhaleWisdom,
-* OpenInsider,
 * institutional research workflows,
-* spreadsheet-native financial analysis.
+* spreadsheet-native financial analysis,
+* high-density market intelligence terminals.
 
 The UI should optimize for:
 

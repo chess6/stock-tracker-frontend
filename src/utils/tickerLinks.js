@@ -2,11 +2,13 @@ export function secEdgarUrl(ticker) {
   return `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${encodeURIComponent(ticker)}&type=&dateb=&owner=include&count=40`;
 }
 
-export function whaleWisdomUrl(ticker) {
+/** External institutional holdings screener (third-party site). */
+export function instHoldingsUrl(ticker) {
   return `https://whalewisdom.com/stock/${encodeURIComponent(ticker)}`;
 }
 
-export function seekingAlphaUrl(ticker) {
+/** External equity analysis site (third-party). */
+export function analysisUrl(ticker) {
   return `https://seekingalpha.com/symbol/${encodeURIComponent(ticker)}`;
 }
 
@@ -19,11 +21,13 @@ export function tickerFinancialsUrl(ticker, search = '') {
   return search ? `${base}?${search}` : base;
 }
 
-export function stockChartsUrl(ticker) {
+/** External charting site (third-party). */
+export function extChartUrl(ticker) {
   return `https://stockcharts.com/h-sc/ui?s=${encodeURIComponent(ticker)}`;
 }
 
-export function openInsiderUrl(ticker, days = 180) {
+/** External insider transaction screener (third-party). */
+export function insiderScreenerUrl(ticker, days = 180) {
   return `http://openinsider.com/screener?s=${encodeURIComponent(ticker)}&fd=${days}&sortcol=0&cnt=100&page=1`;
 }
 

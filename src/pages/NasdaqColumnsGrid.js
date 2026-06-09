@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import indicatorData from '../mock/sharadar_indicators.json';
-import examplesData from '../mock/sharadar_examples.json';
+import indicatorData from '../mock/field_glossary_indicators.json';
+import examplesData from '../mock/field_glossary_examples.json';
 import DataGrid from '../components/DataGrid';
 import { formatUsd, formatDecimal, formatPercent, formatShares } from '../utils/formatters';
 
@@ -76,7 +76,7 @@ function NasdaqColumnsGrid() {
         setGroupedColumns(grouped);
         setTableDescriptions(descriptions);
 
-        // Aggregate examples from sharadar_examples.json
+        // Aggregate examples from field_glossary_examples.json
         const allExamples = {};
         Object.entries(examplesData).forEach(([table, tableData]) => {
             if (tableData?.datatable?.columns && tableData?.datatable?.data?.length > 0) {
@@ -137,7 +137,7 @@ function NasdaqColumnsGrid() {
             <span id={tocId} />
             <h2>Column Reference</h2>
             <p className="text-muted">
-              Legacy field glossary from the original Nasdaq Data Link (SHARADAR) export.
+              Legacy field glossary from the original Nasdaq Data Link fundamentals export.
               Live portfolio metrics are computed from SEC EDGAR and cached prices — see column help (<code>?</code>) on the portfolio grid.
             </p>
             {/* Table of Contents */}

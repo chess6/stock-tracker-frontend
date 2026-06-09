@@ -12,12 +12,9 @@ import { useToast } from '../context/ToastContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { formatFreshnessTimestamp } from '../utils/dataFreshness';
+import { insiderScreenerUrl } from '../utils/tickerLinks';
 
 const CLUSTER_MIN_BUY_VALUE = 100000;
-
-function getOpenInsiderUrl(ticker, days) {
-  return `http://openinsider.com/screener?s=${ticker}&fd=${days}&sortcol=0&cnt=100&page=1`;
-}
 
 const StockScreenerPage = () => {
   const rows = useSelector((state) => state.screener.rows);
@@ -242,15 +239,15 @@ const StockScreenerPage = () => {
       size: 140,
     },
     {
-      header: 'OpenInsider',
-      accessorKey: 'openInsider',
+      header: 'Insider links',
+      accessorKey: 'insiderLinks',
       cell: (info) => {
         const ticker = info.row.original.ticker;
         return (
           <div style={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
-            <a href={getOpenInsiderUrl(ticker, 180)} target="_blank" rel="noopener noreferrer">6M</a>
-            <a href={getOpenInsiderUrl(ticker, 90)} target="_blank" rel="noopener noreferrer">3M</a>
-            <a href={getOpenInsiderUrl(ticker, 30)} target="_blank" rel="noopener noreferrer">1M</a>
+            <a href={insiderScreenerUrl(ticker, 180)} target="_blank" rel="noopener noreferrer">6M</a>
+            <a href={insiderScreenerUrl(ticker, 90)} target="_blank" rel="noopener noreferrer">3M</a>
+            <a href={insiderScreenerUrl(ticker, 30)} target="_blank" rel="noopener noreferrer">1M</a>
           </div>
         );
       },

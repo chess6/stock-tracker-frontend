@@ -359,9 +359,9 @@ export const PORTFOLIO_COLUMN_META = {
     heat: 'insider',
   },
   secLink: { label: 'SEC', shortLabel: 'SEC', group: 'links' },
-  wwLink: { label: 'WW', shortLabel: 'WW', group: 'links' },
-  saLink: { label: 'SA', shortLabel: 'SA', group: 'links' },
+  wwLink: { label: 'Inst', shortLabel: 'Inst', group: 'links' },
+  saLink: { label: 'Analysis', shortLabel: 'Anlys', group: 'links' },
   newsLink: { label: 'News', shortLabel: 'News', group: 'links' },
   chartLink: { label: 'Chart', shortLabel: 'Chart', group: 'links' },
-  openInsiderLink: { label: '6M Ins', shortLabel: '6M Ins', group: 'links' },
+  openInsiderLink: { label: 'Insiders', shortLabel: 'Ins', group: 'links' },
 };

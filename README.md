@@ -27,12 +27,12 @@ The dev server proxies `/api` to `localhost:5000` via `package.json` `"proxy"`.
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/` | Portfolio | Valuation ratios, insider $, heat maps, SEC/WW/SA/News links |
+| `/` | Portfolio | Valuation ratios, insider $, heat maps, external research links |
 | `/dashboard` | Dashboard | Macro tiles — indices, commodities, rates, sector ETFs |
 | `/news` | News | Deduped RSS articles with filters and portfolio-only toggle |
 | `/screener` | Screener | Insider buying totals with dollar heat shading |
 | `/admin` | Admin console | Cache bootstrap and refresh controls |
-| `/columns` | Column reference | Legacy SHARADAR field glossary (`/nasdaq-columns` redirects here) |
+| `/columns` | Column reference | Legacy fundamentals field glossary (`/nasdaq-columns` redirects here) |
 | `/:ticker` | Summary | Quote, chart, news for one ticker |
 | `/:ticker/financials` | Financials | SEC financials with YoY % column and shading |
 | `/:ticker/insiders` | Insider transactions | SEC Form 4 grid (`/ticker/:ticker` redirects here) |

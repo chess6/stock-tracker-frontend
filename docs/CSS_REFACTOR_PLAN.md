@@ -1,4 +1,4 @@
-# CSS Refactor Plan — Bloomberg Terminal Aesthetic
+# CSS Refactor Plan — Research Terminal Aesthetic
 
 **Status:** Phases 0–5 complete (Tailwind + `st-*` + layout shim; Bootstrap/reactstrap removed)  
 **Last updated:** 2026-06-08
@@ -7,7 +7,7 @@
 
 ## Goal
 
-Move away from generic Bootstrap styling toward a **Bloomberg-style dark research terminal**: high information density, amber labels, cool blue links/focus, layered panels, dark charcoal grid headers, medium heatmaps.
+Move away from generic Bootstrap styling toward a **dark professional research terminal**: high information density, amber labels, cool blue links/focus, layered panels, dark charcoal grid headers, medium heatmaps.
 
 End state: **Tailwind only** (no Bootstrap/reactstrap). Third-party grids wrapped + token overrides.
 
@@ -19,7 +19,7 @@ See also: [`UI_PHILOSOPHY.md`](./UI_PHILOSOPHY.md)
 
 | Decision | Choice |
 |----------|--------|
-| Reference | Bloomberg Terminal |
+| Reference | High-density institutional research workstation |
 | Default theme | Dark |
 | Density | High |
 | Accents | Amber labels + cool blue links/focus |
@@ -330,7 +330,7 @@ Keep `@svar-ui/react-grid` / tabulator for now:
 ## Phase 0–1 implementation notes (done)
 
 - **CRACO + Tailwind v3** wired into `package.json` scripts (`craco start/build/test`)
-- **Design tokens:** `src/styles/tokens.css` (Bloomberg amber/blue dark palette)
+- **Design tokens:** `src/styles/tokens.css` (amber/blue dark terminal palette)
 - **Component primitives:** `src/styles/components.css` (`st-panel`, `st-btn-*`, `st-input`, `st-grid-table`, …)
 - **Research styling migrated:** toolbar, screener, deep-dive chrome, grids, scoring, insiders, compare
 - **MRY multi-year fallback:** deep-dive fetches ARY periods when MRY returns &lt;2 rows
@@ -375,5 +375,5 @@ Keep `@svar-ui/react-grid` / tabulator for now:
 
 ## Optional follow-ups (not blocking)
 
-1. Reference screenshots / exact hex codes from Bloomberg UI
+1. Reference screenshots / exact hex codes for terminal palette tuning
 2. Font picks — e.g. IBM Plex Mono for tickers, Inter/Geist for UI (currently system fonts)

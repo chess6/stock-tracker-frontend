@@ -107,7 +107,7 @@ export default function AdminConsolePage() {
           <h1 className="h3 mb-1">Admin Console</h1>
           <div className="text-muted">
             Manage local cache bootstrap, fundamentals refreshes, and default RSS ingestion.
-            {' '}<Link to="/columns">Column reference</Link> (legacy SHARADAR field glossary).
+            {' '}<Link to="/columns">Column reference</Link> (legacy fundamentals field glossary).
           </div>
         </div>
       </div>

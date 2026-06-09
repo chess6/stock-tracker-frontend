@@ -16,8 +16,8 @@ import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT, setPortfoli
 import { useToast } from '../context/ToastContext';
 import { formatFreshnessTimestamp } from '../utils/dataFreshness';
 import {
-    secEdgarUrl, whaleWisdomUrl, seekingAlphaUrl, tickerFinancialsUrl, tickerNewsUrl,
-    stockChartsUrl, openInsiderUrl,
+    secEdgarUrl, instHoldingsUrl, analysisUrl, tickerFinancialsUrl, tickerNewsUrl,
+    extChartUrl, insiderScreenerUrl,
 } from '../utils/tickerLinks';
 
 const toNullableNumber = (value) => {
@@ -338,17 +338,17 @@ const PortfolioPage = () => {
         columnHelper.display({
             id: 'wwLink',
             meta: meta('wwLink'),
-            header: 'WW',
+            header: 'Inst',
             cell: ({ row }) => (
-                <a href={whaleWisdomUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">WW</a>
+                <a href={instHoldingsUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">Inst</a>
             ),
         }),
         columnHelper.display({
             id: 'saLink',
             meta: meta('saLink'),
-            header: 'SA',
+            header: 'Anlys',
             cell: ({ row }) => (
-                <a href={seekingAlphaUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">SA</a>
+                <a href={analysisUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">Anlys</a>
             ),
         }),
         columnHelper.display({
@@ -364,7 +364,7 @@ const PortfolioPage = () => {
             meta: meta('chartLink'),
             header: 'Chart',
             cell: ({ row }) => (
-                <a href={stockChartsUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">
+                <a href={extChartUrl(row.original.ticker)} target="_blank" rel="noopener noreferrer">
                     {row.original.price != null ? formatUsd(row.original.price) : 'Chart'}
                 </a>
             ),
@@ -374,7 +374,7 @@ const PortfolioPage = () => {
             meta: meta('openInsiderLink'),
             header: '6M Ins',
             cell: ({ row }) => (
-                <a href={openInsiderUrl(row.original.ticker, 180)} target="_blank" rel="noopener noreferrer">6M</a>
+                <a href={insiderScreenerUrl(row.original.ticker, 180)} target="_blank" rel="noopener noreferrer">6M</a>
             ),
         }),
     ], [columnHelper, heatRanges, isPageLoading]);

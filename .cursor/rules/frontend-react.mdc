@@ -27,7 +27,7 @@ See `AGENTS.md` and `.cursor/rules/frontend-qa.mdc` for the full QA gate.
 | `/:ticker` | SummaryPage |
 | `/:ticker/financials` | FinancialsPage |
 | `/:ticker/insiders` | TickerDetailsPage (insider transactions) |
-| `/columns` | NasdaqColumnsGrid (legacy SHARADAR glossary) |
+| `/columns` | NasdaqColumnsGrid (legacy fundamentals field glossary) |
 | `/ticker/:ticker` | redirect → `/:ticker/insiders` |
 
 ## Free-first UX

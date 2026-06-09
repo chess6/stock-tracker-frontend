@@ -15,4 +15,6 @@ agent_tasks/pending/*.json
 agent_tasks/active/*.json
 agent_tasks/completed/*.json
 agent_tasks/failed/*.json
+# Legacy vendor API documentation dumps (not shipped; local reference only)
+src/mock/SHARADAR_*.txt
 agent_tasks/health-scan-report.json
