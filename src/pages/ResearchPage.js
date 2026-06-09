@@ -597,7 +597,7 @@ export default function ResearchPage() {
   }, [isDeepDive, detailData]);
 
   return (
-    <div className="st-page research-page">
+    <div className="st-page st-page--full research-page">
       {isDeepDive && activeTicker && <TickerSubnav ticker={activeTicker} />}
 
       <ResearchToolbar

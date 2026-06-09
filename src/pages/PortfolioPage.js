@@ -577,11 +577,11 @@ const PortfolioPage = () => {
 
     if (portfolio.length === 0) {
         return (
-            <div className="st-page">
+            <div className="st-page st-page--constrained">
                 <div className="st-panel">
-                    <div className="st-panel-body text-center py-5">
-                        <h1 className="st-page-heading mb-3">Your portfolio is empty</h1>
-                        <p className="st-muted-note mb-4">
+                    <div className="st-panel-body st-empty-state">
+                        <h1 className="st-page-heading">Your portfolio is empty</h1>
+                        <p className="st-muted-note">
                             Search for a ticker in the navbar and click <strong>+</strong> to add it.
                             After adding tickers, load fundamentals and prices from the admin console.
                         </p>
@@ -596,7 +596,7 @@ const PortfolioPage = () => {
     }
 
     return (
-        <div className="st-page">
+        <div className="st-page st-page--full">
             <div className="st-panel">
                 <div className="st-panel-header">Portfolio</div>
                 <div className="st-panel-body">

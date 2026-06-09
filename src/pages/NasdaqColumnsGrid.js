@@ -133,37 +133,33 @@ function NasdaqColumnsGrid() {
     const tocId = "nasdaq-toc";
     const tableNames = Object.keys(groupedColumns).sort();
     return (
-        <div className="container-fluid col-lg-10 mt-4">
+        <div className="st-page columns-page">
             <span id={tocId} />
-            <h2>Column Reference</h2>
-            <p className="text-muted">
+            <h1 className="st-page-heading">Column Reference</h1>
+            <p className="st-page-subtitle">
               Legacy field glossary from the original Nasdaq Data Link fundamentals export.
               Live portfolio metrics are computed from SEC EDGAR and cached prices — see column help (<code>?</code>) on the portfolio grid.
             </p>
-            {/* Table of Contents */}
-            <nav className="mb-4">
-                <h5>Contents</h5>
-                <ul className="list-unstyled">
-                    {tableNames.map(table => (
-                        <li key={table} className="mb-1">
-                            <a href={`#section-${table}`} className="text-primary text-decoration-underline">
-                                {table}
-                            </a>
-                        </li>
-                    ))}
-                </ul>
+            <nav className="columns-page-toc" aria-label="Table of contents">
+                {tableNames.map(table => (
+                    <a key={table} href={`#section-${table}`}>
+                        {table}
+                    </a>
+                ))}
             </nav>
             {tableNames.map(table => (
-                <div key={table} className="mt-1">
+                <div key={table} className="columns-page-section st-panel">
                     <span id={`section-${table}`} />
-                    <h3>
+                    <div className="st-panel-header">
                         {table}
-                        {' '}
-                        <a href={`#${tocId}`} className="ms-2 text-secondary text-decoration-underline" style={{ fontSize: '0.8em' }} title="Back to top">
-                            [back to top]
+                        <a href={`#${tocId}`} className="ms-2 st-link-muted" style={{ fontSize: '0.72rem' }} title="Back to top">
+                            [top]
                         </a>
-                    </h3>
+                    </div>
+                    <div className="st-panel-body">
                     <p>{tableDescriptions[table]}</p>
+                    </div>
+                    <div className="st-panel-body-flush">
                     <DataGrid
                         columns={columns}
                         data={groupedColumns[table]}
@@ -171,7 +167,8 @@ function NasdaqColumnsGrid() {
                         enableRowSelection={false}
                         enableMultiRowSelection={false}
                         fixedColumnWidth={true}
-                        tableClassName="table table-sm table-bordered nasdaq-columns-grid-table"
+                        compact
+                        tableClassName="table table-sm table-bordered nasdaq-columns-grid-table st-grid-table"
                         // Share column visibility and sizing across all grids on this page
                         useSharedColumnState={true}
                         columnVisibility={gridColumnVisibility}
@@ -179,6 +176,7 @@ function NasdaqColumnsGrid() {
                         columnSizing={gridColumnSizing}
                         onColumnSizingChange={setGridColumnSizing}
                     />
+                    </div>
                 </div>
             ))}
         </div>
