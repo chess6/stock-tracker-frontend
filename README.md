@@ -1,6 +1,14 @@
 # Stock Tracker Frontend
 
-React UI for the Stock Tracker app — high-density portfolio grid, macro dashboard, news hub, and admin console. Requires the [backend API](https://github.com/chess6/stock-tracker-backend) at `http://localhost:5000`.
+[![License](https://img.shields.io/github/license/chess6/stock-tracker-frontend)](LICENSE)
+
+React UI for a **high-density deep-value research workstation** — portfolio grid with heatmaps, macro dashboard, news hub, stock screener, and admin console. Requires the [backend API](https://github.com/chess6/stock-tracker-backend) at `http://localhost:5000`.
+
+| | |
+|---|---|
+| [Contributing](CONTRIBUTING.md) | Setup, tests, PR guidelines |
+| [Security](SECURITY.md) | Report vulnerabilities privately |
+| [Code of Conduct](CODE_OF_CONDUCT.md) | Community standards |
 
 ## Tech stack
 
@@ -137,4 +145,4 @@ See `orchestrator/README.md`.
 
 ## License
 
-MIT
+[Apache License 2.0](LICENSE)

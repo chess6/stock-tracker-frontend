@@ -1,0 +1,54 @@
+name: Bug report
+description: Report UI bugs, broken routes, or incorrect data display
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Redact portfolio holdings and API keys from screenshots or logs.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      placeholder: Portfolio heatmap shows wrong color for P/E column…
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open http://localhost:3000/
+        2. Add ticker AAPL
+        3. Click …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS
+      placeholder: Chrome 125 / Ubuntu 24.04
+  - type: dropdown
+    id: page
+    attributes:
+      label: Page / area
+      options:
+        - Portfolio
+        - Research / financials
+        - News
+        - Dashboard
+        - Screener
+        - Admin
+        - Other
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors (if any)
+      render: shell
