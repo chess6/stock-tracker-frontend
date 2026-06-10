@@ -136,19 +136,27 @@ export function estimatePipelineDuration(selectedStepIds, mode, tickersCsv = '')
   let totalMin = 0;
   let totalMax = 0;
 
+  const chunkMultiplier = (stepId) => {
+    if (!['fundamentals', 'prices', 'insiders'].includes(stepId) || tickerCount <= 40) return 1;
+    return Math.ceil(tickerCount / 40);
+  };
+
   for (const wave of waves) {
     let waveMin = 0;
     let waveMax = 0;
     for (const step of wave) {
+      const multiplier = chunkMultiplier(step.id);
       const { min, max } = stepEstimate(step.id, mode, tickerCount);
+      const stepMin = min * multiplier;
+      const stepMax = max * multiplier;
       steps.push({
         stepId: step.id,
         label: step.label,
-        minSeconds: min,
-        maxSeconds: max,
+        minSeconds: stepMin,
+        maxSeconds: stepMax,
       });
-      waveMin = Math.max(waveMin, min);
-      waveMax = Math.max(waveMax, max);
+      waveMin += stepMin;
+      waveMax += stepMax;
     }
     totalMin += waveMin;
     totalMax += waveMax;

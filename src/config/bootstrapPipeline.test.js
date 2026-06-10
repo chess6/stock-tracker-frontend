@@ -55,7 +55,7 @@ describe('bootstrapPipeline', () => {
     const stages = buildPipelineStages();
     expect(stages).toHaveLength(3);
     expect(stages[0].parallel).toBe(false);
-    expect(stages[1].parallel).toBe(true);
+    expect(stages[1].parallel).toBe(false);
     expect(stages[1].steps).toHaveLength(5);
     expect(stages[2].steps.map((s) => s.id).sort()).toEqual(['dedup_articles', 'market_reactions'].sort());
   });

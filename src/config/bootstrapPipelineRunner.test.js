@@ -57,6 +57,46 @@ describe('bootstrapPipelineRunner', () => {
     expect(stepResults.market_reactions.error).toContain('No tickers provided');
   });
 
+  test('runs wave steps sequentially instead of in parallel', async () => {
+    const order = [];
+    axios.post.mockImplementation(async (url) => {
+      if (url.includes('refresh-fundamentals')) order.push('fundamentals');
+      if (url.includes('refresh-prices')) order.push('prices');
+      return { data: { tickers: ['AAPL'] } };
+    });
+
+    await runBootstrapPipeline({
+      selectedStepIds: ['fundamentals', 'prices'],
+      tickersCsv: 'AAPL',
+      mode: 'fast',
+    });
+
+    expect(order).toEqual(['fundamentals', 'prices']);
+    expect(axios.post).toHaveBeenCalledTimes(2);
+  });
+
+  test('chunks large ticker lists into POST bodies', async () => {
+    const tickers = Array.from({ length: 85 }, (_, index) => `T${index}`);
+    axios.post.mockResolvedValue({ data: { tickers: ['T0'], recordsWritten: 1 } });
+
+    await runBootstrapPipeline({
+      selectedStepIds: ['fundamentals'],
+      tickersCsv: tickers.join(','),
+      mode: 'fast',
+    });
+
+    expect(axios.post).toHaveBeenCalledTimes(3);
+    expect(axios.post.mock.calls[0][1]).toEqual({ tickers: tickers.slice(0, 40) });
+    expect(axios.post.mock.calls[1][1]).toEqual({ tickers: tickers.slice(40, 80) });
+    expect(axios.post.mock.calls[2][1]).toEqual({ tickers: tickers.slice(80, 85) });
+  });
+
+  test('formatStepError strips HTML 500 pages', () => {
+    expect(formatStepError({
+      response: { status: 500, data: '<!doctype html><html><title>500</title>' },
+    })).toContain('server error');
+  });
+
   test('formatPipelineStepResult summarizes market reaction output', () => {
     const text = formatPipelineStepResult('market_reactions', {
       status: 'success',

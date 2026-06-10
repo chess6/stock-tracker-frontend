@@ -8,6 +8,7 @@ import { getPortfolio, getPortfolioTickersCsv, loadUserPreferences, PORTFOLIO_UP
 import { formatFreshnessTimestamp, FRESHNESS_THRESHOLDS, isStale, summarizeFreshness } from '../utils/dataFreshness';
 import { useToast } from '../context/ToastContext';
 import { clearScreener } from '../store';
+import { fetchSp500Tickers, queueSp500InsiderRefresh, staticSp500Meta } from '../utils/adminSp500';
 import './admin.css';
 
 const DEFAULT_TICKERS = 'AAPL,MSFT,NVDA,AMD,GOOGL,AMZN,META,TSLA';
@@ -37,6 +38,7 @@ export default function AdminConsolePage() {
   const [tickers, setTickers] = useState(initialTickersField);
   const [portfolioCount, setPortfolioCount] = useState(() => getPortfolio().length);
   const [busyAction, setBusyAction] = useState(null);
+  const [sp500Meta, setSp500Meta] = useState(null);
   const { showToast } = useToast();
   const staleToastKeyRef = useRef(null);
   const dispatch = useDispatch();
@@ -62,6 +64,12 @@ export default function AdminConsolePage() {
     loadStatus().catch(() => {
       showToast('Failed to load admin status', 'danger', 6000);
     });
+    axios.get(API_ENDPOINTS.ADMIN_UNIVERSES)
+      .then((res) => {
+        const match = (res.data?.universes || []).find((item) => item.id === 'sp500');
+        setSp500Meta(match || staticSp500Meta());
+      })
+      .catch(() => setSp500Meta(staticSp500Meta()));
   }, [showToast]);
 
   useEffect(() => {
@@ -82,6 +90,20 @@ export default function AdminConsolePage() {
     window.addEventListener(PORTFOLIO_UPDATED_EVENT, syncPortfolio);
     return () => window.removeEventListener(PORTFOLIO_UPDATED_EVENT, syncPortfolio);
   }, []);
+
+  const loadSp500Tickers = async () => {
+    setBusyAction('Load S&P 500');
+    try {
+      const symbols = await fetchSp500Tickers();
+      setTickers(symbols.join(','));
+      showToast(`Loaded ${symbols.length} S&P 500 tickers into the refresh field.`, 'success', 5000);
+    } catch (error) {
+      const errorText = error?.response?.data?.error || error?.message || 'Failed to load S&P 500 tickers';
+      showToast(errorText, 'danger', 6000);
+    } finally {
+      setBusyAction(null);
+    }
+  };
 
   const runAction = async (action, request) => {
     setBusyAction(action);
@@ -110,6 +132,42 @@ export default function AdminConsolePage() {
           Manage local cache bootstrap, fundamentals refreshes, and default RSS ingestion.
           {' '}<Link to="/columns" className="st-link-muted">Column reference</Link> (legacy fundamentals field glossary).
         </div>
+        </div>
+      </div>
+
+      <div className="st-panel">
+        <div className="st-panel-header">Screener universe</div>
+        <div className="st-panel-body">
+          <p className="st-muted-note mb-2">
+            The insider screener only shows tickers with Form 4 data in SQLite. Load the S&amp;P 500
+            universe to refresh insiders at scale (worker required for queued jobs).
+          </p>
+          <div className="admin-toolbar-actions">
+            <button
+              type="button"
+              className="st-btn-muted"
+              disabled={busyAction !== null}
+              onClick={loadSp500Tickers}
+            >
+              {busyAction === 'Load S&P 500' ? 'Loading...' : `Use S&P 500${sp500Meta?.count ? ` (${sp500Meta.count})` : ''}`}
+            </button>
+            <button
+              type="button"
+              className="st-btn-success"
+              disabled={busyAction !== null}
+              onClick={() => runAction('Queue S&P 500 insiders', () => queueSp500InsiderRefresh())}
+            >
+              {busyAction === 'Queue S&P 500 insiders' ? 'Queueing...' : 'Queue S&P 500 insider refresh'}
+            </button>
+            <button
+              type="button"
+              className="st-btn-ghost"
+              disabled={busyAction !== null}
+              onClick={() => runAction('Company sync', () => axios.post(API_ENDPOINTS.ADMIN_SYNC_COMPANIES))}
+            >
+              {busyAction === 'Company sync' ? 'Running...' : 'Sync companies first'}
+            </button>
+          </div>
         </div>
       </div>
 

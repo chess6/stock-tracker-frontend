@@ -2,7 +2,7 @@ import { FRESHNESS_THRESHOLDS, isStale } from '../utils/dataFreshness';
 
 /**
  * Bootstrap steps grouped by execution wave.
- * Wave 0 runs alone (company index). Wave 1 steps run in parallel. Wave 2 is post-process.
+ * Wave 0 runs alone (company index). Wave 1 steps run sequentially (SQLite-safe). Wave 2 is post-process.
  */
 export const BOOTSTRAP_STEPS = [
   {
@@ -81,7 +81,7 @@ export const BOOTSTRAP_STEPS = [
 
 export const WAVE_LABELS = {
   0: 'Prerequisites',
-  1: 'Parallel refresh',
+  1: 'Data refresh',
   2: 'Post-process',
 };
 
@@ -208,7 +208,7 @@ export function buildPipelineStages() {
   return waveNumbers.map((wave) => ({
     wave,
     label: WAVE_LABELS[wave] || `Phase ${wave + 1}`,
-    parallel: wave === 1,
+    parallel: false,
     steps: BOOTSTRAP_STEPS.filter((step) => step.wave === wave),
   }));
 }

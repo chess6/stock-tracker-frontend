@@ -14,9 +14,21 @@ const STEP_ENDPOINTS = {
   market_reactions: API_ENDPOINTS.ADMIN_BACKFILL_MARKET_REACTIONS,
 };
 
+const TICKER_CHUNK_STEPS = new Set(['fundamentals', 'prices', 'insiders']);
+const TICKER_CHUNK_SIZE = 40;
+
 export function formatStepError(error) {
   const data = error?.response?.data;
-  if (typeof data === 'string' && data.trim()) return data.trim();
+  if (typeof data === 'string' && data.trim()) {
+    const trimmed = data.trim();
+    if (/<!doctype html>/i.test(trimmed)) {
+      const status = error?.response?.status;
+      return status
+        ? `HTTP ${status}: server error — check backend logs and retry`
+        : 'Server error — check backend logs and retry';
+    }
+    return trimmed;
+  }
   if (data?.error) return String(data.error);
   if (data?.message) return String(data.message);
   const status = error?.response?.status;
@@ -36,6 +48,94 @@ function parseTickersCsv(tickersCsv) {
   )];
 }
 
+function chunkTickers(tickers, chunkSize = TICKER_CHUNK_SIZE) {
+  const chunks = [];
+  for (let index = 0; index < tickers.length; index += chunkSize) {
+    chunks.push(tickers.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
+function stripTickersFromQuery(querySuffix) {
+  if (!querySuffix) return '';
+  const raw = querySuffix.startsWith('?') ? querySuffix.slice(1) : querySuffix;
+  const params = new URLSearchParams(raw);
+  params.delete('tickers');
+  const next = params.toString();
+  return next ? `?${next}` : '';
+}
+
+function buildStepPostConfig(step, tickers, mode) {
+  const endpoint = STEP_ENDPOINTS[step.id];
+  if (step.id === 'ingest_feeds') {
+    const querySuffix = buildStepRequestUrl(step.id, {
+      tickersCsv: tickers.join(','),
+      mode,
+    }) || '';
+    return { url: `${endpoint}${querySuffix}`, body: undefined };
+  }
+  const querySuffix = stripTickersFromQuery(buildStepRequestUrl(step.id, { tickersCsv: '', mode }) || '');
+  const url = `${endpoint}${querySuffix}`;
+  const body = tickers.length ? { tickers } : undefined;
+  return { url, body };
+}
+
+function mergeTickerStepResults(stepId, chunks) {
+  if (stepId === 'fundamentals') {
+    return {
+      tickers: chunks.flatMap((chunk) => chunk.tickers || []),
+      recordsWritten: chunks.reduce((sum, chunk) => sum + (chunk.recordsWritten || 0), 0),
+      skipped: chunks.flatMap((chunk) => chunk.skipped || []),
+      errors: chunks.flatMap((chunk) => chunk.errors || []),
+    };
+  }
+  if (stepId === 'prices') {
+    return {
+      tickers: chunks.flatMap((chunk) => chunk.tickers || chunk.refreshed || []),
+      rowsWritten: chunks.reduce((sum, chunk) => sum + (chunk.rowsWritten || chunk.recordsWritten || 0), 0),
+      errors: chunks.flatMap((chunk) => chunk.errors || []),
+    };
+  }
+  if (stepId === 'insiders') {
+    return {
+      tickers: chunks.flatMap((chunk) => chunk.refreshed || chunk.tickers || []),
+      recordsWritten: chunks.reduce((sum, chunk) => sum + (chunk.recordsWritten || 0), 0),
+      skipped: chunks.flatMap((chunk) => chunk.skipped || []),
+      errors: chunks.flatMap((chunk) => chunk.errors || []),
+    };
+  }
+  return chunks[chunks.length - 1] || {};
+}
+
+async function postStepRequest(step, tickers, mode) {
+  const { url, body } = buildStepPostConfig(step, tickers, mode);
+  const response = await axios.post(url, body);
+  return response.data;
+}
+
+async function runTickerChunkedStep(step, tickers, mode) {
+  const chunks = chunkTickers(tickers);
+  const results = [];
+  const chunkErrors = [];
+
+  for (const chunk of chunks) {
+    try {
+      results.push(await postStepRequest(step, chunk, mode));
+    } catch (error) {
+      chunkErrors.push(formatStepError(error));
+    }
+  }
+
+  const data = mergeTickerStepResults(step.id, results);
+  if (!results.length && chunkErrors.length) {
+    throw new Error(chunkErrors.join('; '));
+  }
+  if (chunkErrors.length) {
+    return { data, error: chunkErrors.join('; ') };
+  }
+  return { data };
+}
+
 async function runMarketReactionsStep(endpoint, tickersCsv, mode) {
   const tickers = parseTickersCsv(tickersCsv);
   if (!tickers.length) {
@@ -45,26 +145,19 @@ async function runMarketReactionsStep(endpoint, tickersCsv, mode) {
   const querySuffix = buildStepRequestUrl('market_reactions', { tickersCsv, mode }) || '';
   const queryParams = querySuffix.startsWith('?') ? querySuffix.slice(1) : querySuffix;
 
-  const outcomes = await Promise.allSettled(
-    tickers.map(async (ticker) => {
+  const successes = [];
+  const failures = [];
+  for (const ticker of tickers) {
+    try {
       const url = queryParams
         ? `${endpoint}?ticker=${encodeURIComponent(ticker)}&${queryParams}`
         : `${endpoint}?ticker=${encodeURIComponent(ticker)}`;
       const response = await axios.post(url);
-      return { ticker, ...response.data };
-    }),
-  );
-
-  const successes = [];
-  const failures = [];
-  outcomes.forEach((outcome, index) => {
-    const ticker = tickers[index];
-    if (outcome.status === 'fulfilled') {
-      successes.push(outcome.value);
-      return;
+      successes.push({ ticker, ...response.data });
+    } catch (error) {
+      failures.push(`${ticker}: ${formatStepError(error)}`);
     }
-    failures.push(`${ticker}: ${formatStepError(outcome.reason)}`);
-  });
+  }
 
   const data = { tickers: successes, failures };
   if (failures.length === tickers.length) {
@@ -84,13 +177,19 @@ async function runStep(step, tickersCsv, mode) {
   if (step.id === 'market_reactions') {
     return runMarketReactionsStep(endpoint, tickersCsv, mode);
   }
-  const querySuffix = buildStepRequestUrl(step.id, { tickersCsv, mode }) || '';
-  const response = await axios.post(`${endpoint}${querySuffix}`);
-  return { data: response.data };
+
+  const tickers = parseTickersCsv(tickersCsv);
+  if (TICKER_CHUNK_STEPS.has(step.id) && tickers.length > TICKER_CHUNK_SIZE) {
+    return runTickerChunkedStep(step, tickers, mode);
+  }
+
+  const data = await postStepRequest(step, tickers, mode);
+  return { data };
 }
 
 /**
- * Run selected bootstrap steps in wave order; parallelize steps within each wave.
+ * Run selected bootstrap steps in wave order.
+ * Steps run sequentially to avoid SQLite write lock contention.
  */
 export async function runBootstrapPipeline({
   selectedStepIds,
@@ -119,25 +218,10 @@ export async function runBootstrapPipeline({
       return true;
     });
 
-    runnable.forEach((step) => setStatus(step.id, 'running'));
-
-    const outcomes = await Promise.allSettled(
-      runnable.map(async (step) => {
-        try {
-          const result = await runStep(step, tickersCsv, mode);
-          return { step, result };
-        } catch (error) {
-          const message = error?.response ? formatStepError(error) : (error?.message || 'Request failed');
-          throw new Error(message);
-        }
-      }),
-    );
-
-    for (let index = 0; index < outcomes.length; index += 1) {
-      const outcome = outcomes[index];
-      const step = runnable[index];
-      if (outcome.status === 'fulfilled') {
-        const { result } = outcome.value;
+    for (const step of runnable) {
+      setStatus(step.id, 'running');
+      try {
+        const result = await runStep(step, tickersCsv, mode);
         if (result.error) {
           failedCount += 1;
           stepResults[step.id] = { status: 'error', error: result.error, data: result.data };
@@ -146,10 +230,10 @@ export async function runBootstrapPipeline({
           stepResults[step.id] = { status: 'success', data: result.data };
           setStatus(step.id, 'success');
         }
-      } else {
+      } catch (error) {
         failedCount += 1;
-        const error = outcome.reason?.message || 'Failed';
-        stepResults[step.id] = { status: 'error', error };
+        const message = error?.response ? formatStepError(error) : (error?.message || 'Request failed');
+        stepResults[step.id] = { status: 'error', error: message };
         setStatus(step.id, 'error');
       }
     }

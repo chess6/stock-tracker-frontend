@@ -170,6 +170,15 @@ async function mockStockTrackerApi(page, options = {}) {
 
     if (path === '/api/admin/status') return json(ADMIN_STATUS);
     if (path === '/api/admin/default-feeds') return json({ feeds: DEFAULT_FEEDS });
+    if (path === '/api/admin/universes') {
+      return json({ universes: [{ id: 'sp500', label: 'S&P 500', count: 503, updatedAt: '2026-06-09' }] });
+    }
+    if (path === '/api/admin/universes/sp500') {
+      return json({ id: 'sp500', label: 'S&P 500', count: 3, tickers: ['AAPL', 'MSFT', 'NVDA'] });
+    }
+    if (path === '/api/admin/enqueue-universe-insiders') {
+      return json({ universe: 'sp500', totalTickers: 503, chunks: 7, jobs: [{ jobId: 1, chunk: 1, tickers: 75 }] });
+    }
     if (path === '/api/macro/snapshot') return json({ items: MACRO_ITEMS, meta: { source: 'yfinance' } });
     if (path === '/api/news') {
       return json({ articles: NEWS_ARTICLES, total: NEWS_ARTICLES.length, limit: 50, offset: 0 });

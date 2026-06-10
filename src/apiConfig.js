@@ -35,6 +35,9 @@ export const API_ENDPOINTS = {
   // legacy client alias — same URL as INSIDER_TRANSACTIONS
   // SF2: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
   ADMIN_STATUS: `${API_BASE}/admin/status`,
+  ADMIN_UNIVERSES: `${API_BASE}/admin/universes`,
+  ADMIN_UNIVERSE: universe => `${API_BASE}/admin/universes/${encodeURIComponent(universe)}`,
+  ADMIN_ENQUEUE_UNIVERSE_INSIDERS: `${API_BASE}/admin/enqueue-universe-insiders`,
   ADMIN_JOB_RUNS: `${API_BASE}/admin/job-runs`,
   ADMIN_DEFAULT_FEEDS: `${API_BASE}/admin/default-feeds`,
   ADMIN_SYNC_COMPANIES: `${API_BASE}/admin/sync-companies`,
