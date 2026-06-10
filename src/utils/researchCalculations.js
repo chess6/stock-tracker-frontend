@@ -7,15 +7,43 @@ export function computeYoY(current, prior) {
   return ((cur - prev) / Math.abs(prev)) * 100;
 }
 
-/** CAGR over `years` between start and end values. */
+/** CAGR over `years` between start and end values (same-sign non-zero endpoints). */
 export function computeCAGR(start, end, years) {
   if (start == null || end == null || years == null) return null;
   const s = Number(start);
   const e = Number(end);
   const n = Number(years);
   if (!Number.isFinite(s) || !Number.isFinite(e) || !Number.isFinite(n) || n <= 0) return null;
-  if (s <= 0 || e <= 0) return null;
-  return (Math.pow(e / s, 1 / n) - 1) * 100;
+  if (s === 0 || e === 0 || s * e < 0) return null;
+  const ratio = Math.abs(e) / Math.abs(s);
+  if (ratio <= 0) return null;
+  return (Math.pow(ratio, 1 / n) - 1) * 100;
+}
+
+/**
+ * YoY and CAGR from newest-first values aligned to visible grid columns.
+ * When 3+ periods are shown, both trends appear together or both are null.
+ */
+export function computeTrendPair(columnValues) {
+  const vals = Array.isArray(columnValues) ? columnValues : [];
+  if (vals.length < 2) return { yoy: null, cagr: null };
+
+  let yoy = computeYoY(vals[0], vals[1]);
+  let cagr = null;
+
+  if (vals.length >= 3) {
+    let startIdx = vals.length - 1;
+    while (startIdx > 0 && vals[startIdx] == null) startIdx -= 1;
+    if (startIdx > 0 && vals[0] != null && vals[startIdx] != null) {
+      cagr = computeCAGR(vals[startIdx], vals[0], startIdx);
+    }
+    if (yoy == null || cagr == null) {
+      yoy = null;
+      cagr = null;
+    }
+  }
+
+  return { yoy, cagr };
 }
 
 /**

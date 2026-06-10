@@ -5,7 +5,7 @@ import API_ENDPOINTS from '../apiConfig';
 import HeatLegend from '../components/research/HeatLegend';
 import ResearchToolbar from '../components/research/ResearchToolbar';
 import FinancialGrid from '../components/research/FinancialGrid';
-import MetricSparkline from '../components/research/MetricSparkline';
+import MetricSparklineLite from '../components/research/MetricSparklineLite';
 import ScoreSummaryBar from '../components/research/ScoreSummaryBar';
 import MetricTooltipLabel from '../components/research/MetricTooltipLabel';
 import InsiderPanel from '../components/research/InsiderPanel';
@@ -28,7 +28,7 @@ import {
   precomputeRowHeatStyles,
   screenerCellHeatStyle,
 } from '../utils/scoringColors';
-import { computeCAGR, computeYoY, extractPeriodSeries, trendArrow } from '../utils/researchCalculations';
+import { computeTrendPair, extractPeriodSeries, trendArrow } from '../utils/researchCalculations';
 import { researchPrefsFromUserData, saveResearchPreferences } from '../utils/researchPrefs';
 import { copyTextToClipboard } from '../utils/gridExport';
 import {
@@ -528,11 +528,7 @@ export default function ResearchPage() {
           detailPeriods.map((period, idx) => ({ periodEnd: period.periodEnd, value: sparklineValues[idx] })),
           'value',
         );
-        const serverTrends = detailData?.metricTrends?.[metric.key];
-        const yoy = serverTrends?.yoy ?? computeYoY(columnValues[0], columnValues[1]);
-        const cagrYears = Math.min(5, columnValues.filter((v) => v != null).length - 1);
-        const cagr = serverTrends?.cagr5y
-          ?? (cagrYears > 0 ? computeCAGR(columnValues[cagrYears], columnValues[0], cagrYears) : null);
+        const { yoy, cagr } = computeTrendPair(columnValues);
         const row = {
           id: `${group.id}-${metric.key}`,
           metric: metric.label,
@@ -557,7 +553,15 @@ export default function ResearchPage() {
             sectorByMetric,
           });
         }
-        if (hideEmptyRows && !metricRowHasValues(row, columnPeriods.length)) return;
+        row._heatStyles = { ...(row._heatStyles || {}) };
+        if (columnPeriods.length >= 2) {
+          row._heatStyles.yoy = getMetricBackground('yoy', yoy, { mode: colorMode, format: 'percent' });
+        }
+        if (columnPeriods.length >= 3) {
+          row._heatStyles.cagr = getMetricBackground('cagr', cagr, { mode: colorMode, format: 'percent' });
+        }
+        const alwaysShowRow = group.id === 'scores';
+        if (hideEmptyRows && !alwaysShowRow && !metricRowHasValues(row, columnPeriods.length)) return;
         rows.push(row);
       });
     });
@@ -577,7 +581,7 @@ export default function ResearchPage() {
               metricKey={row.original.metricKey || row.original.id}
               label={row.original.metric}
             />
-            <MetricSparkline
+            <MetricSparklineLite
               series={row.original.sparkline}
               format={row.original.format}
               height={20}
@@ -592,7 +596,7 @@ export default function ResearchPage() {
         header: (period.periodEnd || '').slice(0, 10),
         meta: { numeric: true },
         cellStyle: ({ row }) => {
-          if (row.original?._isGroupHeader || !row.original?.scoreCategory) return {};
+          if (row.original?._isGroupHeader) return {};
           return row.original._heatStyles?.[`p${idx}`] || {};
         },
         cell: ({ row }) => {
@@ -614,10 +618,7 @@ export default function ResearchPage() {
         accessorKey: 'yoy',
         header: 'YoY %',
         meta: { numeric: true },
-        cellStyle: ({ row }) => getMetricBackground('yoy', row.original.yoy, {
-          mode: colorMode,
-          format: 'percent',
-        }),
+        cellStyle: ({ row }) => row.original._heatStyles?.yoy || {},
         cell: ({ row }) => {
           const val = row.original.yoy;
           const arrow = trendArrow(val);
@@ -646,10 +647,7 @@ export default function ResearchPage() {
         accessorKey: 'cagr',
         header: 'CAGR %',
         meta: { numeric: true },
-        cellStyle: ({ row }) => getMetricBackground('cagr', row.original.cagr, {
-          mode: colorMode,
-          format: 'percent',
-        }),
+        cellStyle: ({ row }) => row.original._heatStyles?.cagr || {},
         cell: ({ row }) => {
           const val = row.original.cagr;
           const arrow = trendArrow(val, 10);

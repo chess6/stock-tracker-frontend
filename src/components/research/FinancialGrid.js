@@ -74,6 +74,11 @@ export default function FinancialGrid({
     return { ...baseStyle, width, minWidth: width, maxWidth: width };
   }, []);
 
+  const getRowHeight = useCallback(
+    (index) => (rows[index]?.original?._isGroupHeader ? effectiveGroupRowHeight : effectiveRowHeight),
+    [rows, effectiveGroupRowHeight, effectiveRowHeight],
+  );
+
   useLayoutEffect(() => {
     if (!compact || !stickyIds.length) {
       setMeasuredStickyWidths((prev) => (Object.keys(prev).length ? {} : prev));
@@ -103,13 +108,8 @@ export default function FinancialGrid({
     };
   }, [compact, stickyIds, visibleColumnsKey, data.length]);
 
-  const getRowHeight = useCallback(
-    (index) => (rows[index]?.original?._isGroupHeader ? effectiveGroupRowHeight : effectiveRowHeight),
-    [rows, effectiveGroupRowHeight, effectiveRowHeight],
-  );
-
   const panelVirtualizer = useVirtualizer({
-    count: rows.length,
+    count: pageScroll ? 0 : rows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: (index) => getRowHeight(index),
     overscan: 12,
@@ -190,15 +190,15 @@ export default function FinancialGrid({
     }
   }, [dataRowIndices, visibleHeaders.length, focusedCell]);
 
-  const virtualRows = pageScroll ? null : panelVirtualizer.getVirtualItems();
-  const paddingTop = virtualRows?.length ? virtualRows[0].start : 0;
-  const paddingBottom = virtualRows?.length
+  const virtualRows = pageScroll ? [] : panelVirtualizer.getVirtualItems();
+  const paddingTop = virtualRows.length ? virtualRows[0].start : 0;
+  const paddingBottom = virtualRows.length
     ? panelVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end
     : 0;
 
   const rowIndexes = pageScroll
     ? rows.map((_, index) => index)
-    : (virtualRows || []).map((item) => item.index);
+    : virtualRows.map((item) => item.index);
 
   const renderBodyRow = (rowIndex) => {
     const row = rows[rowIndex];
@@ -227,7 +227,10 @@ export default function FinancialGrid({
           if (cell.column.columnDef.meta?.numeric) {
             cellStyle.textAlign = 'right';
           }
-          if (typeof cell.column.columnDef.cellStyle === 'function') {
+          const precomputedStyle = row.original?._heatStyles?.[colId];
+          if (precomputedStyle) {
+            Object.assign(cellStyle, precomputedStyle);
+          } else if (typeof cell.column.columnDef.cellStyle === 'function') {
             Object.assign(cellStyle, cell.column.columnDef.cellStyle(cell.getContext()));
           } else if (cell.column.columnDef.cellStyle) {
             Object.assign(cellStyle, cell.column.columnDef.cellStyle);
@@ -257,10 +260,10 @@ export default function FinancialGrid({
   };
 
   return (
-    <div className="research-grid-shell">
+    <div className={`research-grid-shell${pageScroll ? ' research-grid-shell-page' : ''}`}>
       <div
         ref={scrollRef}
-        className={`research-grid-scroll${pageScroll ? ' research-grid-scroll-page' : ''}`}
+        className={pageScroll ? 'research-grid-hscroll' : 'research-grid-scroll'}
         style={pageScroll ? undefined : { maxHeight }}
       >
         <table

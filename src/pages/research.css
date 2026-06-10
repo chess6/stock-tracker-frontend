@@ -8,6 +8,26 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  align-items: stretch;
+}
+
+.research-deep-dive-card {
+  flex: 0 0 auto;
+  align-self: stretch;
+}
+
+/* Historical financials: page scroll only — no nested vertical scroll container */
+.research-deep-dive-card.st-panel,
+.research-deep-dive-card .st-panel-body-flush,
+.research-deep-dive-card .research-grid-shell {
+  overflow: visible;
+  max-height: none;
+}
+
+.research-deep-dive-card .research-grid-hscroll {
+  overflow-x: auto;
+  overflow-y: clip;
+  max-height: none;
 }
 
 /* —— Deep-dive header —— */

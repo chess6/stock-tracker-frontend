@@ -1,6 +1,7 @@
 import {
   computeYoY,
   computeCAGR,
+  computeTrendPair,
   extractPeriodSeries,
   prepareSparklineData,
   trendArrow,
@@ -14,7 +15,19 @@ describe('researchCalculations', () => {
 
   test('computeCAGR', () => {
     expect(computeCAGR(100, 121, 2)).toBeCloseTo(10);
+    expect(computeCAGR(-100, -121, 2)).toBeCloseTo(10);
     expect(computeCAGR(-1, 10, 2)).toBeNull();
+    expect(computeCAGR(0, 10, 2)).toBeNull();
+  });
+
+  test('computeTrendPair keeps YoY and CAGR mutually inclusive', () => {
+    expect(computeTrendPair([110, 100])).toEqual({ yoy: 10, cagr: null });
+    expect(computeTrendPair([150, 100, 80, 60, 50])).toEqual({
+      yoy: 50,
+      cagr: computeCAGR(50, 150, 4),
+    });
+    expect(computeTrendPair([150, 100, 80, 60, -50])).toEqual({ yoy: null, cagr: null });
+    expect(computeTrendPair([null, 100, 80, 60, 50])).toEqual({ yoy: null, cagr: null });
   });
 
   test('extractPeriodSeries', () => {

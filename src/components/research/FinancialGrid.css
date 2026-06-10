@@ -3,22 +3,35 @@
   max-width: 100%;
 }
 
+/* Screener / panel mode: bounded viewport with both axes scrollable */
 .research-grid-scroll {
   overflow: auto;
   max-width: 100%;
-}
-
-/* Deep-dive: scroll with the page vertically; keep horizontal scroll on the grid only */
-.research-grid-scroll.research-grid-scroll-page {
-  overflow-x: auto;
-  overflow-y: visible;
-  max-height: none;
 }
 
 .research-grid-scroll:not(.research-grid-scroll-page) thead th {
   position: sticky;
   top: 0;
   z-index: 6;
+}
+
+/*
+ * Deep-dive page mode: NEVER use overflow: auto on a wrapper that contains the
+ * full table height. overflow-x:auto + overflow-y:visible computes to auto on
+ * both axes (CSS spec), which traps vertical scroll inside the panel.
+ * Horizontal-only scroll lives on .research-grid-hscroll; vertical scroll is the page.
+ */
+.research-grid-shell-page {
+  overflow: visible;
+  max-height: none;
+}
+
+.research-grid-hscroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: clip;
+  max-height: none;
+  height: auto;
 }
 
 .research-grid-thead-page th {
@@ -49,6 +62,12 @@
 
 .research-grid-table tbody tr:nth-child(even) > td:not([style*='background']) {
   background-color: var(--st-grid-row-even-bg);
+}
+
+.research-sparkline-lite {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .research-sparkline-placeholder {
