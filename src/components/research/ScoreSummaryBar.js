@@ -2,12 +2,7 @@ import { Link } from 'react-router-dom';
 import StTooltip, { StTooltipMetricHelp } from '../StTooltip';
 import { getMetricTooltipMeta } from '../../config/tooltipRegistry';
 import { formatDecimal } from '../../utils/formatters';
-import {
-  altmanZHeatStyle,
-  beneishHeatStyle,
-  piotroskiHeatStyle,
-  survivabilityHeatStyle,
-} from '../../utils/scoringColors';
+import { getMetricBackground } from '../../utils/scoringColors';
 
 const SCORE_COLUMNS = [
   { key: 'piotroskiF', label: 'F' },
@@ -35,13 +30,7 @@ function formatScoreValue(key, scores) {
 
 function scoreBadgeStyle(key, scores) {
   const value = scores?.[key];
-  switch (key) {
-    case 'piotroskiF': return piotroskiHeatStyle(value);
-    case 'altmanZ': return altmanZHeatStyle(value);
-    case 'beneishM': return beneishHeatStyle(value);
-    case 'survivability': return survivabilityHeatStyle(value);
-    default: return {};
-  }
+  return getMetricBackground(key, value, { mode: 'deep_value' });
 }
 
 function tickerScores(screenerData, ticker) {

@@ -26,8 +26,10 @@ import {
   getMetricBackground,
   getTrendColor,
   precomputeRowHeatStyles,
+  screenerCellHeatStyle,
 } from '../utils/scoringColors';
 import { computeCAGR, computeYoY, extractPeriodSeries, trendArrow } from '../utils/researchCalculations';
+import { researchPrefsFromUserData, saveResearchPreferences } from '../utils/researchPrefs';
 import { copyTextToClipboard } from '../utils/gridExport';
 import {
   buildDeepDiveSearchParams,
@@ -38,7 +40,7 @@ import {
   sortTickersByMetric,
   useResearchExport,
 } from '../utils/researchUrlState';
-import { addToPortfolioWithNotification, getPortfolio, isInPortfolio } from '../utils/portfolio';
+import { addToPortfolioWithNotification, getPortfolio, isInPortfolio, loadUserPreferences } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
 import TickerSubnav from '../components/TickerSubnav';
 import './research.css';
@@ -120,6 +122,28 @@ export default function ResearchPage() {
   );
   const [colorMode, setColorMode] = useState(() => searchParams.get('colorMode') || 'deep_value');
   const [showHeatLegend, setShowHeatLegend] = useState(searchParams.get('heatLegend') !== '0');
+  const [sectorStats, setSectorStats] = useState(null);
+
+  useEffect(() => {
+    const urlColorMode = searchParams.get('colorMode');
+    loadUserPreferences().then((prefs) => {
+      if (!urlColorMode) {
+        const ui = researchPrefsFromUserData(prefs);
+        setColorMode(ui.colorMode);
+        setShowHeatLegend(ui.showHeatLegend);
+      }
+    }).catch(() => {});
+  }, [searchParams]);
+
+  const handleColorModeChange = useCallback((mode) => {
+    setColorMode(mode);
+    saveResearchPreferences({ colorMode: mode }).catch(() => {});
+  }, []);
+
+  const handleShowHeatLegendChange = useCallback((show) => {
+    setShowHeatLegend(show);
+    saveResearchPreferences({ showHeatLegend: show }).catch(() => {});
+  }, []);
 
   const syncScreenerParams = useCallback((overrides = {}) => {
     const tickers = overrides.tickers ?? parseTickers(tickersText);
@@ -311,6 +335,28 @@ export default function ResearchPage() {
     () => sortTickersByMetric(rawScreenerTickers, screenerData, sortMetric, SCREENER_METRIC_GROUPS),
     [rawScreenerTickers, screenerData, sortMetric],
   );
+  const screenerTickersKey = useMemo(() => screenerTickers.join(','), [screenerTickers]);
+
+  useEffect(() => {
+    if (colorMode !== 'sector') {
+      setSectorStats(null);
+      return undefined;
+    }
+    const tickers = isDeepDive && activeTicker ? [activeTicker] : screenerTickers;
+    if (!tickers.length) {
+      setSectorStats(null);
+      return undefined;
+    }
+    let cancelled = false;
+    axios.get(API_ENDPOINTS.RESEARCH_SECTOR_STATS, { params: { tickers: tickers.join(',') } })
+      .then((res) => {
+        if (!cancelled) setSectorStats(res.data || null);
+      })
+      .catch(() => {
+        if (!cancelled) setSectorStats(null);
+      });
+    return () => { cancelled = true; };
+  }, [colorMode, isDeepDive, activeTicker, screenerTickersKey]);
 
   const screenerGridRows = useMemo(() => {
     if (!screenerTickers.length) return [];
@@ -337,10 +383,11 @@ export default function ResearchPage() {
           row._historicalStats = buildHistoricalStats(
             screenerTickers.map((_, idx) => row[`t${idx}`]),
           );
-          row._heatStyles = precomputeRowHeatStyles(row, screenerTickers.length, {
-            mode: colorMode === 'historical' ? 'deep_value' : colorMode,
-            sector: colorMode === 'sector' ? row._historicalStats : undefined,
-          });
+          if (colorMode !== 'sector') {
+            row._heatStyles = precomputeRowHeatStyles(row, screenerTickers.length, {
+              mode: colorMode === 'historical' ? 'historical' : colorMode,
+            });
+          }
         }
         rows.push(row);
       });
@@ -396,11 +443,33 @@ export default function ResearchPage() {
         meta: { numeric: true, ticker },
         cellStyle: ({ row }) => {
           if (row.original?._isGroupHeader || !row.original?.scoreCategory) return {};
+          const val = row.original[`t${idx}`];
+          if (colorMode === 'sector') {
+            const sector = data?.sector;
+            return screenerCellHeatStyle(row.original.metricKey, val, {
+              mode: 'sector',
+              format: row.original.format,
+              historical: row.original._historicalStats,
+              sectorBreakpoints: sectorStats?.bySector?.[sector]?.[row.original.metricKey],
+            });
+          }
           return row.original._heatStyles?.[`t${idx}`] || {};
         },
         cell: ({ row }) => {
           const val = row.original[`t${idx}`];
-          const tip = row.original._heatStyles?.[`t${idx}Title`];
+          const sector = data?.sector;
+          const cellContext = {
+            mode: colorMode === 'historical' ? 'historical' : colorMode,
+            format: row.original.format,
+            historical: row.original._historicalStats,
+            sector: sectorStats?.bySector?.[sector]?.[row.original.metricKey],
+          };
+          const tip = colorMode === 'sector'
+            ? formatMetricCellTooltip(
+              row.original.metricKey,
+              describeHeat(row.original.metricKey, val, cellContext),
+            )
+            : row.original._heatStyles?.[`t${idx}Title`];
           const formatted = formatCellValue(val, row.original.format);
           if (!tip) return <span>{formatted}</span>;
           return (
@@ -412,7 +481,7 @@ export default function ResearchPage() {
       });
     });
     return cols;
-  }, [screenerTickers, screenerData, dimension, compareTickers, toggleCompareTicker]);
+  }, [screenerTickers, screenerData, dimension, compareTickers, toggleCompareTicker, colorMode, sectorStats]);
 
   const detailPeriods = useMemo(() => {
     if (!detailData?.periods) return [];
@@ -459,9 +528,11 @@ export default function ResearchPage() {
           detailPeriods.map((period, idx) => ({ periodEnd: period.periodEnd, value: sparklineValues[idx] })),
           'value',
         );
-        const yoy = computeYoY(columnValues[0], columnValues[1]);
+        const serverTrends = detailData?.metricTrends?.[metric.key];
+        const yoy = serverTrends?.yoy ?? computeYoY(columnValues[0], columnValues[1]);
         const cagrYears = Math.min(5, columnValues.filter((v) => v != null).length - 1);
-        const cagr = cagrYears > 0 ? computeCAGR(columnValues[cagrYears], columnValues[0], cagrYears) : null;
+        const cagr = serverTrends?.cagr5y
+          ?? (cagrYears > 0 ? computeCAGR(columnValues[cagrYears], columnValues[0], cagrYears) : null);
         const row = {
           id: `${group.id}-${metric.key}`,
           metric: metric.label,
@@ -477,14 +548,21 @@ export default function ResearchPage() {
         });
         if (metric.scoreCategory) {
           row._historicalStats = buildHistoricalStats(columnValues);
-          row._heatStyles = precomputeRowHeatStyles(row, columnPeriods.length, { mode: colorMode });
+          const companySector = detailData?.company?.sector;
+          const sectorByMetric = colorMode === 'sector' && companySector
+            ? (sectorStats?.bySector?.[companySector] || {})
+            : undefined;
+          row._heatStyles = precomputeRowHeatStyles(row, columnPeriods.length, {
+            mode: colorMode,
+            sectorByMetric,
+          });
         }
         if (hideEmptyRows && !metricRowHasValues(row, columnPeriods.length)) return;
         rows.push(row);
       });
     });
     return rows;
-  }, [columnPeriods, detailPeriods, scoreByPeriod, expandedGroups, hideEmptyRows, colorMode]);
+  }, [columnPeriods, detailPeriods, scoreByPeriod, expandedGroups, hideEmptyRows, colorMode, detailData, sectorStats]);
 
   const detailColumns = useMemo(() => {
     const fmt = (value, format) => formatCellValue(value, format, { compact: true });
@@ -642,9 +720,9 @@ export default function ResearchPage() {
         onCopyShareLink={handleCopyShareLink}
         exportDisabled={isDeepDive ? !detailGridRows.length : !screenerGridRows.length}
         colorMode={colorMode}
-        onColorModeChange={setColorMode}
+        onColorModeChange={handleColorModeChange}
         showHeatLegend={showHeatLegend}
-        onShowHeatLegendChange={setShowHeatLegend}
+        onShowHeatLegendChange={handleShowHeatLegendChange}
       />
 
       {showHeatLegend && <HeatLegend colorMode={colorMode} />}

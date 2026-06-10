@@ -1,6 +1,6 @@
 # Heatmap, Scoring & Canonical Metrics Plan
 
-**Status:** Phase X (X1–X3) + Heatmap H1–H3 implemented  
+**Status:** Phase X (X1–X4, X6–X7) + Heatmap H1–H5 implemented  
 **Last updated:** 2026-06-09
 
 See also: [`UI_PHILOSOPHY.md`](./UI_PHILOSOPHY.md), [`CSS_REFACTOR_PLAN.md`](./CSS_REFACTOR_PLAN.md), [`../../stock_tracker_backend/docs/RESEARCH_WORKSTATION_PLAN.md`](../../stock_tracker_backend/docs/RESEARCH_WORKSTATION_PLAN.md)
@@ -87,7 +87,7 @@ FinancialGrid               applies cellStyle + tooltips on <td>
 | `buildHistoricalStats` | Row-wise percentile breakpoints from period values |
 | `describeHeat` | Tooltip text for a colored cell |
 
-Registry metadata (`higher_is_better`, `danger_threshold`, `heatmap_mode`) should eventually be **read from the backend** rather than duplicated in `researchMetrics.js`.
+Registry metadata (`higher_is_better`, `danger_threshold`, `heatmap_mode`, `score_type`) is **read from the backend** at app startup via `loadMetricRegistry()` → `applyRegistryRules()`. Jest tests load `src/config/__fixtures__/metric_registry.snapshot.json`. Run `detectRegistryDrift()` in dev when backend thresholds change; refresh the snapshot from `GET /api/research/metrics/registry`.
 
 ---
 
@@ -148,8 +148,8 @@ Aligns with backend `survivability_bucket()` in `scoring.py`.
 | **H1** | `scoringColors.js` API, purple tier, `deep_value` for **existing** keys | Done |
 | **H2** | Deep-dive grid, `historical` mode, tooltips, trend colors | Done |
 | **H3** | Screener grid, toolbar color mode, legend, valuation inversion | Done |
-| **H4** | Sector percentile coloring | Phase X (sector stats) |
-| **H5** | `ScoringPanel` badge alignment, user pref persistence | H1 |
+| **H4** | Sector percentile coloring | Done |
+| **H5** | `ScoringPanel` badge alignment, user pref persistence | Done |
 
 **Do not block H1–H3 on Phase X.** Phase X unblocks full metric coverage and H4.
 
@@ -440,10 +440,10 @@ Frontend migration path:
 | **X1 — Primitives** | Extract `safe_div`, debt, fcf, ebitda, margins into shared module | Done |
 | **X2 — Registry v1** | Registry for metrics that exist today + metadata schema | Done |
 | **X3 — Engine v1** | Wrap/refactor `build_company_metrics` → engine; scoring imports primitives | Done |
-| **X4 — Trends** | Server-side YoY, CAGR, margin deltas; remove frontend duplication |
+| **X4 — Trends** | Server-side YoY, CAGR on ticker detail (`metricTrends`) | Done |
 | **X5 — Expand ratios** | Profitability + valuation + liquidity gaps from audit table |
-| **X6 — API metadata** | `/api/metrics/registry`; frontend sync |
-| **X7 — Sector stats** | SQLite aggregation for percentile heatmaps |
+| **X6 — API metadata** | `/api/research/metrics/registry`; frontend sync | Done |
+| **X7 — Sector stats** | `/api/research/metrics/sector-stats` for percentile heatmaps | Done |
 | **X8 — Snapshots** | Optional materialized per-period metrics if needed |
 
 **Constraints:** SQLite-first, extend existing fundamentals pipeline, preserve API contracts, no big-bang rewrite.

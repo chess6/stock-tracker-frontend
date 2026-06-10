@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import API_ENDPOINTS from '../apiConfig';
 import StSpinner from '../components/StSpinner';
-import MacroHeatmap from '../components/dashboard/MacroHeatmap';
+import MacroTreemap from '../components/dashboard/MacroTreemap';
 import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
 import { signedHeatStyle } from '../utils/heatMap';
 import { formatPercent, formatUsd } from '../utils/formatters';
@@ -192,9 +192,9 @@ export default function DashboardPage() {
 
       {!loading && grouped.length > 0 && (
         <div className="st-panel">
-          <div className="st-panel-header">Macro Heatmap</div>
+          <div className="st-panel-header">Macro Treemap</div>
           <div className="st-panel-body">
-            <MacroHeatmap sections={grouped} />
+            <MacroTreemap sections={grouped} />
           </div>
         </div>
       )}

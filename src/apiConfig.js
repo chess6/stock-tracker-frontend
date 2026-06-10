@@ -23,6 +23,8 @@ export const API_ENDPOINTS = {
   WATCHLIST_TICKERS: name => `${API_BASE}/watchlists/${encodeURIComponent(name)}/tickers`,
   WATCHLIST_TICKER: (name, ticker) => `${API_BASE}/watchlists/${encodeURIComponent(name)}/tickers/${encodeURIComponent(ticker)}`,
   RESEARCH_SCREENER: `${API_BASE}/research/screener`,
+  RESEARCH_METRICS_REGISTRY: `${API_BASE}/research/metrics/registry`,
+  RESEARCH_SECTOR_STATS: `${API_BASE}/research/metrics/sector-stats`,
   RESEARCH_TICKER: ticker => `${API_BASE}/research/ticker/${encodeURIComponent(ticker)}`,
   RESEARCH_INSIDERS: ticker => `${API_BASE}/research/insiders/${encodeURIComponent(ticker)}`,
   RESEARCH_INSIDER_CLUSTERS: `${API_BASE}/research/insiders/clusters`,

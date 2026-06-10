@@ -19,6 +19,7 @@ import MoversPage from './pages/MoversPage';
 import ResearchPage from './pages/ResearchPage';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { loadMetricRegistry } from './config/metricRegistry';
 import { loadUserPreferences } from './utils/portfolio';
 
 function LegacyInsiderRedirect() {
@@ -34,7 +35,10 @@ function LegacyFinancialsRedirect() {
 }
 
 function App() {
-  useEffect(() => { loadUserPreferences(); }, []);
+  useEffect(() => {
+    loadUserPreferences();
+    loadMetricRegistry();
+  }, []);
   return (
     <Provider store={store}>
       <ThemeProvider>

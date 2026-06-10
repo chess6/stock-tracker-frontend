@@ -1,5 +1,6 @@
 /**
  * Institutional deep-value conditional formatting for research grids.
+ * Thresholds and heatmap modes come from the backend metric registry (P1).
  * @see docs/HEATMAP_AND_SCORING_PHILOSOPHY.md
  */
 
@@ -8,40 +9,16 @@ import {
   tierHeatStyle,
   signedHeatStyle,
   marginHeatStyle,
-  piotroskiHeatStyle,
-  altmanZHeatStyle,
 } from './heatMap';
 
-export { marginHeatStyle, piotroskiHeatStyle, altmanZHeatStyle };
+export { marginHeatStyle };
 
 export const COLOR_MODES = ['deep_value', 'historical', 'sector'];
 
 const TIER_LABELS = ['distress', 'weak', 'neutral', 'good', 'strong', 'elite'];
 
-/** Metric scoring rules keyed by API camelCase field names. */
-export const METRIC_RULES = {
-  grossMargin: { category: 'profitability', higherIsBetter: true },
-  netMargin: { category: 'profitability', higherIsBetter: true },
-  operatingMargin: { category: 'profitability', higherIsBetter: true },
-  ebitdaMargin: { category: 'profitability', higherIsBetter: true },
-  fcfMargin: { category: 'profitability', higherIsBetter: true },
-  cfoMargin: { category: 'profitability', higherIsBetter: true },
-  roe: { category: 'profitability', higherIsBetter: true },
-  roa: { category: 'profitability', higherIsBetter: true },
-  pe: { category: 'valuation', higherIsBetter: false },
-  pb: { category: 'valuation', higherIsBetter: false },
-  ebitdaEv: { category: 'valuation', higherIsBetter: true },
-  earningsYield: { category: 'profitability', higherIsBetter: true },
-  de: { category: 'distress', higherIsBetter: false },
-  debtAssets: { category: 'distress', higherIsBetter: false },
-  currentRatio: { category: 'distress', higherIsBetter: true },
-  quickRatio: { category: 'distress', higherIsBetter: true },
-  interestCoverage: { category: 'distress', higherIsBetter: true },
-  cashToDebt: { category: 'distress', higherIsBetter: true },
-  piotroskiF: { category: 'score', scoreType: 'piotroski' },
-  altmanZ: { category: 'score', scoreType: 'altman' },
-  beneishM: { category: 'score', scoreType: 'beneish' },
-  survivability: { category: 'score', scoreType: 'survivability' },
+/** UI-only trend metrics not yet in backend registry. */
+const LOCAL_TREND_RULES = {
   grossMargin3yrDelta: { category: 'trend', higherIsBetter: true },
   operatingMargin3yrDelta: { category: 'trend', higherIsBetter: true },
   shareDilutionRate: { category: 'trend', higherIsBetter: false, invertTrend: true },
@@ -51,6 +28,9 @@ export const METRIC_RULES = {
   cagr: { category: 'trend', higherIsBetter: true },
 };
 
+/** Populated from backend registry via applyRegistryRules(); includes LOCAL_TREND_RULES. */
+export const METRIC_RULES = { ...LOCAL_TREND_RULES };
+
 const LEGACY_HEATMAP_MAP = {
   margin: 'profitability',
   column: 'valuation',
@@ -59,6 +39,16 @@ const LEGACY_HEATMAP_MAP = {
   beneish: 'score',
   survivability: 'score',
   signed: 'trend',
+};
+
+const REGISTRY_CATEGORY_MAP = {
+  profitability: 'profitability',
+  valuation: 'valuation',
+  liquidity: 'distress',
+  distress: 'distress',
+  growth: 'trend',
+  deep_value: 'valuation',
+  score: 'score',
 };
 
 function isValidNumber(value) {
@@ -134,69 +124,37 @@ function historicalTier(value, stats, higherIsBetter) {
   return 0;
 }
 
-function deepValueProfitabilityTier(value) {
-  const num = Number(value);
-  if (num < 0) return 0;
-  if (num >= 0.40) return 5;
-  if (num >= 0.25) return 4;
-  if (num >= 0.15) return 3;
-  if (num >= 0.05) return 2;
-  if (num > 0) return 1;
-  return 2;
-}
+/**
+ * Map a value to tier 0–5 using registry danger/excellent thresholds.
+ * @param {number} num — normalized numeric value
+ * @param {{ higherIsBetter?: boolean, dangerThreshold?: number|null, excellentThreshold?: number|null }} rule
+ */
+export function tierFromRegistryThresholds(num, rule = {}) {
+  if (!isValidNumber(num)) return null;
+  const higher = rule.higherIsBetter !== false;
+  const danger = rule.dangerThreshold;
+  const excellent = rule.excellentThreshold;
+  if (danger == null && excellent == null) return null;
 
-function deepValuePeTier(value) {
-  const num = Number(value);
-  if (num <= 0) return 0;
-  if (num < 8) return 5;
-  if (num < 12) return 4;
-  if (num < 20) return 3;
-  if (num < 35) return 2;
-  if (num < 50) return 1;
-  return 0;
-}
+  if (higher) {
+    const floor = danger ?? -Infinity;
+    const ceiling = excellent ?? Infinity;
+    if (num >= ceiling) return 5;
+    if (num <= floor) return 0;
+    const span = ceiling - floor;
+    if (span <= 0) return 2;
+    const t = (num - floor) / span;
+    return Math.min(5, Math.max(1, Math.ceil(t * 5)));
+  }
 
-function deepValuePbTier(value) {
-  const num = Number(value);
-  if (num <= 0) return 0;
-  if (num < 0.7) return 5;
-  if (num < 1.0) return 4;
-  if (num < 1.5) return 3;
-  if (num < 2.5) return 2;
-  if (num < 4.0) return 1;
-  return 0;
-}
-
-function deepValueDeTier(value) {
-  const num = Number(value);
-  if (num < 0) return 0;
-  if (num < 0.5) return 5;
-  if (num < 1.0) return 4;
-  if (num < 1.5) return 3;
-  if (num < 2.0) return 2;
-  if (num < 3.0) return 1;
-  return 0;
-}
-
-function deepValueCurrentRatioTier(value) {
-  const num = Number(value);
-  if (num < 1) return 0;
-  if (num > 2.5) return 5;
-  if (num > 1.5) return 4;
-  if (num >= 1.2) return 3;
-  if (num >= 1) return 2;
-  return 1;
-}
-
-function deepValueInterestCoverageTier(value) {
-  const num = Number(value);
-  if (num < 0) return 0;
-  if (num >= 8) return 5;
-  if (num >= 3) return 4;
-  if (num >= 1.5) return 3;
-  if (num >= 1) return 2;
-  if (num > 0) return 1;
-  return 0;
+  const ceiling = excellent ?? -Infinity;
+  const floor = danger ?? Infinity;
+  if (num <= ceiling) return 5;
+  if (num >= floor) return 0;
+  const span = floor - ceiling;
+  if (span <= 0) return 2;
+  const t = (floor - num) / span;
+  return Math.min(5, Math.max(1, Math.ceil(t * 5)));
 }
 
 function deepValueTrendTier(value, higherIsBetter, invertTrend = false) {
@@ -219,13 +177,9 @@ function deepValueTrendTier(value, higherIsBetter, invertTrend = false) {
 function scoreTierForMetric(metricKey, value) {
   if (!isValidNumber(value)) return null;
   const rule = METRIC_RULES[metricKey];
-  const scoreType = rule?.scoreType
-    || (metricKey === 'piotroskiF' ? 'piotroski' : null)
-    || (metricKey === 'altmanZ' ? 'altman' : null)
-    || (metricKey === 'beneishM' ? 'beneish' : null)
-    || (metricKey === 'survivability' ? 'survivability' : null);
-
+  const scoreType = rule?.scoreType;
   const num = Number(value);
+
   switch (scoreType) {
     case 'piotroski': {
       const n = Math.round(num);
@@ -234,73 +188,63 @@ function scoreTierForMetric(metricKey, value) {
       if (n >= 3) return 2;
       return 0;
     }
-    case 'altman': {
+    case 'altman':
       if (num > 4) return 5;
       if (num > 2.99) return 4;
       if (num >= 1.81) return 2;
       return 0;
-    }
     case 'beneish':
       return num > -1.78 ? 0 : 4;
-    case 'survivability': {
+    case 'survivability':
       if (num >= 80) return 5;
       if (num >= 60) return 4;
       if (num >= 40) return 2;
       if (num >= 20) return 1;
       return 0;
-    }
     default:
       return null;
   }
 }
 
-function deepValueTier(metricKey, value, format) {
-  if (!isValidNumber(value)) return null;
-  const num = normalizeRatio(value, format) ?? Number(value);
-  if (num < 0 && METRIC_RULES[metricKey]?.category !== 'trend') return 0;
-
-  const rule = METRIC_RULES[metricKey];
-  if (!rule) return null;
-
-  if (rule.category === 'score') {
-    return scoreTierForMetric(metricKey, value);
+function registryEntryToRule(entry) {
+  const apiKey = entry.api_key || entry.key;
+  const category = REGISTRY_CATEGORY_MAP[entry.category] || entry.category || 'profitability';
+  const rule = {
+    metricKey: apiKey,
+    canonicalKey: entry.key,
+    category,
+    label: entry.label,
+    format: entry.format,
+    higherIsBetter: entry.higher_is_better !== false,
+    heatmapMode: entry.heatmap_mode,
+    dangerThreshold: entry.danger_threshold ?? null,
+    excellentThreshold: entry.excellent_threshold ?? null,
+    fromRegistry: true,
+  };
+  if (category === 'score' && entry.score_type) {
+    rule.scoreType = entry.score_type;
   }
-
-  if (rule.category === 'trend') {
-    return deepValueTrendTier(value, rule.higherIsBetter, rule.invertTrend);
+  if (category === 'valuation' && entry.higher_is_better === false) {
+    rule.higherIsBetter = false;
   }
+  return rule;
+}
 
-  switch (metricKey) {
-    case 'pe':
-      return deepValuePeTier(num);
-    case 'pb':
-      return deepValuePbTier(num);
-    case 'de':
-    case 'debtAssets':
-      return deepValueDeTier(num);
-    case 'currentRatio':
-    case 'quickRatio':
-      return deepValueCurrentRatioTier(num);
-    case 'interestCoverage':
-      return deepValueInterestCoverageTier(num);
-    case 'cashToDebt':
-      if (num >= 1.5) return 5;
-      if (num >= 1.0) return 4;
-      if (num >= 0.5) return 3;
-      if (num >= 0.25) return 2;
-      return 0;
-    case 'ebitdaEv':
-      if (num >= 0.20) return 5;
-      if (num >= 0.12) return 4;
-      if (num >= 0.08) return 3;
-      if (num >= 0.05) return 2;
-      return 0;
-    default:
-      if (rule.category === 'profitability') {
-        return deepValueProfitabilityTier(num);
-      }
-      return null;
-  }
+/**
+ * Apply backend registry entries as the source of truth for heatmap rules.
+ * @param {Array<object>} entries — from GET /api/research/metrics/registry
+ */
+export function applyRegistryRules(entries = []) {
+  entries.forEach((entry) => {
+    const apiKey = entry.api_key || entry.key;
+    if (!apiKey) return;
+    METRIC_RULES[apiKey] = registryEntryToRule(entry);
+  });
+}
+
+/** @deprecated use applyRegistryRules */
+export function mergeRegistryRules(entries = []) {
+  return applyRegistryRules(entries);
 }
 
 export function resolveMetricRule(metricKey, legacyHeatmap) {
@@ -318,6 +262,37 @@ export function resolveMetricRule(metricKey, legacyHeatmap) {
   return null;
 }
 
+function deepValueTier(metricKey, value, format) {
+  if (!isValidNumber(value)) return null;
+  const rule = resolveMetricRule(metricKey);
+  if (!rule) return null;
+
+  const num = normalizeRatio(value, rule.format || format) ?? Number(value);
+  // Score models (e.g. Beneish M) may be negative when healthy — do not force distress.
+  if (num < 0 && rule.category !== 'trend' && rule.category !== 'score') return 0;
+
+  if (rule.category === 'score') {
+    return scoreTierForMetric(metricKey, value);
+  }
+
+  if (rule.category === 'trend') {
+    return deepValueTrendTier(value, rule.higherIsBetter, rule.invertTrend);
+  }
+
+  const tier = tierFromRegistryThresholds(num, rule);
+  if (tier != null) return tier;
+
+  if (rule.category === 'profitability' || rule.heatmapMode === 'percentile') {
+    return tierFromRegistryThresholds(num, {
+      higherIsBetter: true,
+      dangerThreshold: rule.dangerThreshold ?? 0,
+      excellentThreshold: rule.excellentThreshold ?? 0.4,
+    });
+  }
+
+  return null;
+}
+
 /**
  * @returns {number|null} tier 0–5
  */
@@ -325,11 +300,16 @@ export function getScoreTier(value, metricKey, context = {}) {
   const rule = resolveMetricRule(metricKey, context.legacyHeatmap);
   if (!rule || !isValidNumber(value)) return null;
 
-  const format = context.format;
+  const format = context.format || rule.format;
   const num = normalizeRatio(value, format) ?? Number(value);
-  if (num < 0 && rule.category !== 'trend') return 0;
+  if (num < 0 && rule.category !== 'trend' && rule.category !== 'score') return 0;
 
   const mode = context.mode || 'deep_value';
+
+  // Score-tier metrics use fixed bands, not row percentiles.
+  if (rule.category === 'score' && rule.heatmapMode === 'score_tier') {
+    return scoreTierForMetric(metricKey, value);
+  }
 
   if (mode === 'historical' && context.historical) {
     const tier = historicalTier(num, context.historical, rule.higherIsBetter !== false);
@@ -360,15 +340,6 @@ export function getMetricBackground(metricKey, value, context = {}) {
   const tier = getScoreTier(value, metricKey, context);
   if (tier != null) {
     return tierHeatStyle(tier);
-  }
-
-  if (rule.category === 'score') {
-    if (rule.scoreType === 'piotroski' || metricKey === 'piotroskiF') {
-      return piotroskiHeatStyle(value);
-    }
-    if (rule.scoreType === 'altman' || metricKey === 'altmanZ') {
-      return altmanZHeatStyle(value);
-    }
   }
 
   return {};
@@ -403,15 +374,27 @@ export function describeHeat(metricKey, value, context = {}) {
   return `${category} · ${mode.replace('_', ' ')} · ${label} (tier ${tier}/5)`;
 }
 
-/** @deprecated use getMetricBackground with score rules */
+/** @deprecated use getMetricBackground */
 export function beneishHeatStyle(value) {
   const tier = scoreTierForMetric('beneishM', value);
   return tier != null ? tierHeatStyle(tier) : {};
 }
 
-/** @deprecated use getMetricBackground with score rules */
+/** @deprecated use getMetricBackground */
 export function survivabilityHeatStyle(value) {
   const tier = scoreTierForMetric('survivability', value);
+  return tier != null ? tierHeatStyle(tier) : {};
+}
+
+/** @deprecated use getMetricBackground */
+export function piotroskiHeatStyle(value) {
+  const tier = scoreTierForMetric('piotroskiF', value);
+  return tier != null ? tierHeatStyle(tier) : {};
+}
+
+/** @deprecated use getMetricBackground */
+export function altmanZHeatStyle(value) {
+  const tier = scoreTierForMetric('altmanZ', value);
   return tier != null ? tierHeatStyle(tier) : {};
 }
 
@@ -431,6 +414,7 @@ export function precomputeRowHeatStyles(row, periodCount, context = {}) {
     const cellContext = {
       ...context,
       historical,
+      sector: context.sectorByMetric?.[metricKey] ?? context.sector,
       format: row.format,
       legacyHeatmap: row.heatmap,
     };
@@ -441,4 +425,19 @@ export function precomputeRowHeatStyles(row, periodCount, context = {}) {
     );
   }
   return styles;
+}
+
+/** Heat style for a single screener cell (per-ticker sector context). */
+export function screenerCellHeatStyle(metricKey, value, {
+  mode = 'deep_value',
+  format,
+  historical,
+  sectorBreakpoints,
+} = {}) {
+  return getMetricBackground(metricKey, value, {
+    mode,
+    format,
+    historical,
+    sector: sectorBreakpoints,
+  });
 }

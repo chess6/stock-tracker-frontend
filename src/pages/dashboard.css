@@ -1,26 +1,26 @@
-/* Dashboard — macro heatmap + compact layout */
+/* Dashboard — macro treemap + compact layout */
 
-.macro-heatmap {
+.macro-treemap {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.15rem;
 }
 
-.macro-heatmap-legend {
+.macro-treemap-legend {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.1rem;
   padding: 0 0.1rem;
 }
 
-.macro-heatmap-legend-label {
+.macro-treemap-legend-label {
   font-size: 0.62rem;
   color: var(--st-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
-.macro-heatmap-scale {
+.macro-treemap-scale {
   flex: 1;
   max-width: 8rem;
   height: 0.35rem;
@@ -35,81 +35,14 @@
   );
 }
 
-.macro-heatmap-row {
-  display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
-  gap: 0.25rem;
-  align-items: stretch;
+.macro-treemap .apexcharts-legend {
+  padding-top: 0.35rem !important;
 }
 
-@media (max-width: 575px) {
-  .macro-heatmap-row {
-    grid-template-columns: 1fr;
-  }
-
-  .macro-heatmap-group {
-    padding-bottom: 0;
-    border-bottom: 0;
-  }
-}
-
-.macro-heatmap-group {
-  font-size: 0.62rem;
-  font-weight: 700;
+.macro-treemap .apexcharts-legend-text {
+  color: var(--st-text-muted) !important;
+  font-size: 0.62rem !important;
+  font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--st-text-muted);
-  padding: 0.2rem 0.15rem 0.2rem 0;
-  border-bottom: 1px solid var(--st-border);
-  align-self: center;
-}
-
-.macro-heatmap-cells {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(4.25rem, 1fr));
-  gap: 0.1rem;
-}
-
-.macro-heatmap-cell {
-  border: 1px solid var(--st-border);
-  border-radius: 0.2rem;
-  padding: 0.12rem 0.18rem;
-  min-height: 2.45rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.05rem;
-  cursor: default;
-  transition: filter 0.12s ease;
-}
-
-.macro-heatmap-cell:hover {
-  filter: brightness(1.08);
-}
-
-.macro-heatmap-cell-muted {
-  opacity: 0.65;
-  background: var(--st-surface-muted) !important;
-  color: var(--st-text-muted) !important;
-}
-
-.macro-heatmap-symbol {
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.macro-heatmap-pct {
-  font-size: 0.72rem;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.macro-heatmap-price {
-  font-size: 0.62rem;
-  opacity: 0.9;
-  line-height: 1.1;
 }

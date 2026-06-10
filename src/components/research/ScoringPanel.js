@@ -1,10 +1,5 @@
 import { formatDecimal } from '../../utils/formatters';
-import {
-  altmanZHeatStyle,
-  beneishHeatStyle,
-  piotroskiHeatStyle,
-  survivabilityHeatStyle,
-} from '../../utils/scoringColors';
+import { getMetricBackground } from '../../utils/scoringColors';
 
 const PIOTROSKI_LABELS = {
   roa: 'Positive ROA',
@@ -66,7 +61,7 @@ export default function ScoringPanel({ scoreHistory, embedded = false }) {
       <div className="research-score-card">
         <div className="research-score-card-header">
           <span className="research-text-amber">Piotroski F</span>
-          <span className="research-score-card-value st-num rounded px-1" style={piotroskiHeatStyle(latest.piotroskiF)}>
+          <span className="research-score-card-value st-num rounded px-1" style={getMetricBackground('piotroskiF', latest.piotroskiF, { mode: 'deep_value' })}>
             {latest.piotroskiF ?? '-'}
           </span>
         </div>
@@ -87,7 +82,7 @@ export default function ScoringPanel({ scoreHistory, embedded = false }) {
       <div className="research-score-card">
         <div className="research-score-card-header">
           <span className="research-text-amber">Altman Z</span>
-          <span className="research-score-card-value st-num rounded px-1" style={altmanZHeatStyle(latest.altmanZ)}>
+          <span className="research-score-card-value st-num rounded px-1" style={getMetricBackground('altmanZ', latest.altmanZ, { mode: 'deep_value' })}>
             {latest.altmanZ != null ? formatDecimal(latest.altmanZ, 2) : '-'}
           </span>
         </div>
@@ -111,7 +106,7 @@ export default function ScoringPanel({ scoreHistory, embedded = false }) {
       <div className="research-score-card">
         <div className="research-score-card-header">
           <span className="research-text-amber">Beneish M</span>
-          <span className="research-score-card-value st-num rounded px-1" style={beneishHeatStyle(latest.beneishM)}>
+          <span className="research-score-card-value st-num rounded px-1" style={getMetricBackground('beneishM', latest.beneishM, { mode: 'deep_value' })}>
             {latest.beneishM != null ? formatDecimal(latest.beneishM, 2) : '-'}
           </span>
         </div>
@@ -126,7 +121,7 @@ export default function ScoringPanel({ scoreHistory, embedded = false }) {
         </div>
         <div className="research-score-card-header research-score-card-header-spaced">
           <span className="research-text-amber">Survivability</span>
-          <span className="research-score-card-value st-num rounded px-1" style={survivabilityHeatStyle(latest.survivability)}>
+          <span className="research-score-card-value st-num rounded px-1" style={getMetricBackground('survivability', latest.survivability, { mode: 'deep_value' })}>
             {latest.survivability != null ? Math.round(latest.survivability) : '-'}
           </span>
         </div>

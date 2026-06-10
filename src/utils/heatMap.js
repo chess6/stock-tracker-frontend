@@ -72,6 +72,18 @@ export function signedHeatStyle(value, scale = 5) {
   return { backgroundColor: step.bg, color: step.fg, fontVariantNumeric: 'tabular-nums' };
 }
 
+/** Background fill for charts (treemap cells, etc.) using the same signed heat scale. */
+export function signedHeatBackground(value, scale = 5) {
+  return signedHeatStyle(value, scale).backgroundColor
+    || (isDarkTheme() ? 'rgba(73, 80, 87, 0.35)' : 'rgba(233, 236, 239, 0.9)');
+}
+
+/** Foreground text color paired with signedHeatBackground. */
+export function signedHeatForeground(value, scale = 5) {
+  return signedHeatStyle(value, scale).color
+    || (isDarkTheme() ? '#b7bdc4' : '#5c636a');
+}
+
 /**
  * Column-relative heatmap (low → blue, high → green) for valuation ratios.
  */
