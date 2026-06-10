@@ -18,6 +18,8 @@ export const COMPOSITE_PRESETS = [
 
 export const DEFAULT_COMPOSITE_ID = 'deep_value';
 
+export const RANK_DELTA_LABEL = 'Rank Δ (7d)';
+
 export const FACTOR_LABELS = {
   valuation_dislocation: 'Valuation dislocation',
   survivability: 'Survivability',

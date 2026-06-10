@@ -52,6 +52,19 @@ export default function AdminFeatureFlags({ showToast, disabled = false }) {
         ) : (
           <ul className="admin-feature-flags-list mb-0">
             {FEATURE_FLAG_META.map((item) => {
+              if (item.inactive) {
+                return (
+                  <li key={item.key} className="admin-feature-flag-item admin-feature-flag-item--inactive">
+                    <div className="admin-feature-flag-retired">
+                      <span className="admin-feature-flag-label">{item.label}</span>
+                      <span className="st-badge-muted admin-feature-flag-inactive-badge">Inactive</span>
+                      <span className="admin-feature-flag-key">{item.key}</span>
+                    </div>
+                    <div className="admin-feature-flag-desc">{item.description}</div>
+                  </li>
+                );
+              }
+
               const enabled = Boolean(flags[item.key]);
               const busy = savingKey === item.key;
               return (

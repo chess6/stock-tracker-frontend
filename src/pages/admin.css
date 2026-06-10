@@ -38,6 +38,32 @@
   border-bottom: none;
 }
 
+.admin-feature-flag-item--inactive {
+  opacity: 0.72;
+}
+
+.admin-feature-flag-retired {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  margin-bottom: 0.15rem;
+}
+
+.admin-feature-flag-retired .admin-feature-flag-label {
+  display: inline;
+}
+
+.admin-feature-flag-retired .admin-feature-flag-key {
+  flex-basis: 100%;
+}
+
+.admin-feature-flag-inactive-badge {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .admin-feature-flag-switch {
   margin-bottom: 0.15rem;
 }

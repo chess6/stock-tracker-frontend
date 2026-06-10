@@ -4,7 +4,10 @@ export const FEATURE_FLAG_META = [
   {
     key: 'experimental_research_composite_rank',
     label: 'Research composite ranking',
-    description: 'Enables GET /api/research/rank (deep_value, turnaround) with per-factor breakdowns.',
+    inactive: true,
+    description:
+      'Retired — composite rank is always on. '
+      + 'GET /api/research/rank serves deep_value, turnaround, and rerating_candidate with per-factor breakdowns.',
   },
   {
     key: 'experimental_composite_rank',

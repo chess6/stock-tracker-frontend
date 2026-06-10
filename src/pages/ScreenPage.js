@@ -23,10 +23,12 @@ import {
 } from '../utils/researchPinned';
 import { commitResearchScroll } from '../utils/researchScrollState';
 import { saveScreenScrollBeforeLeave } from '../utils/researchNavigation';
-import { COMPOSITE_PRESETS, DEFAULT_COMPOSITE_ID } from '../config/compositePresets';
+import { COMPOSITE_PRESETS, DEFAULT_COMPOSITE_ID, RANK_DELTA_LABEL } from '../config/compositePresets';
 import { fetchCompositeRank } from '../utils/compositeRankApi';
 import {
   formatCompositeScore,
+  formatRankDelta,
+  rankDeltaClassName,
   rankResultsByTicker,
   sortFactorsByContribution,
 } from '../utils/compositeRank';
@@ -56,6 +58,7 @@ function buildResultRows(results = [], rankByTicker = {}) {
       buy6m: row.insider?.buy6m,
       compositeScore: rankRow?.compositeScore,
       compositeRank: rankRow?.rank,
+      rankDelta: rankRow?.rank_delta,
       topFactor: sortFactorsByContribution(rankRow?.factors || [])[0]?.key,
       filtersPassed: row.filtersPassed,
       filtersTotal: row.filtersTotal,
@@ -173,6 +176,23 @@ export default function ScreenPage() {
           <span title={row.original.topFactor ? `Top factor: ${row.original.topFactor}` : undefined}>
             {formatCompositeScore(score)}
             {row.original.compositeRank != null ? ` (#${row.original.compositeRank})` : ''}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'rankDelta',
+      accessorKey: 'rankDelta',
+      header: RANK_DELTA_LABEL,
+      cell: ({ row }) => {
+        const delta = row.original.rankDelta;
+        if (delta == null) return '—';
+        return (
+          <span
+            className={rankDeltaClassName(delta)}
+            title="Change in universe rank vs snapshot from 7 days ago (positive = improved)"
+          >
+            {formatRankDelta(delta)}
           </span>
         );
       },
@@ -375,7 +395,7 @@ export default function ScreenPage() {
         compact
         activeRowId={activeRowId}
         scrollPersistenceKey="research-screen"
-        defaultVisibleColumns={['ticker', 'companyName', 'sector', 'compositeScore', 'pb', 'pe', 'survivability', 'filtersPassed', 'evidence']}
+        defaultVisibleColumns={['ticker', 'companyName', 'sector', 'compositeScore', 'rankDelta', 'pb', 'pe', 'survivability', 'filtersPassed', 'evidence']}
         maxHeight="70vh"
       />
     </div>

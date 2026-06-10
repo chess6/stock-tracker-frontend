@@ -12,6 +12,22 @@ export function formatFactorPercentile(normalized) {
   return `P${Math.round(Number(normalized) * 100)}`;
 }
 
+export function formatRankDelta(delta) {
+  if (delta == null || Number.isNaN(Number(delta))) return '—';
+  const n = Number(delta);
+  if (n === 0) return '→0';
+  const arrow = n > 0 ? '↑' : '↓';
+  return `${arrow}${Math.abs(n)}`;
+}
+
+export function rankDeltaClassName(delta) {
+  if (delta == null || Number.isNaN(Number(delta))) return '';
+  const n = Number(delta);
+  if (n > 0) return 'text-success';
+  if (n < 0) return 'text-danger';
+  return 'text-muted';
+}
+
 export function rankResultsByTicker(results = []) {
   const map = {};
   results.forEach((row) => {

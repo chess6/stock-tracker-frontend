@@ -1,6 +1,8 @@
 import {
   formatCompositeScore,
   formatFactorPercentile,
+  formatRankDelta,
+  rankDeltaClassName,
   rankResultsByTicker,
   sortFactorsByContribution,
 } from './compositeRank';
@@ -19,6 +21,17 @@ describe('compositeRank utils', () => {
     expect(formatCompositeScore(0.7123)).toBe('0.712');
     expect(formatFactorPercentile(0.62)).toBe('P62');
     expect(formatCompositeScore(null)).toBe('—');
+  });
+
+  it('formats rank delta with direction and color class', () => {
+    expect(formatRankDelta(5)).toBe('↑5');
+    expect(formatRankDelta(-3)).toBe('↓3');
+    expect(formatRankDelta(0)).toBe('→0');
+    expect(formatRankDelta(null)).toBe('—');
+    expect(rankDeltaClassName(2)).toBe('text-success');
+    expect(rankDeltaClassName(-1)).toBe('text-danger');
+    expect(rankDeltaClassName(0)).toBe('text-muted');
+    expect(rankDeltaClassName(null)).toBe('');
   });
 
   it('indexes rank results by ticker', () => {
