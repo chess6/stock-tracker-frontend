@@ -141,7 +141,6 @@ export default function ResearchPage() {
   const [compositeRank, setCompositeRank] = useState(null);
   const [compositeRankHistory, setCompositeRankHistory] = useState([]);
   const [compositeRankLoading, setCompositeRankLoading] = useState(false);
-  const [compositeRankDisabled, setCompositeRankDisabled] = useState(false);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -312,13 +311,9 @@ export default function ResearchPage() {
         fetchCompositeRank({ composite: DEFAULT_COMPOSITE_ID, tickers: [symbol], limit: 1 }),
         fetchCompositeRankHistory(symbol, { composite: DEFAULT_COMPOSITE_ID, limit: 90 }),
       ]);
-      setCompositeRankDisabled(false);
       setCompositeRank(rankPayload?.results?.[0] || null);
       setCompositeRankHistory(historyPayload?.history || []);
-    } catch (err) {
-      if (err?.response?.status === 403) {
-        setCompositeRankDisabled(true);
-      }
+    } catch {
       setCompositeRank(null);
       setCompositeRankHistory([]);
     } finally {
@@ -336,7 +331,6 @@ export default function ResearchPage() {
     setNarrativeData(null);
     setCompositeRank(null);
     setCompositeRankHistory([]);
-    setCompositeRankDisabled(false);
     const tickers = parseTickers(tickersText);
     if (tickers.length) loadScreener(tickers, dimension);
     // Initial load only; toolbar actions refresh explicitly.
@@ -937,7 +931,6 @@ export default function ResearchPage() {
           compositeRank={compositeRank}
           compositeRankHistory={compositeRankHistory}
           compositeRankLoading={compositeRankLoading}
-          compositeRankDisabled={compositeRankDisabled}
           compositeId={DEFAULT_COMPOSITE_ID}
         />
       )}

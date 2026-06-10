@@ -31,7 +31,6 @@ export default function ResearchDeepDive({
   compositeRank,
   compositeRankHistory,
   compositeRankLoading,
-  compositeRankDisabled,
   compositeId,
 }) {
   const priceSparkline = (detailData?.price?.history || []).map((point) => point.close);
@@ -128,13 +127,11 @@ export default function ResearchDeepDive({
             rankRow={compositeRank}
             compositeId={compositeId}
             loading={compositeRankLoading}
-            disabled={compositeRankDisabled}
             embedded
           />
           <CompositeRankHistory
             history={compositeRankHistory}
             loading={compositeRankLoading}
-            disabled={compositeRankDisabled}
           />
         </div>
       </div>

@@ -3,7 +3,7 @@ import Chart from 'react-apexcharts';
 import { mergeApexOptions } from '../../utils/chartTheme';
 import { formatCompositeScore } from '../../utils/compositeRank';
 
-export default function CompositeRankHistory({ history = [], loading = false, disabled = false }) {
+export default function CompositeRankHistory({ history = [], loading = false }) {
   const chartPayload = useMemo(() => {
     const labels = history.map((point) => point.snapshot_date);
     const scores = history.map((point) => (
@@ -47,8 +47,6 @@ export default function CompositeRankHistory({ history = [], loading = false, di
     },
     legend: { show: true, position: 'top' },
   }), [chartPayload.labels]);
-
-  if (disabled) return null;
 
   if (loading) {
     return <div className="research-chart-empty">Loading rank history…</div>;

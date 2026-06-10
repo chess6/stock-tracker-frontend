@@ -9,6 +9,11 @@ export const COMPOSITE_PRESETS = [
     label: 'Turnaround Strength',
     description: 'Margin recovery, Altman improvement, insider buying, FCF stabilization.',
   },
+  {
+    id: 'rerating_candidate',
+    label: 'Rerating Candidate',
+    description: 'Improving fundamentals, negative sentiment divergence, insider accumulation.',
+  },
 ];
 
 export const DEFAULT_COMPOSITE_ID = 'deep_value';
@@ -23,6 +28,7 @@ export const FACTOR_LABELS = {
   altman_improvement: 'Altman improvement',
   insider_buying: 'Insider buying',
   fcf_stabilization: 'FCF stabilization',
+  sentiment_divergence: 'Sentiment divergence',
 };
 
 export function getCompositePreset(id) {

@@ -27,8 +27,8 @@ describe('CompositeFactorPanel', () => {
     expect(screen.getByText('Survivability')).toBeInTheDocument();
   });
 
-  it('shows disabled message when feature flag is off', () => {
-    render(<CompositeFactorPanel disabled embedded />);
-    expect(screen.getByText(/Research composite ranking/i)).toBeInTheDocument();
+  it('shows empty state when no rank row', () => {
+    render(<CompositeFactorPanel embedded />);
+    expect(screen.getByText(/No composite rank available/i)).toBeInTheDocument();
   });
 });

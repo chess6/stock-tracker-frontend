@@ -75,7 +75,6 @@ export default function ScreenPage() {
   const [payload, setPayload] = useState(null);
   const [compositeId, setCompositeId] = useState(DEFAULT_COMPOSITE_ID);
   const [rankByTicker, setRankByTicker] = useState({});
-  const [rankDisabled, setRankDisabled] = useState(false);
   const [pinnedTickers, setPinnedTickers] = useState(() => loadPinnedTickers());
   const pinsLocallyModifiedRef = useRef(false);
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
@@ -168,7 +167,6 @@ export default function ScreenPage() {
       accessorKey: 'compositeScore',
       header: 'Composite',
       cell: ({ row }) => {
-        if (rankDisabled) return '—';
         const score = row.original.compositeScore;
         if (score == null) return '—';
         return (
@@ -238,12 +236,8 @@ export default function ScreenPage() {
         tickers,
         limit: tickers.length,
       });
-      setRankDisabled(false);
       setRankByTicker(rankResultsByTicker(rankPayload?.results || []));
-    } catch (err) {
-      if (err?.response?.status === 403) {
-        setRankDisabled(true);
-      }
+    } catch {
       setRankByTicker({});
     }
   }, []);

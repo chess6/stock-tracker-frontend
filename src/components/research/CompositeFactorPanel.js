@@ -35,7 +35,6 @@ export default function CompositeFactorPanel({
   rankRow,
   compositeId = 'deep_value',
   loading = false,
-  disabled = false,
   embedded = false,
 }) {
   const preset = useMemo(() => getCompositePreset(compositeId), [compositeId]);
@@ -43,14 +42,6 @@ export default function CompositeFactorPanel({
     () => sortFactorsByContribution(rankRow?.factors || []),
     [rankRow?.factors],
   );
-
-  if (disabled) {
-    return (
-      <div className={embedded ? 'research-chart-empty' : 'st-panel-body research-chart-empty'}>
-        Enable <strong>Research composite ranking</strong> in Admin → Feature flags to view composite scores.
-      </div>
-    );
-  }
 
   if (loading) {
     return <div className="research-chart-empty">Loading composite rank…</div>;

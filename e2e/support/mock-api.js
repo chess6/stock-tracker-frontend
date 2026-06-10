@@ -378,12 +378,6 @@ async function mockStockTrackerApi(page, options = {}) {
       });
     }
     if (path === '/api/research/rank') {
-      if (!state.featureFlags.experimental_research_composite_rank) {
-        return json({
-          error: 'Composite ranking is disabled',
-          featureFlag: 'experimental_research_composite_rank',
-        }, 403);
-      }
       const tickers = parseTickersParam(url.searchParams.get('tickers'));
       const composite = url.searchParams.get('composite') || 'deep_value';
       const results = (tickers.length ? tickers : ['JPM', 'MCD']).map((ticker, index) => ({
@@ -404,12 +398,6 @@ async function mockStockTrackerApi(page, options = {}) {
       });
     }
     if (path.startsWith('/api/research/rank/history/')) {
-      if (!state.featureFlags.experimental_research_composite_rank) {
-        return json({
-          error: 'Composite ranking is disabled',
-          featureFlag: 'experimental_research_composite_rank',
-        }, 403);
-      }
       const ticker = path.split('/').pop()?.toUpperCase();
       return json({
         meta: { ticker, composite: url.searchParams.get('composite') || 'deep_value', returned: 2 },
@@ -437,7 +425,31 @@ async function mockStockTrackerApi(page, options = {}) {
       return json({ ticker: symbol, periods: [], scoreHistory: [] });
     }
     if (path.startsWith('/api/research/narrative/')) {
-      return json({ summary: 'Stable mock narrative for visual regression.', meta: { source: 'mock' } });
+      return json({
+        ticker: path.split('/').pop()?.toUpperCase(),
+        sentimentTrend: {
+          movingAverages: { '30d': 0.1, '90d': 0.05, '180d': 0.0 },
+          dailySeries: [],
+        },
+        divergence: null,
+        narrativeStates: [
+          { state: 'turnaround_optimism', score: 0.72, articleCount: 3 },
+        ],
+        narrativeDivergence: {
+          divergenceScore: 0.78,
+          signal: 'rerating_candidate',
+          description: 'Improving fundamentals with negative narrative.',
+        },
+        emergingSituations: [{
+          type: 'insider_news_cluster',
+          signal: 'emerging_situation',
+          description: 'Insider buying cluster with overlapping news activity.',
+        }],
+        topEvents: [],
+        recentArticles: [],
+        articleCount: 3,
+        meta: { source: 'mock' },
+      });
     }
 
     return json({});
