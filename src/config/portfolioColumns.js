@@ -18,6 +18,7 @@ export const PORTFOLIO_DEFAULT_VISIBLE_COLUMNS = [
   'change',
   'marketCap',
   'sector',
+  'tags',
   'change1w',
   'change6m',
   'pctTo52wHi',
@@ -75,6 +76,13 @@ export const PORTFOLIO_COLUMN_META = {
     fullName: 'Sector',
     tooltip: 'Coarse sector from SEC SIC code',
     source: 'SEC submissions',
+    group: 'quote',
+  },
+  tags: {
+    label: 'Tags',
+    shortLabel: 'Tags',
+    fullName: 'Portfolio Tags',
+    tooltip: 'User-defined tags for filtering and themes',
     group: 'quote',
   },
   industry: {

@@ -244,6 +244,33 @@ a.st-link-muted:focus-visible {
   color: var(--st-text-subtle);
 }
 
+.portfolio-tag-pills {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  max-width: 14rem;
+}
+
+.portfolio-tag-pill {
+  max-width: 100%;
+}
+
+.portfolio-tag-remove {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.75;
+  cursor: pointer;
+  font-size: 0.72rem;
+}
+
+.portfolio-tag-remove:hover {
+  opacity: 1;
+}
+
 .st-alert-warn {
   margin-bottom: 0.5rem;
   border-radius: 0.32rem;

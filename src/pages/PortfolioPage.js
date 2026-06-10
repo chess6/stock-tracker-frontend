@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
@@ -25,6 +25,16 @@ import {
     setCollapsedPortfolioGroups,
     sortPortfolioRows,
 } from '../utils/portfolioRowGroups';
+import {
+    addTagToTicker,
+    ALL_TAGS_FILTER,
+    filterRowsByTag,
+    getActiveTagFilter,
+    getAllUniqueTags,
+    getCompanyTagsMap,
+    setActiveTagFilter,
+    removeTagFromTicker,
+} from '../utils/companyTags';
 import DataGrid from '../components/DataGrid';
 import ConfirmModal from '../components/ConfirmModal';
 import PortfolioWatchlists from '../components/PortfolioWatchlists';
@@ -78,18 +88,59 @@ const PortfolioPage = () => {
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const { showToast } = useToast();
     const portfolioKey = useMemo(() => portfolio.join(','), [portfolio]);
+    const [tagsByTicker, setTagsByTicker] = useState(() => getCompanyTagsMap());
+    const [tagFilter, setTagFilter] = useState(() => getActiveTagFilter());
+    const [tagInput, setTagInput] = useState('');
+
+    const tagFilteredRows = useMemo(
+        () => filterRowsByTag(rows, tagFilter, tagsByTicker),
+        [rows, tagFilter, tagsByTicker],
+    );
+    const allTags = useMemo(() => getAllUniqueTags(tagsByTicker), [tagsByTicker]);
+    const selectedTickers = useMemo(
+        () => Object.keys(rowSelection).filter((id) => !String(id).startsWith('group:')),
+        [rowSelection],
+    );
+
+    const refreshTags = useCallback(() => {
+        setTagsByTicker(getCompanyTagsMap());
+        setTagFilter(getActiveTagFilter());
+    }, []);
+
+    const handleTagFilterChange = (event) => {
+        const nextFilter = setActiveTagFilter(event.target.value);
+        setTagFilter(nextFilter);
+    };
+
+    const handleAddTagToSelected = () => {
+        const label = tagInput.trim();
+        if (!selectedTickers.length || !label) return;
+        try {
+            selectedTickers.forEach((ticker) => addTagToTicker(ticker, label));
+            refreshTags();
+            setTagInput('');
+            showToast(`Tagged ${selectedTickers.length} ticker(s).`, 'success');
+        } catch (err) {
+            showToast(err.message || 'Could not add tag.', 'error');
+        }
+    };
+
+    const handleRemoveTag = useCallback((ticker, tag) => {
+        removeTagFromTicker(ticker, tag);
+        refreshTags();
+    }, [refreshTags]);
 
     const heatDatasetKey = useMemo(
-        () => rowsDatasetKey(rows, { idKey: 'ticker', metricKeys: PORTFOLIO_HEAT_METRIC_KEYS }),
-        [rows],
+        () => rowsDatasetKey(tagFilteredRows, { idKey: 'ticker', metricKeys: PORTFOLIO_HEAT_METRIC_KEYS }),
+        [tagFilteredRows],
     );
     const heatRanges = useMemo(
-        () => getCachedColumnMinMaxMap(rows, PORTFOLIO_HEAT_METRIC_KEYS, heatDatasetKey),
-        [rows, heatDatasetKey],
+        () => getCachedColumnMinMaxMap(tagFilteredRows, PORTFOLIO_HEAT_METRIC_KEYS, heatDatasetKey),
+        [tagFilteredRows, heatDatasetKey],
     );
     const gridRows = useMemo(
-        () => attachPortfolioHeatStyles(rows, heatRanges),
-        [rows, heatRanges],
+        () => attachPortfolioHeatStyles(tagFilteredRows, heatRanges),
+        [tagFilteredRows, heatRanges],
     );
 
     const columnHelper = useMemo(() => createColumnHelper(), []);
@@ -163,6 +214,36 @@ const PortfolioPage = () => {
             meta: meta('sector'),
             header: 'Sector',
             cell: ({ getValue }) => <span className="small">{getValue() || '—'}</span>,
+        }),
+        columnHelper.display({
+            id: 'tags',
+            meta: meta('tags'),
+            header: 'Tags',
+            cell: ({ row }) => {
+                if (row.original?._isGroupHeader) return null;
+                const ticker = row.original.ticker;
+                const tags = tagsByTicker[ticker] || [];
+                return (
+                    <span className="portfolio-tag-pills">
+                        {tags.map((tag) => (
+                            <span key={tag} className="st-badge-muted portfolio-tag-pill">
+                                {tag}
+                                <button
+                                    type="button"
+                                    className="portfolio-tag-remove"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveTag(ticker, tag);
+                                    }}
+                                    aria-label={`Remove tag ${tag}`}
+                                >
+                                    ×
+                                </button>
+                            </span>
+                        ))}
+                    </span>
+                );
+            },
         }),
         columnHelper.accessor('industry', {
             meta: meta('industry'),
@@ -386,7 +467,7 @@ const PortfolioPage = () => {
                 <a href={insiderScreenerUrl(row.original.ticker, 180)} target="_blank" rel="noopener noreferrer">6M</a>
             ),
         }),
-    ], [columnHelper, isPageLoading]);
+    ], [columnHelper, isPageLoading, tagsByTicker, handleRemoveTag]);
 
     const allColumnIds = useMemo(
         () => columns.map((col) => col.accessorKey ?? col.id).filter(Boolean),
@@ -719,6 +800,57 @@ const PortfolioPage = () => {
                                 ))}
                             </select>
                         </label>
+                        <label className="d-flex align-items-center gap-2 mb-0">
+                            <span className="small text-muted">Filter tag</span>
+                            <select
+                                className="form-select form-select-sm"
+                                style={{ width: 'auto', minWidth: 140 }}
+                                value={tagFilter}
+                                onChange={handleTagFilterChange}
+                                aria-label="Filter portfolio by tag"
+                            >
+                                <option value={ALL_TAGS_FILTER}>All tags</option>
+                                {allTags.map((tag) => (
+                                    <option key={tag} value={tag}>
+                                        {tag}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        {selectedTickers.length > 0 && (
+                            <label className="d-flex align-items-center gap-2 mb-0">
+                                <span className="small text-muted">Tag selected</span>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    style={{ width: 120 }}
+                                    value={tagInput}
+                                    onChange={(event) => setTagInput(event.target.value)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter') {
+                                            event.preventDefault();
+                                            handleAddTagToSelected();
+                                        }
+                                    }}
+                                    placeholder="e.g. deep value"
+                                    list="portfolio-tag-suggestions"
+                                    aria-label="Tag name for selected tickers"
+                                />
+                                <datalist id="portfolio-tag-suggestions">
+                                    {allTags.map((tag) => (
+                                        <option key={tag} value={tag} />
+                                    ))}
+                                </datalist>
+                                <button
+                                    type="button"
+                                    className="st-btn"
+                                    disabled={!tagInput.trim()}
+                                    onClick={handleAddTagToSelected}
+                                >
+                                    Add tag
+                                </button>
+                            </label>
+                        )}
                         <button
                             type="button"
                             className="st-btn"
@@ -750,6 +882,11 @@ const PortfolioPage = () => {
                             showToast(`Removed ${selected.length} ticker(s) from portfolio.`, 'success');
                         }}
                     />
+                    {tagFilter !== ALL_TAGS_FILTER && tagFilteredRows.length === 0 && (
+                        <div className="st-alert-info mb-2">
+                            No portfolio rows match tag <strong>{tagFilter}</strong>.
+                        </div>
+                    )}
                     <div style={{ position: 'relative' }}>
                         {isPageLoading && (
                             <div className="portfolio-loading-overlay" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
