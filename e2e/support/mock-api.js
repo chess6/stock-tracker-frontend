@@ -218,6 +218,12 @@ async function mockStockTrackerApi(page, options = {}) {
     researchPinnedTickers: [],
     researchColorMode: 'deep_value',
     researchHeatLegend: true,
+    featureFlags: {
+      experimental_composite_rank: false,
+      experimental_research_composite_rank: false,
+      experimental_signal_ranking: false,
+      embedding_heavy_retag: false,
+    },
   };
 
   await page.route('**/api/**', async (route) => {
@@ -248,6 +254,20 @@ async function mockStockTrackerApi(page, options = {}) {
     }
 
     if (path === '/api/admin/status') return json(ADMIN_STATUS);
+    if (path === '/api/admin/config') {
+      if (route.request().method() === 'POST') {
+        const body = route.request().postDataJSON() || {};
+        Object.entries(body).forEach(([key, value]) => {
+          if (key in state.featureFlags) state.featureFlags[key] = Boolean(value);
+        });
+        return json({ updated: Object.keys(body), flags: state.featureFlags });
+      }
+      return json({
+        flags: state.featureFlags,
+        defaults: state.featureFlags,
+        stored: {},
+      });
+    }
     if (path === '/api/admin/pipeline-status') return json(ADMIN_PIPELINE_STATUS);
     if (path === '/api/admin/default-feeds') return json({ feeds: DEFAULT_FEEDS });
     if (path === '/api/admin/universes') {
@@ -355,6 +375,48 @@ async function mockStockTrackerApi(page, options = {}) {
         },
         spec: body,
         results: mockRows,
+      });
+    }
+    if (path === '/api/research/rank') {
+      if (!state.featureFlags.experimental_research_composite_rank) {
+        return json({
+          error: 'Composite ranking is disabled',
+          featureFlag: 'experimental_research_composite_rank',
+        }, 403);
+      }
+      const tickers = parseTickersParam(url.searchParams.get('tickers'));
+      const composite = url.searchParams.get('composite') || 'deep_value';
+      const results = (tickers.length ? tickers : ['JPM', 'MCD']).map((ticker, index) => ({
+        ticker,
+        compositeScore: 0.82 - index * 0.07,
+        rank: index + 1,
+        factorsPresent: 3,
+        factorsTotal: 5,
+        factors: [
+          { key: 'valuation_dislocation', weight: 0.25, normalized: 0.8, contribution: 0.2 },
+          { key: 'survivability', weight: 0.2, normalized: 0.6, contribution: 0.12 },
+          { key: 'insider_conviction', weight: 0.15, normalized: 0.5, contribution: 0.075 },
+        ],
+      }));
+      return json({
+        meta: { composite, returned: results.length },
+        results,
+      });
+    }
+    if (path.startsWith('/api/research/rank/history/')) {
+      if (!state.featureFlags.experimental_research_composite_rank) {
+        return json({
+          error: 'Composite ranking is disabled',
+          featureFlag: 'experimental_research_composite_rank',
+        }, 403);
+      }
+      const ticker = path.split('/').pop()?.toUpperCase();
+      return json({
+        meta: { ticker, composite: url.searchParams.get('composite') || 'deep_value', returned: 2 },
+        history: [
+          { snapshot_date: '2026-06-01', composite_score: 0.61, rank_in_universe: 12 },
+          { snapshot_date: '2026-06-08', composite_score: 0.68, rank_in_universe: 9 },
+        ],
       });
     }
     if (path === '/api/research/screener') {

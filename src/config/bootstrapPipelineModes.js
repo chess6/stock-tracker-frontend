@@ -266,6 +266,6 @@ export function stepDescriptionForMode(stepId, mode) {
     case 'market_reactions':
       return `Recompute article price reactions per ticker (up to ${limits.market_reactions.limit} articles each).`;
     default:
-      return step.description;
+      return '';
   }
 }

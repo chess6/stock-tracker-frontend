@@ -148,6 +148,10 @@ export default function BootstrapPipeline({
   const focusedStatus = stepStatusLabel(stepStatus[focusedStep.id], selected.has(focusedStep.id));
   const focusedResult = stepResults[focusedStep.id];
   const focusedResultText = formatPipelineStepResult(focusedStep.id, focusedResult);
+  const focusedModeDescription = useMemo(
+    () => stepDescriptionForMode(focusedStep.id, pipelineMode),
+    [focusedStep.id, pipelineMode],
+  );
 
   const toggleStep = (stepId) => {
     setSelected((prev) => {
@@ -323,12 +327,11 @@ export default function BootstrapPipeline({
             {focusedStep.requiresTickers && (
               <span className="badge bg-secondary-subtle text-secondary-emphasis">tickers</span>
             )}
-            {!selected.has(focusedStep.id) && (
-              <span className="badge text-bg-secondary">excluded</span>
-            )}
           </div>
           <div className="text-muted small mt-1">{focusedStep.description}</div>
-          <div className="text-muted small">{stepDescriptionForMode(focusedStep.id, pipelineMode)}</div>
+          {focusedModeDescription && (
+            <div className="text-muted small">{focusedModeDescription}</div>
+          )}
           <div className="jx-step-detail-grid">
             <div className="jx-step-detail-item">
               <span className="jx-step-detail-label">Phase</span>

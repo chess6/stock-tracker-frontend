@@ -25,6 +25,8 @@ export const API_ENDPOINTS = {
   WATCHLIST_TICKER: (name, ticker) => `${API_BASE}/watchlists/${encodeURIComponent(name)}/tickers/${encodeURIComponent(ticker)}`,
   RESEARCH_SCREENER: `${API_BASE}/research/screener`,
   RESEARCH_SCREEN: `${API_BASE}/research/screen`,
+  RESEARCH_RANK: `${API_BASE}/research/rank`,
+  RESEARCH_RANK_HISTORY: ticker => `${API_BASE}/research/rank/history/${encodeURIComponent(ticker)}`,
   RESEARCH_METRICS_REGISTRY: `${API_BASE}/research/metrics/registry`,
   RESEARCH_SECTOR_STATS: `${API_BASE}/research/metrics/sector-stats`,
   RESEARCH_TICKER: ticker => `${API_BASE}/research/ticker/${encodeURIComponent(ticker)}`,
@@ -37,6 +39,7 @@ export const API_ENDPOINTS = {
   // legacy client alias — same URL as INSIDER_TRANSACTIONS
   // SF2: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
   ADMIN_STATUS: `${API_BASE}/admin/status`,
+  ADMIN_CONFIG: `${API_BASE}/admin/config`,
   ADMIN_PIPELINE_STATUS: `${API_BASE}/admin/pipeline-status`,
   ADMIN_UNIVERSES: `${API_BASE}/admin/universes`,
   ADMIN_UNIVERSE: universe => `${API_BASE}/admin/universes/${encodeURIComponent(universe)}`,

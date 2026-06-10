@@ -59,6 +59,8 @@ import {
 import { addToPortfolioWithNotification, getPortfolio, isInPortfolio, loadUserPreferences } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
 import TickerSubnav from '../components/TickerSubnav';
+import { DEFAULT_COMPOSITE_ID } from '../config/compositePresets';
+import { fetchCompositeRank, fetchCompositeRankHistory } from '../utils/compositeRankApi';
 import './research.css';
 
 const GRID_HEAT_TOOLTIP_PROPS = { placement: 'top-start', floating: true };
@@ -136,6 +138,10 @@ export default function ResearchPage() {
   const [screenerData, setScreenerData] = useState({});
   const [detailData, setDetailData] = useState(null);
   const [narrativeData, setNarrativeData] = useState(null);
+  const [compositeRank, setCompositeRank] = useState(null);
+  const [compositeRankHistory, setCompositeRankHistory] = useState([]);
+  const [compositeRankLoading, setCompositeRankLoading] = useState(false);
+  const [compositeRankDisabled, setCompositeRankDisabled] = useState(false);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -298,13 +304,39 @@ export default function ResearchPage() {
     }
   }, []);
 
+  const loadCompositeRank = useCallback(async (symbol) => {
+    if (!symbol) return;
+    setCompositeRankLoading(true);
+    try {
+      const [rankPayload, historyPayload] = await Promise.all([
+        fetchCompositeRank({ composite: DEFAULT_COMPOSITE_ID, tickers: [symbol], limit: 1 }),
+        fetchCompositeRankHistory(symbol, { composite: DEFAULT_COMPOSITE_ID, limit: 90 }),
+      ]);
+      setCompositeRankDisabled(false);
+      setCompositeRank(rankPayload?.results?.[0] || null);
+      setCompositeRankHistory(historyPayload?.history || []);
+    } catch (err) {
+      if (err?.response?.status === 403) {
+        setCompositeRankDisabled(true);
+      }
+      setCompositeRank(null);
+      setCompositeRankHistory([]);
+    } finally {
+      setCompositeRankLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (isDeepDive) {
       loadDetail(activeTicker, dimension, years);
       loadNarrative(activeTicker);
+      loadCompositeRank(activeTicker);
       return;
     }
     setNarrativeData(null);
+    setCompositeRank(null);
+    setCompositeRankHistory([]);
+    setCompositeRankDisabled(false);
     const tickers = parseTickers(tickersText);
     if (tickers.length) loadScreener(tickers, dimension);
     // Initial load only; toolbar actions refresh explicitly.
@@ -902,6 +934,11 @@ export default function ResearchPage() {
           })}
           detailPeriods={detailPeriods}
           compareLink={`/research?tickers=${encodeURIComponent(activeTicker)}&compare=${encodeURIComponent(activeTicker)}`}
+          compositeRank={compositeRank}
+          compositeRankHistory={compositeRankHistory}
+          compositeRankLoading={compositeRankLoading}
+          compositeRankDisabled={compositeRankDisabled}
+          compositeId={DEFAULT_COMPOSITE_ID}
         />
       )}
 

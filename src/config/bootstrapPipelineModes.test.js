@@ -9,6 +9,7 @@ import {
   estimatePipelineDuration,
   formatSecondsRange,
   modeSummary,
+  stepDescriptionForMode,
 } from './bootstrapPipelineModes';
 import { defaultSelectedStepIds } from './bootstrapPipeline';
 
@@ -92,5 +93,9 @@ describe('bootstrapPipelineModes', () => {
     expect(modeSummary(PIPELINE_MODES.FAST)).toContain('Fast run');
     expect(modeSummary(PIPELINE_MODES.FULL)).toContain('Full run');
     expect(modeSummary(PIPELINE_MODES.FULL)).toContain('100 articles/feed');
+  });
+
+  test('stepDescriptionForMode omits duplicate text for sync_companies', () => {
+    expect(stepDescriptionForMode('sync_companies', PIPELINE_MODES.FAST)).toBe('');
   });
 });

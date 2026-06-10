@@ -282,6 +282,78 @@
   grid-template-columns: 1fr;
 }
 
+.composite-factor-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.composite-factor-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.composite-factor-title {
+  font-weight: 600;
+}
+
+.composite-factor-score {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--st-amber, #f0ad4e);
+}
+
+.composite-factor-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.composite-factor-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.composite-factor-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.composite-factor-label {
+  font-weight: 500;
+}
+
+.composite-factor-stats {
+  color: var(--st-muted, #9aa0a6);
+  white-space: nowrap;
+}
+
+.composite-factor-bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.composite-factor-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #3d7ea6, #5cb85c);
+}
+
+.composite-rank-history {
+  margin-top: 0.75rem;
+}
+
+.research-composite-panel .st-panel-body {
+  padding-top: 0.65rem;
+}
+
 @media (min-width: 1400px) {
   .research-secondary-col .research-scoring-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

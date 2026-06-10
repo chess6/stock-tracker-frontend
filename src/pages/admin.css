@@ -19,13 +19,46 @@
   gap: 0.25rem;
 }
 
-.admin-actions-row {
+.admin-feature-flags-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-top: 0.35rem;
-  padding-top: 0.35rem;
-  border-top: 1px solid var(--st-border);
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-feature-flag-item {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--st-border);
+}
+
+.admin-feature-flag-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.admin-feature-flag-switch {
+  margin-bottom: 0.15rem;
+}
+
+.admin-feature-flag-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.admin-feature-flag-key {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--st-text-muted);
+  font-family: var(--bs-font-monospace, monospace);
+}
+
+.admin-feature-flag-desc {
+  font-size: 0.74rem;
+  color: var(--st-text-muted);
+  padding-left: 2.4rem;
 }
 
 .admin-stats-grid {

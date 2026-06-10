@@ -23,6 +23,13 @@ import {
 } from '../utils/researchPinned';
 import { commitResearchScroll } from '../utils/researchScrollState';
 import { saveScreenScrollBeforeLeave } from '../utils/researchNavigation';
+import { COMPOSITE_PRESETS, DEFAULT_COMPOSITE_ID } from '../config/compositePresets';
+import { fetchCompositeRank } from '../utils/compositeRankApi';
+import {
+  formatCompositeScore,
+  rankResultsByTicker,
+  sortFactorsByContribution,
+} from '../utils/compositeRank';
 import './research.css';
 
 function formatEvidenceValue(value) {
@@ -33,22 +40,28 @@ function formatEvidenceValue(value) {
   return formatDecimal(num, 2);
 }
 
-function buildResultRows(results = []) {
-  return results.map((row, index) => ({
-    id: row.ticker || index,
-    ticker: row.ticker,
-    companyName: row.companyName,
-    sector: row.sector,
-    price: row.price,
-    pb: row.metrics?.pb,
-    pe: row.metrics?.pe,
-    survivability: row.scores?.survivability,
-    altmanZ: row.scores?.altmanZ,
-    buy6m: row.insider?.buy6m,
-    filtersPassed: row.filtersPassed,
-    filtersTotal: row.filtersTotal,
-    filterEvidence: row.filterEvidence || [],
-  }));
+function buildResultRows(results = [], rankByTicker = {}) {
+  return results.map((row, index) => {
+    const rankRow = rankByTicker[row.ticker];
+    return {
+      id: row.ticker || index,
+      ticker: row.ticker,
+      companyName: row.companyName,
+      sector: row.sector,
+      price: row.price,
+      pb: row.metrics?.pb,
+      pe: row.metrics?.pe,
+      survivability: row.scores?.survivability,
+      altmanZ: row.scores?.altmanZ,
+      buy6m: row.insider?.buy6m,
+      compositeScore: rankRow?.compositeScore,
+      compositeRank: rankRow?.rank,
+      topFactor: sortFactorsByContribution(rankRow?.factors || [])[0]?.key,
+      filtersPassed: row.filtersPassed,
+      filtersTotal: row.filtersTotal,
+      filterEvidence: row.filterEvidence || [],
+    };
+  });
 }
 
 export default function ScreenPage() {
@@ -60,6 +73,9 @@ export default function ScreenPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [payload, setPayload] = useState(null);
+  const [compositeId, setCompositeId] = useState(DEFAULT_COMPOSITE_ID);
+  const [rankByTicker, setRankByTicker] = useState({});
+  const [rankDisabled, setRankDisabled] = useState(false);
   const [pinnedTickers, setPinnedTickers] = useState(() => loadPinnedTickers());
   const pinsLocallyModifiedRef = useRef(false);
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
@@ -74,7 +90,10 @@ export default function ScreenPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const rows = useMemo(() => buildResultRows(payload?.results), [payload?.results]);
+  const rows = useMemo(
+    () => buildResultRows(payload?.results, rankByTicker),
+    [payload?.results, rankByTicker],
+  );
   const screenTickers = useMemo(
     () => rows.map((row) => row.ticker).filter(Boolean),
     [rows],
@@ -145,6 +164,22 @@ export default function ScreenPage() {
       cell: ({ getValue }) => formatDecimal(getValue(), 1),
     },
     {
+      id: 'compositeScore',
+      accessorKey: 'compositeScore',
+      header: 'Composite',
+      cell: ({ row }) => {
+        if (rankDisabled) return '—';
+        const score = row.original.compositeScore;
+        if (score == null) return '—';
+        return (
+          <span title={row.original.topFactor ? `Top factor: ${row.original.topFactor}` : undefined}>
+            {formatCompositeScore(score)}
+            {row.original.compositeRank != null ? ` (#${row.original.compositeRank})` : ''}
+          </span>
+        );
+      },
+    },
+    {
       id: 'survivability',
       accessorKey: 'survivability',
       header: 'Surv.',
@@ -192,6 +227,27 @@ export default function ScreenPage() {
     setSearchParams({ preset: nextId }, { replace: true });
   };
 
+  const loadRanksForTickers = useCallback(async (tickers, nextCompositeId) => {
+    if (!tickers.length) {
+      setRankByTicker({});
+      return;
+    }
+    try {
+      const rankPayload = await fetchCompositeRank({
+        composite: nextCompositeId,
+        tickers,
+        limit: tickers.length,
+      });
+      setRankDisabled(false);
+      setRankByTicker(rankResultsByTicker(rankPayload?.results || []));
+    } catch (err) {
+      if (err?.response?.status === 403) {
+        setRankDisabled(true);
+      }
+      setRankByTicker({});
+    }
+  }, []);
+
   const runScreen = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -206,11 +262,22 @@ export default function ScreenPage() {
       const message = err?.response?.data?.error || 'Failed to run screen.';
       setError(message);
       setPayload(null);
+      setRankByTicker({});
       showToast(message, 'danger', 5000);
     } finally {
       setLoading(false);
     }
   }, [preset.spec, showToast, universe]);
+
+  useEffect(() => {
+    const tickers = (payload?.results || []).map((row) => row.ticker).filter(Boolean);
+    if (!tickers.length) return undefined;
+    let cancelled = false;
+    loadRanksForTickers(tickers, compositeId).then(() => {
+      if (cancelled) return;
+    });
+    return () => { cancelled = true; };
+  }, [compositeId, loadRanksForTickers, payload?.results]);
 
   const meta = payload?.meta;
 
@@ -226,6 +293,19 @@ export default function ScreenPage() {
             onChange={(e) => handlePresetChange(e.target.value)}
           >
             {SCREEN_PRESETS.map((item) => (
+              <option key={item.id} value={item.id}>{item.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="form-label small text-muted mb-1" htmlFor="screen-composite">Composite</label>
+          <select
+            id="screen-composite"
+            className="form-select form-select-sm"
+            value={compositeId}
+            onChange={(e) => setCompositeId(e.target.value)}
+          >
+            {COMPOSITE_PRESETS.map((item) => (
               <option key={item.id} value={item.id}>{item.label}</option>
             ))}
           </select>
@@ -301,7 +381,7 @@ export default function ScreenPage() {
         compact
         activeRowId={activeRowId}
         scrollPersistenceKey="research-screen"
-        defaultVisibleColumns={['ticker', 'companyName', 'sector', 'pb', 'pe', 'survivability', 'filtersPassed', 'evidence']}
+        defaultVisibleColumns={['ticker', 'companyName', 'sector', 'compositeScore', 'pb', 'pe', 'survivability', 'filtersPassed', 'evidence']}
         maxHeight="70vh"
       />
     </div>

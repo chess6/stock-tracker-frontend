@@ -6,6 +6,8 @@ import FinancialGrid from './FinancialGrid';
 import MarginTrendChart from './MarginTrendChart';
 import CapitalStructureSummary from './CapitalStructureSummary';
 import NarrativePanel from './NarrativePanel';
+import CompositeFactorPanel from './CompositeFactorPanel';
+import CompositeRankHistory from './CompositeRankHistory';
 import StIcon from '../StIcon';
 import { RESEARCH_METRIC_GROUPS } from '../../config/researchMetrics';
 import { FINANCIAL_GROUP_ICONS, RESEARCH_ICONS } from '../../icons/researchIcons';
@@ -26,6 +28,11 @@ export default function ResearchDeepDive({
   onToggleGroup,
   detailPeriods,
   compareLink,
+  compositeRank,
+  compositeRankHistory,
+  compositeRankLoading,
+  compositeRankDisabled,
+  compositeId,
 }) {
   const priceSparkline = (detailData?.price?.history || []).map((point) => point.close);
 
@@ -108,6 +115,27 @@ export default function ResearchDeepDive({
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="st-panel research-composite-panel mb-2">
+        <div className="st-panel-header">
+          <StIcon icon={RESEARCH_ICONS.scores} />
+          Composite Opportunity
+        </div>
+        <div className="st-panel-body">
+          <CompositeFactorPanel
+            rankRow={compositeRank}
+            compositeId={compositeId}
+            loading={compositeRankLoading}
+            disabled={compositeRankDisabled}
+            embedded
+          />
+          <CompositeRankHistory
+            history={compositeRankHistory}
+            loading={compositeRankLoading}
+            disabled={compositeRankDisabled}
+          />
         </div>
       </div>
 

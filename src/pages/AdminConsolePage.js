@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
+import AdminFeatureFlags from '../components/AdminFeatureFlags';
 import BootstrapPipeline from '../components/BootstrapPipeline';
 import { getPortfolio, getPortfolioTickersCsv, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
 import { formatFreshnessTimestamp, FRESHNESS_THRESHOLDS, isStale, summarizeFreshness } from '../utils/dataFreshness';
@@ -44,7 +45,6 @@ export default function AdminConsolePage() {
   const staleToastKeyRef = useRef(null);
   const dispatch = useDispatch();
 
-  const tickersQuery = () => encodeURIComponent(resolveTickersForRequest(tickers));
   const resolvedTickersCsv = useMemo(() => resolveTickersForRequest(tickers), [tickers]);
   const freshnessSummary = useMemo(
     () => summarizeFreshness(status.freshness || {}, status.coverage || {}),
@@ -81,7 +81,7 @@ export default function AdminConsolePage() {
     if (staleToastKeyRef.current === key) return;
     staleToastKeyRef.current = key;
     showToast(
-      `Cache is stale: ${freshnessSummary.reasons.join(', ')}. Run bootstrap or the relevant refresh action below.`,
+      `Cache is stale: ${freshnessSummary.reasons.join(', ')}. Run the bootstrap pipeline below.`,
       'warning',
       8000,
     );
@@ -162,17 +162,11 @@ export default function AdminConsolePage() {
             >
               {busyAction === 'Queue S&P 500 insiders' ? 'Queueing...' : 'Queue S&P 500 insider refresh'}
             </button>
-            <button
-              type="button"
-              className="st-btn-ghost"
-              disabled={busyAction !== null}
-              onClick={() => runAction('Company sync', () => axios.post(API_ENDPOINTS.ADMIN_SYNC_COMPANIES))}
-            >
-              {busyAction === 'Company sync' ? 'Running...' : 'Sync companies first'}
-            </button>
           </div>
         </div>
       </div>
+
+      <AdminFeatureFlags showToast={showToast} disabled={busyAction !== null} />
 
       <div className="st-panel">
         <div className="st-panel-header">Data refresh</div>
@@ -230,84 +224,6 @@ export default function AdminConsolePage() {
               dispatch(clearScreener());
             }}
           />
-          <div className="admin-actions-row">
-            <span className="st-muted-note align-self-center me-1">Individual actions:</span>
-            <button
-              type="button"
-              className="st-btn-muted"
-              disabled={busyAction !== null}
-              onClick={() => runAction('Company sync', () => axios.post(API_ENDPOINTS.ADMIN_SYNC_COMPANIES))}
-            >
-              {busyAction === 'Company sync' ? 'Running...' : 'Sync Companies'}
-            </button>
-            <button
-              type="button"
-              className="st-btn-muted"
-              disabled={busyAction !== null}
-              onClick={() => runAction('Fundamentals refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_FUNDAMENTALS}?tickers=${tickersQuery()}`))}
-            >
-              {busyAction === 'Fundamentals refresh' ? 'Running...' : 'Refresh Fundamentals'}
-            </button>
-            <button
-              type="button"
-              className="st-btn-muted"
-              disabled={busyAction !== null}
-              onClick={() => runAction('Feed ingest', () => axios.post(API_ENDPOINTS.ADMIN_INGEST_DEFAULT_FEEDS))}
-            >
-              {busyAction === 'Feed ingest' ? 'Running...' : 'Ingest Default Feeds'}
-            </button>
-            <button
-              type="button"
-              className="st-btn-muted"
-              disabled={busyAction !== null}
-              onClick={() => runAction('Price refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_PRICES}?tickers=${tickersQuery()}`))}
-            >
-              {busyAction === 'Price refresh' ? 'Running...' : 'Refresh Prices'}
-            </button>
-            <button
-              type="button"
-              className="st-btn-muted"
-              disabled={busyAction !== null}
-              onClick={() => runAction('Insider refresh', () => axios.post(`${API_ENDPOINTS.ADMIN_REFRESH_INSIDERS}?tickers=${tickersQuery()}`))}
-            >
-              {busyAction === 'Insider refresh' ? 'Running...' : 'Refresh Insiders'}
-            </button>
-            <button
-              type="button"
-              className="st-btn-muted"
-              disabled={busyAction !== null}
-              onClick={() => runAction('Enrich metadata', () => axios.post(`${API_ENDPOINTS.ADMIN_ENRICH_METADATA}?tickers=${tickersQuery()}`))}
-            >
-              {busyAction === 'Enrich metadata' ? 'Running...' : 'Enrich Metadata'}
-            </button>
-            <button
-              type="button"
-              className="st-btn-ghost"
-              disabled={busyAction !== null}
-              onClick={() => runAction('Enrich all missing metadata', () => axios.post(`${API_ENDPOINTS.ADMIN_ENRICH_METADATA}?all=true`))}
-            >
-              {busyAction === 'Enrich all missing metadata' ? 'Running...' : 'Enrich All Missing'}
-            </button>
-            <button
-              type="button"
-              className="st-btn-muted"
-              disabled={busyAction !== null}
-              onClick={() => runAction('Article dedup', () => axios.post(API_ENDPOINTS.ADMIN_DEDUP_ARTICLES))}
-            >
-              {busyAction === 'Article dedup' ? 'Running...' : 'Dedup Articles'}
-            </button>
-            <button
-              type="button"
-              className="st-btn-ghost"
-              disabled={busyAction !== null}
-              onClick={() => runAction('Queue RSS poll', () => axios.post(API_ENDPOINTS.ADMIN_ENQUEUE_JOB, {
-                job_type: 'ingest_default_feeds',
-                payload: { force_refresh: true },
-              }))}
-            >
-              {busyAction === 'Queue RSS poll' ? 'Running...' : 'Queue RSS Poll'}
-            </button>
-          </div>
         </div>
       </div>
 
