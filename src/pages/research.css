@@ -613,6 +613,20 @@
   color: var(--st-accent-amber);
 }
 
+.research-compare-snapshot-table {
+  font-size: 0.72rem;
+}
+
+.research-compare-snapshot-table th,
+.research-compare-snapshot-table td {
+  white-space: nowrap;
+}
+
+.research-compare-percentile {
+  font-size: 0.62rem;
+  color: var(--st-text-muted);
+}
+
 .research-ticker-subtitle {
   font-size: 0.62rem;
   white-space: nowrap;

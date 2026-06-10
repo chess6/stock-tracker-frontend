@@ -5,6 +5,12 @@ import API_ENDPOINTS from '../../apiConfig';
 import { buildGteDate } from '../../config/researchMetrics';
 import { mergeApexOptions } from '../../utils/chartTheme';
 import { formatCompactUsd, formatDecimal, formatPercent } from '../../utils/formatters';
+import {
+  buildPortfolioPercentileRanks,
+  buildRowsByTicker,
+  COMPARE_SNAPSHOT_METRICS,
+  formatCompareSnapshotValue,
+} from '../../utils/portfolioCompare';
 
 const COMPARE_METRICS = [
   {
@@ -132,7 +138,74 @@ function CompareMetricChart({ metric, tickerData }) {
   );
 }
 
-export default function CompareMetricsPanel({ compareTickers = [] }) {
+function CompareSnapshotTable({
+  compareTickers,
+  snapshotRows = [],
+  percentileUniverse = [],
+  showPercentileRanks = false,
+}) {
+  const rowsByTicker = useMemo(() => buildRowsByTicker(snapshotRows), [snapshotRows]);
+  const percentileRanks = useMemo(() => {
+    if (!showPercentileRanks) return null;
+    return buildPortfolioPercentileRanks(
+      percentileUniverse,
+      COMPARE_SNAPSHOT_METRICS.map((metric) => metric.key),
+      compareTickers,
+    );
+  }, [compareTickers, percentileUniverse, showPercentileRanks]);
+
+  const hasSnapshot = compareTickers.some((ticker) => rowsByTicker[ticker]);
+  if (!hasSnapshot) return null;
+
+  return (
+    <div className="research-compare-snapshot mb-2">
+      <div className="research-compare-chart-title">Latest portfolio snapshot</div>
+      <div className="table-responsive">
+        <table className="table table-sm table-bordered research-compare-snapshot-table mb-0">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              {compareTickers.map((ticker) => (
+                <th key={ticker} className="text-end">{ticker}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {COMPARE_SNAPSHOT_METRICS.map((metric) => (
+              <tr key={metric.key}>
+                <td>{metric.label}</td>
+                {compareTickers.map((ticker) => {
+                  const row = rowsByTicker[ticker];
+                  const value = row?.[metric.key];
+                  const rank = percentileRanks?.[ticker]?.[metric.key];
+                  return (
+                    <td key={ticker} className="text-end numeric-cell">
+                      {formatCompareSnapshotValue(value, metric.format)}
+                      {rank != null && (
+                        <span className="research-compare-percentile" title="Percentile within visible portfolio">
+                          {' '}P{rank}
+                        </span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+export default function CompareMetricsPanel({
+  compareTickers = [],
+  snapshotRows = [],
+  percentileUniverse = [],
+  showPercentileRanks = false,
+  onTogglePercentileRanks,
+  onClose,
+}) {
   const [detailByTicker, setDetailByTicker] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -193,11 +266,36 @@ export default function CompareMetricsPanel({ compareTickers = [] }) {
 
   return (
     <div className="st-panel mb-2 research-compare-panel">
-      <div className="st-panel-header">
-        <span>Cross-Ticker Comparison</span>
-        <span className="font-normal text-st-muted">{compareTickers.join(' · ')}</span>
+      <div className="st-panel-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+        <div className="d-flex align-items-center gap-2 flex-wrap">
+          <span>Cross-Ticker Comparison</span>
+          <span className="font-normal text-st-muted">{compareTickers.join(' · ')}</span>
+        </div>
+        <div className="d-flex align-items-center gap-2">
+          {onTogglePercentileRanks && (
+            <button
+              type="button"
+              className="st-btn"
+              onClick={onTogglePercentileRanks}
+              aria-pressed={showPercentileRanks}
+            >
+              {showPercentileRanks ? 'Hide percentiles' : 'Show percentiles'}
+            </button>
+          )}
+          {onClose && (
+            <button type="button" className="st-btn-ghost" onClick={onClose}>
+              Close
+            </button>
+          )}
+        </div>
       </div>
       <div className="st-panel-body p-1">
+        <CompareSnapshotTable
+          compareTickers={compareTickers}
+          snapshotRows={snapshotRows}
+          percentileUniverse={percentileUniverse}
+          showPercentileRanks={showPercentileRanks}
+        />
         {loading && <div className="p-1 text-xs text-st-muted">Loading comparison data…</div>}
         {error && <div className="p-1 text-xs text-st-amber">{error}</div>}
         {!loading && !error && tickerData.length >= 2 && (

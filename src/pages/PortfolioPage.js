@@ -36,6 +36,7 @@ import {
     removeTagFromTicker,
 } from '../utils/companyTags';
 import DataGrid from '../components/DataGrid';
+import CompareMetricsPanel, { MAX_COMPARE_TICKERS } from '../components/research/CompareMetricsPanel';
 import ConfirmModal from '../components/ConfirmModal';
 import PortfolioWatchlists from '../components/PortfolioWatchlists';
 import { Link } from 'react-router-dom';
@@ -46,6 +47,7 @@ import {
     secEdgarUrl, instHoldingsUrl, analysisUrl, tickerFinancialsUrl, tickerNewsUrl,
     extChartUrl, insiderScreenerUrl,
 } from '../utils/tickerLinks';
+import './research.css';
 
 const toNullableNumber = (value) => {
     if (value === null || value === undefined) return null;
@@ -91,6 +93,9 @@ const PortfolioPage = () => {
     const [tagsByTicker, setTagsByTicker] = useState(() => getCompanyTagsMap());
     const [tagFilter, setTagFilter] = useState(() => getActiveTagFilter());
     const [tagInput, setTagInput] = useState('');
+    const [compareTickers, setCompareTickers] = useState([]);
+    const [compareOpen, setCompareOpen] = useState(false);
+    const [showPercentileRanks, setShowPercentileRanks] = useState(false);
 
     const tagFilteredRows = useMemo(
         () => filterRowsByTag(rows, tagFilter, tagsByTicker),
@@ -529,6 +534,24 @@ const PortfolioPage = () => {
         setSorting(preset.defaultSort ? [preset.defaultSort] : []);
     };
 
+    const handleCompareSelected = () => {
+        const tickers = selectedTickers
+            .map((ticker) => String(ticker).toUpperCase())
+            .slice(0, MAX_COMPARE_TICKERS);
+        if (tickers.length < 2) {
+            showToast('Select 2–5 tickers to compare.', 'warning');
+            return;
+        }
+        setCompareTickers(tickers);
+        setCompareOpen(true);
+    };
+
+    const handleClearCompare = () => {
+        setCompareOpen(false);
+        setCompareTickers([]);
+        setShowPercentileRanks(false);
+    };
+
     const columnGroups = useMemo(() => PORTFOLIO_COLUMN_GROUPS.map((group) => ({
         ...group,
         columnIds: columns
@@ -854,6 +877,24 @@ const PortfolioPage = () => {
                         <button
                             type="button"
                             className="st-btn"
+                            disabled={selectedTickers.length < 2 || selectedTickers.length > MAX_COMPARE_TICKERS}
+                            onClick={handleCompareSelected}
+                            title="Compare 2–5 selected tickers"
+                        >
+                            Compare selected
+                        </button>
+                        {compareOpen && compareTickers.length >= 2 && (
+                            <button
+                                type="button"
+                                className="st-btn-ghost"
+                                onClick={handleClearCompare}
+                            >
+                                Close compare
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            className="st-btn"
                             style={{ borderColor: 'var(--st-negative)', color: 'var(--st-negative)' }}
                             disabled={Object.keys(rowSelection).length === 0}
                             onClick={() => setDeleteConfirm(Object.keys(rowSelection))}
@@ -886,6 +927,16 @@ const PortfolioPage = () => {
                         <div className="st-alert-info mb-2">
                             No portfolio rows match tag <strong>{tagFilter}</strong>.
                         </div>
+                    )}
+                    {compareOpen && compareTickers.length >= 2 && (
+                        <CompareMetricsPanel
+                            compareTickers={compareTickers}
+                            snapshotRows={tagFilteredRows}
+                            percentileUniverse={tagFilteredRows}
+                            showPercentileRanks={showPercentileRanks}
+                            onTogglePercentileRanks={() => setShowPercentileRanks((prev) => !prev)}
+                            onClose={handleClearCompare}
+                        />
                     )}
                     <div style={{ position: 'relative' }}>
                         {isPageLoading && (
