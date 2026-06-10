@@ -40,6 +40,8 @@ export default function DataGrid({
   compact = false,
   sorting: controlledSorting,
   onSortingChange,
+  manualSorting = false,
+  onGroupHeaderToggle,
 }) {
   const defaultColWidth = 150;
   const stickyColumnKey = stickyColumnIds.join(',');
@@ -92,11 +94,16 @@ export default function DataGrid({
       : { size: defaultColWidth, minSize: 40 },
     state: { rowSelection, sorting, globalFilter, columnSizing: effectiveColumnSizing, columnSizingInfo },
     getRowId,
-    enableRowSelection,
+    enableRowSelection: (row) => {
+      if (row.original?._isGroupHeader) return false;
+      if (typeof enableRowSelection === 'function') return enableRowSelection(row);
+      return enableRowSelection;
+    },
     enableMultiRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
+    manualSorting,
     onRowSelectionChange: handleRowSelectionChange,
     onSortingChange: handleSortingChange,
     onGlobalFilterChange: setGlobalFilter,
@@ -478,7 +485,27 @@ export default function DataGrid({
               ))}
             </thead>
             <tbody>
-              {rowsToRender.map((row) => (
+              {rowsToRender.map((row) => {
+                if (row.original?._isGroupHeader) {
+                  const colSpan = row.getVisibleCells().length;
+                  return (
+                    <tr
+                      key={row.id}
+                      className="st-grid-group-row"
+                      style={{ cursor: onGroupHeaderToggle ? 'pointer' : 'default' }}
+                      onClick={() => onGroupHeaderToggle?.(row.original._groupKey)}
+                    >
+                      <td colSpan={colSpan} className="st-grid-group-cell">
+                        <span className="st-grid-group-toggle" aria-hidden="true">
+                          {row.original._collapsed ? '▶' : '▼'}
+                        </span>
+                        <strong>{row.original._groupLabel}</strong>
+                        <span className="text-muted ms-2">({row.original._groupCount})</span>
+                      </td>
+                    </tr>
+                  );
+                }
+                return (
                 <tr
                   key={row.id}
                   className={row.getIsSelected() ? 'table-active' : undefined}
@@ -506,7 +533,9 @@ export default function DataGrid({
                       cellStyle.whiteSpace = 'normal';
                       cellStyle.wordBreak = 'break-word';
                     }
-                    const precomputedStyle = row.original?._heatStyles?.[colId];
+                    const precomputedStyle = row.original?._isGroupHeader
+                      ? undefined
+                      : row.original?._heatStyles?.[colId];
                     if (precomputedStyle) {
                       Object.assign(cellStyle, precomputedStyle);
                     } else if (typeof cell.column.columnDef.cellStyle === 'function') {
@@ -526,7 +555,8 @@ export default function DataGrid({
                     );
                   })}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {totalCount > rowsToRender.length && (

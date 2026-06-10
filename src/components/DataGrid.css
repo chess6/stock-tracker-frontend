@@ -114,3 +114,30 @@
 [data-bs-theme='dark'] .portfolio-grid-table thead th[style*="position: sticky"] {
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.35);
 }
+
+.st-grid-group-row {
+    background: var(--st-grid-header-bg, rgba(0, 0, 0, 0.04));
+}
+
+.st-grid-group-cell {
+    font-size: 0.78rem;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.st-grid-group-toggle {
+    display: inline-block;
+    width: 1rem;
+    margin-right: 0.35rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.65rem;
+}
+
+[data-bs-theme='dark'] .st-grid-group-row {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+[data-bs-theme='dark'] .st-grid-group-cell {
+    border-top-color: rgba(255, 255, 255, 0.08);
+}

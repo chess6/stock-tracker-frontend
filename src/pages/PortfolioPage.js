@@ -16,6 +16,15 @@ import {
     PORTFOLIO_RESEARCH_PRESETS,
     setActivePortfolioPresetId,
 } from '../config/portfolioPresets';
+import {
+    buildGroupedDisplayRows,
+    getActivePortfolioGroupBy,
+    getCollapsedPortfolioGroups,
+    PORTFOLIO_GROUP_BY_OPTIONS,
+    setActivePortfolioGroupBy,
+    setCollapsedPortfolioGroups,
+    sortPortfolioRows,
+} from '../utils/portfolioRowGroups';
 import DataGrid from '../components/DataGrid';
 import ConfirmModal from '../components/ConfirmModal';
 import PortfolioWatchlists from '../components/PortfolioWatchlists';
@@ -394,6 +403,42 @@ const PortfolioPage = () => {
         return preset.defaultSort ? [preset.defaultSort] : [];
     });
 
+    const [groupBy, setGroupBy] = useState(() => getActivePortfolioGroupBy());
+    const [collapsedGroups, setCollapsedGroups] = useState(() => getCollapsedPortfolioGroups());
+    const isGrouped = groupBy !== 'none';
+
+    const sortedGridRows = useMemo(
+        () => (isGrouped ? sortPortfolioRows(gridRows, sorting) : gridRows),
+        [gridRows, sorting, isGrouped],
+    );
+
+    const displayRows = useMemo(
+        () => (isGrouped
+            ? buildGroupedDisplayRows(sortedGridRows, groupBy, collapsedGroups)
+            : gridRows),
+        [gridRows, sortedGridRows, groupBy, collapsedGroups, isGrouped],
+    );
+
+    const handleGroupByChange = (event) => {
+        const nextGroupBy = setActivePortfolioGroupBy(event.target.value);
+        setGroupBy(nextGroupBy);
+        setCollapsedGroups(new Set());
+        setCollapsedPortfolioGroups(new Set());
+    };
+
+    const handleGroupHeaderToggle = (groupKey) => {
+        setCollapsedGroups((prev) => {
+            const next = new Set(prev);
+            if (next.has(groupKey)) {
+                next.delete(groupKey);
+            } else {
+                next.add(groupKey);
+            }
+            setCollapsedPortfolioGroups(next);
+            return next;
+        });
+    };
+
     const handlePresetChange = (event) => {
         const nextId = event.target.value;
         const preset = getPortfolioPresetById(nextId);
@@ -658,6 +703,22 @@ const PortfolioPage = () => {
                                 ))}
                             </select>
                         </label>
+                        <label className="d-flex align-items-center gap-2 mb-0">
+                            <span className="small text-muted">Group by</span>
+                            <select
+                                className="form-select form-select-sm"
+                                style={{ width: 'auto', minWidth: 140 }}
+                                value={groupBy}
+                                onChange={handleGroupByChange}
+                                aria-label="Portfolio row grouping"
+                            >
+                                {PORTFOLIO_GROUP_BY_OPTIONS.map((option) => (
+                                    <option key={option.id} value={option.id}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
                         <button
                             type="button"
                             className="st-btn"
@@ -696,13 +757,15 @@ const PortfolioPage = () => {
                             </div>
                         )}
                         <DataGrid
-                            data={gridRows}
+                            data={displayRows}
                             columns={columns}
                             getRowId={row => String(row.id ?? row.ticker)}
                             enableRowSelection
                             enableMultiRowSelection
                             enableSorting
                             enableGlobalFilter
+                            manualSorting={isGrouped}
+                            onGroupHeaderToggle={isGrouped ? handleGroupHeaderToggle : undefined}
                             rowSelection={rowSelection}
                             onRowSelectionChange={setRowSelection}
                             stickyColumnIds={PORTFOLIO_STICKY_COLUMNS}
