@@ -354,6 +354,57 @@
   padding-top: 0.65rem;
 }
 
+.research-narrative-phase-d {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.research-narrative-divergence-pill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.6rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--st-border, rgba(255, 255, 255, 0.08));
+}
+
+.research-narrative-divergence-label {
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.research-narrative-divergence-score {
+  font-weight: 700;
+  color: var(--st-amber, #f0ad4e);
+}
+
+.research-narrative-divergence-rerating_candidate .research-narrative-divergence-label,
+.research-narrative-divergence-high_conviction .research-narrative-divergence-label {
+  color: #5cb85c;
+}
+
+.research-narrative-divergence-risk_flag .research-narrative-divergence-label {
+  color: #d9534f;
+}
+
+.research-narrative-state-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.research-narrative-state-badge {
+  font-size: 0.72rem;
+}
+
+.research-emerging-situations {
+  padding-left: 1rem;
+  color: var(--st-text-muted, #9aa0a6);
+}
+
 @media (min-width: 1400px) {
   .research-secondary-col .research-scoring-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

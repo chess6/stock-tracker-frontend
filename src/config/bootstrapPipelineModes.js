@@ -8,6 +8,26 @@ export const PIPELINE_MODES = {
 /** Default feed count — keep in sync with backend DEFAULT_FEEDS length. */
 export const DEFAULT_FEED_COUNT = 53;
 
+/** Keep in sync with bootstrapPipelineRunner TICKER_CHUNK_SIZE. */
+export const TICKER_CHUNK_SIZE = 40;
+
+/**
+ * Duration calibration — fast mode, S&P 500 (503 tickers) full bootstrap, 2026-06-09.
+ * Wall clock ~25 min; per-step totals: sync 0.3s, fundamentals 296s, ingest 115s,
+ * prices 163s, insiders 896s, macro 7s, dedup 43s, market reactions 3s (sparse links).
+ */
+const FAST_CHUNK_SECONDS = {
+  fundamentals: { min: 15, max: 27 },
+  prices: { min: 10, max: 16 },
+  insiders: { min: 50, max: 75 },
+};
+
+const FULL_CHUNK_SECONDS = {
+  fundamentals: { min: 25, max: 45 },
+  prices: { min: 18, max: 30 },
+  insiders: { min: 180, max: 300 },
+};
+
 export const FAST_LIMITS = {
   ingest_feeds: {
     extractArticles: false,
@@ -50,6 +70,18 @@ function countTickers(tickersCsv) {
   return tickersCsv.split(',').map((item) => item.trim()).filter(Boolean).length;
 }
 
+export function chunkCountForTickers(tickerCount) {
+  const count = Math.max(tickerCount, 1);
+  return Math.ceil(count / TICKER_CHUNK_SIZE);
+}
+
+function chunkedStepEstimate(stepId, mode, tickerCount) {
+  const chunks = chunkCountForTickers(tickerCount);
+  const rates = mode === PIPELINE_MODES.FULL ? FULL_CHUNK_SECONDS : FAST_CHUNK_SECONDS;
+  const { min, max } = rates[stepId];
+  return { min: chunks * min, max: chunks * max };
+}
+
 /**
  * Full ingest duration scales with per-feed article cap and HTML extraction.
  * Calibrated for DEFAULT_FEED_COUNT feeds; was 45–90 min when uncapped.
@@ -71,25 +103,23 @@ export function estimateFullIngestFeedsDuration(
 }
 
 function stepEstimate(stepId, mode, tickerCount) {
-  const perTicker = Math.max(tickerCount, 1);
+  const tickerTotal = Math.max(tickerCount, 1);
+  if (stepId === 'fundamentals' || stepId === 'prices' || stepId === 'insiders') {
+    return chunkedStepEstimate(stepId, mode, tickerCount);
+  }
+
   if (mode === PIPELINE_MODES.FULL) {
     switch (stepId) {
       case 'sync_companies':
-        return { min: 30, max: 60 };
-      case 'fundamentals':
-        return { min: perTicker * 4, max: perTicker * 8 };
+        return { min: 1, max: 10 };
       case 'ingest_feeds':
         return estimateFullIngestFeedsDuration();
-      case 'prices':
-        return { min: perTicker * 2, max: perTicker * 5 };
-      case 'insiders':
-        return { min: perTicker * 8, max: perTicker * 20 };
       case 'dedup_articles':
-        return { min: 60, max: 300 };
+        return { min: 120, max: 600 };
       case 'macro':
-        return { min: 15, max: 45 };
+        return { min: 10, max: 30 };
       case 'market_reactions':
-        return { min: perTicker * 2, max: perTicker * 8 };
+        return { min: Math.max(5, tickerTotal * 0.01), max: tickerTotal * 1.5 };
       default:
         return { min: 0, max: 0 };
     }
@@ -97,21 +127,15 @@ function stepEstimate(stepId, mode, tickerCount) {
 
   switch (stepId) {
     case 'sync_companies':
-      return { min: 30, max: 60 };
-    case 'fundamentals':
-      return { min: perTicker * 3, max: perTicker * 6 };
+      return { min: 1, max: 5 };
     case 'ingest_feeds':
-      return { min: 30, max: 90 };
-    case 'prices':
-      return { min: perTicker * 1, max: perTicker * 3 };
-    case 'insiders':
-      return { min: perTicker * 3, max: perTicker * 8 };
+      return { min: 90, max: 150 };
     case 'dedup_articles':
-      return { min: 10, max: 45 };
+      return { min: 30, max: 60 };
     case 'macro':
-      return { min: 10, max: 30 };
+      return { min: 5, max: 15 };
     case 'market_reactions':
-      return { min: perTicker * 1, max: perTicker * 4 };
+      return { min: Math.max(3, tickerTotal * 0.005), max: tickerTotal * 0.5 };
     default:
       return { min: 0, max: 0 };
   }
@@ -136,19 +160,13 @@ export function estimatePipelineDuration(selectedStepIds, mode, tickersCsv = '')
   let totalMin = 0;
   let totalMax = 0;
 
-  const chunkMultiplier = (stepId) => {
-    if (!['fundamentals', 'prices', 'insiders'].includes(stepId) || tickerCount <= 40) return 1;
-    return Math.ceil(tickerCount / 40);
-  };
-
   for (const wave of waves) {
     let waveMin = 0;
     let waveMax = 0;
     for (const step of wave) {
-      const multiplier = chunkMultiplier(step.id);
       const { min, max } = stepEstimate(step.id, mode, tickerCount);
-      const stepMin = min * multiplier;
-      const stepMax = max * multiplier;
+      const stepMin = min;
+      const stepMax = max;
       steps.push({
         stepId: step.id,
         label: step.label,

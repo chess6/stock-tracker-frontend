@@ -47,6 +47,19 @@ See `AGENTS.md` and `.cursor/rules/frontend-qa.mdc` for the full QA gate. Cross-
 - Memoize column defs and handlers; use stable dataset keys — **never `JSON.stringify(rows)` as a memo dependency**.
 - Heavy stats (`columnMinMax`, percentiles): cache per dataset id (`heatmapCache.js` pattern).
 - Profile before adding new memo/cache layers; precompute row heat styles in `useMemo`, not per-cell on sort.
+- **Run React Profiler before and after** any change to DataGrid column definitions, heatmap rendering, or screener layout. Record render counts in the Phase 4 outcome summary.
+- Run `e2e/large-grid.spec.js` when column definitions or heatmap logic changes.
+
+## Prohibited patterns
+
+| Pattern | Reason |
+|---------|--------|
+| `JSON.stringify(rows)` as a `useMemo`/`useCallback` dep | Defeats memoization; full re-render on every sort |
+| Per-cell heatmap stat computation on each render | Use precomputed row-level stats in `useMemo` |
+| Hardcoded scoring thresholds in page components | Breaks canonical `scoringColors.js` architecture |
+| New metric threshold or composite formula outside `metricRegistry.js` | Creates divergent score semantics |
+| `console.log` in render paths | Causes profiling noise; remove before commit |
+| Hardcoded `/api/...` paths outside `apiConfig.js` | API paths must be centralized |
 
 ## Tests
 

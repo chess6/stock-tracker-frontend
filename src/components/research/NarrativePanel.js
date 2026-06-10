@@ -7,6 +7,7 @@ import {
 } from '../../utils/chartTheme';
 import { formatDecimal, formatPercent } from '../../utils/formatters';
 import { signedHeatStyle } from '../../utils/heatMap';
+import { divergenceSignalLabel, narrativeStateLabel } from '../../config/narrativeStates';
 
 function formatSentiment(value) {
   if (value == null) return '-';
@@ -24,6 +25,9 @@ export default function NarrativePanel({
   const sentimentTrend = narrativeData?.sentimentTrend;
   const movingAverages = sentimentTrend?.movingAverages || {};
   const divergence = narrativeData?.divergence;
+  const narrativeDivergence = narrativeData?.narrativeDivergence;
+  const narrativeStates = narrativeData?.narrativeStates || [];
+  const emergingSituations = narrativeData?.emergingSituations || [];
   const topEvents = narrativeData?.topEvents || [];
   const recentArticles = narrativeData?.recentArticles || [];
 
@@ -127,6 +131,48 @@ export default function NarrativePanel({
   const showCharts = deepDive || !tablesOnly;
   const showTables = deepDive || !chartsOnly;
 
+  const phaseDSection = (narrativeStates.length > 0 || narrativeDivergence) && (
+    <div className="research-narrative-phase-d mb-2">
+      {narrativeDivergence && (
+        <div className={`research-narrative-divergence-pill research-narrative-divergence-${narrativeDivergence.signal || 'neutral'}`}>
+          <span className="research-narrative-divergence-label">
+            {divergenceSignalLabel(narrativeDivergence.signal)}
+          </span>
+          <span className="research-narrative-divergence-score st-num">
+            {narrativeDivergence.divergenceScore != null
+              ? Number(narrativeDivergence.divergenceScore).toFixed(2)
+              : '—'}
+          </span>
+          <span className="research-narrative-divergence-desc small text-muted">
+            {narrativeDivergence.description}
+          </span>
+        </div>
+      )}
+      {narrativeStates.length > 0 && (
+        <div className="research-narrative-state-badges">
+          {narrativeStates.slice(0, 5).map((item) => (
+            <span key={item.state} className="st-badge-muted research-narrative-state-badge" title={`${item.articleCount} articles`}>
+              {narrativeStateLabel(item.state)}
+              {' '}
+              <span className="st-num">({item.articleCount})</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {emergingSituations.length > 0 && (
+        <ul className="research-emerging-situations small mb-0">
+          {emergingSituations.slice(0, 3).map((item) => (
+            <li key={`${item.type}-${item.signal}`}>
+              <strong>{item.signal?.replace(/_/g, ' ')}</strong>
+              {': '}
+              {item.description}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   const inlineStats = (
     <div className="research-stat-strip research-narrative-stat-strip">
       <span className="research-stat-strip-item">
@@ -199,6 +245,7 @@ export default function NarrativePanel({
   if (deepDive) {
     return (
       <div className="research-narrative-panel research-narrative-deep-dive">
+        {phaseDSection}
         {inlineStats}
         {overlaySeries[0]?.data?.length >= 2 && (
           <div className="research-chart-plot research-chart-plot-narrative">
@@ -268,6 +315,7 @@ export default function NarrativePanel({
 
   return (
     <div className="research-narrative-panel">
+      {phaseDSection}
       {showCharts && statsRow}
       {showCharts && compact && divergenceNote}
 

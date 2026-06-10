@@ -3,8 +3,10 @@ import {
   FAST_LIMITS,
   FULL_LIMITS,
   PIPELINE_MODES,
+  TICKER_CHUNK_SIZE,
   buildFullRunConfirmationMessage,
   buildStepRequestUrl,
+  chunkCountForTickers,
   estimateFullIngestFeedsDuration,
   estimatePipelineDuration,
   formatSecondsRange,
@@ -60,6 +62,31 @@ describe('bootstrapPipelineModes', () => {
     expect(buildStepRequestUrl('macro', { tickersCsv: '', mode: PIPELINE_MODES.FAST })).toBeNull();
     const reactions = buildStepRequestUrl('market_reactions', { tickersCsv: 'AAPL', mode: PIPELINE_MODES.FAST });
     expect(reactions).toContain('limit=200');
+  });
+
+  test('chunkCountForTickers matches runner chunk size', () => {
+    expect(TICKER_CHUNK_SIZE).toBe(40);
+    expect(chunkCountForTickers(503)).toBe(13);
+    expect(chunkCountForTickers(40)).toBe(1);
+    expect(chunkCountForTickers(41)).toBe(2);
+  });
+
+  test('fast sp500 estimates reflect observed ~25 min bootstrap run', () => {
+    const tickers = Array.from({ length: 503 }, (_, index) => `T${index}`).join(',');
+    const estimate = estimatePipelineDuration(defaultSelectedStepIds(), PIPELINE_MODES.FAST, tickers);
+
+    expect(estimate.minSeconds).toBeGreaterThanOrEqual(18 * 60);
+    expect(estimate.minSeconds).toBeLessThanOrEqual(22 * 60);
+    expect(estimate.maxSeconds).toBeGreaterThanOrEqual(28 * 60);
+    expect(estimate.maxSeconds).toBeLessThanOrEqual(40 * 60);
+
+    const insiders = estimate.steps.find((step) => step.stepId === 'insiders');
+    expect(insiders.minSeconds).toBe(13 * 50);
+    expect(insiders.maxSeconds).toBe(13 * 75);
+
+    const fundamentals = estimate.steps.find((step) => step.stepId === 'fundamentals');
+    expect(fundamentals.minSeconds).toBe(13 * 15);
+    expect(fundamentals.maxSeconds).toBe(13 * 27);
   });
 
   test('full run estimate exceeds fast run for default selection', () => {
