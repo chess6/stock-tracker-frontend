@@ -38,6 +38,8 @@ export default function DataGrid({
   tableExtraClassName = '',
   defaultVisibleColumns,
   compact = false,
+  sorting: controlledSorting,
+  onSortingChange,
 }) {
   const defaultColWidth = 150;
   const stickyColumnKey = stickyColumnIds.join(',');
@@ -47,7 +49,9 @@ export default function DataGrid({
   );
   const [internalRowSelection, setInternalRowSelection] = useState({});
   const [measuredStickyWidths, setMeasuredStickyWidths] = useState({});
-  const [sorting, setSorting] = useState([]);
+  const [internalSorting, setInternalSorting] = useState([]);
+  const sorting = controlledSorting ?? internalSorting;
+  const handleSortingChange = onSortingChange ?? setInternalSorting;
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnSizingInfo, setColumnSizingInfo] = useState({});
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
@@ -65,6 +69,12 @@ export default function DataGrid({
 
   // Controlled vs internal states
   const effectiveVisibleColumns = (useSharedColumnState && controlledColumnVisibility) ? controlledColumnVisibility : internalVisibleColumns;
+
+  useEffect(() => {
+    if (useSharedColumnState && controlledColumnVisibility) {
+      setInternalVisibleColumns(controlledColumnVisibility);
+    }
+  }, [useSharedColumnState, controlledColumnVisibility]);
 
   // Column sizing controlled vs internal
   const [internalColumnSizing, setInternalColumnSizing] = useState(controlledColumnSizing ?? {});
@@ -86,10 +96,9 @@ export default function DataGrid({
     enableMultiRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    // Always use built-in sorted row model; manual sorting disabled for now
     getSortedRowModel: getSortedRowModel(),
     onRowSelectionChange: handleRowSelectionChange,
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
     onGlobalFilterChange: setGlobalFilter,
     onColumnSizingChange: handleColumnSizingChange,
     onColumnSizingInfoChange: setColumnSizingInfo,

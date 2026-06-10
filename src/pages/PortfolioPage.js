@@ -8,8 +8,14 @@ import { getCachedColumnMinMaxMap, rowsDatasetKey } from '../utils/heatmapCache'
 import {
     PORTFOLIO_COLUMN_META,
     PORTFOLIO_COLUMN_GROUPS,
-    PORTFOLIO_DEFAULT_VISIBLE_COLUMNS,
 } from '../config/portfolioColumns';
+import {
+    buildVisibleColumnsForPreset,
+    getActivePortfolioPresetId,
+    getPortfolioPresetById,
+    PORTFOLIO_RESEARCH_PRESETS,
+    setActivePortfolioPresetId,
+} from '../config/portfolioPresets';
 import DataGrid from '../components/DataGrid';
 import ConfirmModal from '../components/ConfirmModal';
 import PortfolioWatchlists from '../components/PortfolioWatchlists';
@@ -373,6 +379,30 @@ const PortfolioPage = () => {
         }),
     ], [columnHelper, isPageLoading]);
 
+    const allColumnIds = useMemo(
+        () => columns.map((col) => col.accessorKey ?? col.id).filter(Boolean),
+        [columns],
+    );
+
+    const [presetId, setPresetId] = useState(() => getActivePortfolioPresetId());
+    const [visibleColumns, setVisibleColumns] = useState(() => {
+        const preset = getPortfolioPresetById(getActivePortfolioPresetId());
+        return preset.visibleColumns;
+    });
+    const [sorting, setSorting] = useState(() => {
+        const preset = getPortfolioPresetById(getActivePortfolioPresetId());
+        return preset.defaultSort ? [preset.defaultSort] : [];
+    });
+
+    const handlePresetChange = (event) => {
+        const nextId = event.target.value;
+        const preset = getPortfolioPresetById(nextId);
+        const resolvedId = setActivePortfolioPresetId(nextId);
+        setPresetId(resolvedId);
+        setVisibleColumns(buildVisibleColumnsForPreset(preset, allColumnIds));
+        setSorting(preset.defaultSort ? [preset.defaultSort] : []);
+    };
+
     const columnGroups = useMemo(() => PORTFOLIO_COLUMN_GROUPS.map((group) => ({
         ...group,
         columnIds: columns
@@ -612,6 +642,22 @@ const PortfolioPage = () => {
                         </div>
                     )}
                     <div className="mb-2 d-flex gap-2 align-items-center flex-wrap">
+                        <label className="d-flex align-items-center gap-2 mb-0">
+                            <span className="small text-muted">View preset</span>
+                            <select
+                                className="form-select form-select-sm"
+                                style={{ width: 'auto', minWidth: 160 }}
+                                value={presetId}
+                                onChange={handlePresetChange}
+                                aria-label="Portfolio research view preset"
+                            >
+                                {PORTFOLIO_RESEARCH_PRESETS.map((preset) => (
+                                    <option key={preset.id} value={preset.id}>
+                                        {preset.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
                         <button
                             type="button"
                             className="st-btn"
@@ -661,7 +707,11 @@ const PortfolioPage = () => {
                             onRowSelectionChange={setRowSelection}
                             stickyColumnIds={PORTFOLIO_STICKY_COLUMNS}
                             columnGroups={columnGroups}
-                            defaultVisibleColumns={PORTFOLIO_DEFAULT_VISIBLE_COLUMNS}
+                            useSharedColumnState
+                            columnVisibility={visibleColumns}
+                            onColumnVisibilityChange={setVisibleColumns}
+                            sorting={sorting}
+                            onSortingChange={setSorting}
                             tableExtraClassName="portfolio-grid-table"
                             compact
                         />
