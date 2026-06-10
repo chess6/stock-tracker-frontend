@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Chart from 'react-apexcharts';
 import {
   ANALYTICS_CHART_HEIGHT,
@@ -36,12 +36,35 @@ function fcfMargin(period) {
 }
 
 const MARGIN_COLORS = ['#6ecf97', '#5b9cf5', '#f5a623', '#e87882'];
+const MARGIN_DEEP_DIVE_MIN_HEIGHT = 180;
 
-/** Deep-dive left column — total Apex height (plot + axes + legend). */
-const MARGIN_DEEP_DIVE_HEIGHT = 310;
+function usePlotHeight(enabled, active, minHeight) {
+  const ref = useRef(null);
+  const [height, setHeight] = useState(minHeight);
+
+  useLayoutEffect(() => {
+    if (!enabled || !active) return undefined;
+    const el = ref.current;
+    if (!el) return undefined;
+
+    const update = () => {
+      const next = Math.floor(el.clientHeight);
+      if (next >= minHeight) setHeight(next);
+    };
+
+    update();
+    const observer = new ResizeObserver(() => update());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [enabled, active, minHeight]);
+
+  return [ref, height];
+}
 
 export default function MarginTrendChart({ periods = [], compact = false, deepDive = false }) {
   const annual = useMemo(() => annualPeriods(periods), [periods]);
+  const hasData = annual.length >= 2;
+  const [measureRef, plotHeight] = usePlotHeight(deepDive, hasData, MARGIN_DEEP_DIVE_MIN_HEIGHT);
 
   const chartData = useMemo(() => {
     const labels = annual.map((period) => (period.periodEnd || '').slice(0, 4));
@@ -81,27 +104,31 @@ export default function MarginTrendChart({ periods = [], compact = false, deepDi
       type: 'line',
       toolbar: { show: false },
       zoom: { enabled: false },
+      parentHeightOffset: 0,
       redrawOnParentResize: true,
     },
     legend: deepDive ? {
+      show: true,
       position: 'top',
-      horizontalAlign: 'left',
-      offsetY: -4,
-      height: 18,
+      horizontalAlign: 'right',
+      floating: true,
       fontSize: '9px',
+      height: 0,
+      offsetY: 6,
+      offsetX: -4,
       itemMargin: { horizontal: 5, vertical: 0 },
     } : undefined,
     stroke: { width: compact ? 2.5 : 2, curve: 'smooth' },
     dataLabels: { enabled: false },
     grid: deepDive ? {
-      padding: { top: 0, right: 4, bottom: -4, left: 0 },
+      padding: { top: 8, right: 4, bottom: 0, left: 0 },
     } : undefined,
     xaxis: {
       categories: chartData.labels,
       labels: {
         rotate: chartData.labels.length >= 8 ? 0 : -45,
         style: { fontSize: '9px' },
-        offsetY: deepDive ? -2 : 0,
+        offsetY: 0,
       },
     },
     yaxis: {
@@ -119,16 +146,32 @@ export default function MarginTrendChart({ periods = [], compact = false, deepDi
     colors: MARGIN_COLORS,
   }), [chartData.labels, compact, deepDive, yBounds.max, yBounds.min]);
 
-  if (annual.length < 2) {
+  if (!hasData) {
     return <div className="research-chart-empty">Not enough annual history for margin trends.</div>;
   }
 
   const height = deepDive
-    ? MARGIN_DEEP_DIVE_HEIGHT
+    ? plotHeight
     : (compact ? ANALYTICS_CHART_HEIGHT : 260);
 
+  if (deepDive) {
+    return (
+      <div ref={measureRef} className="research-margin-chart-measure">
+        <div className="research-chart-plot-margin" style={{ height }}>
+          <Chart
+            key={`margin-${height}`}
+            options={options}
+            series={series}
+            type="line"
+            height={height}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={deepDive ? 'research-chart-plot research-chart-plot-margin' : 'research-chart-plot'}>
+    <div className="research-chart-plot">
       <Chart options={options} series={series} type="line" height={height} />
     </div>
   );

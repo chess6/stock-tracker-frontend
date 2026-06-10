@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import {
+  faPlus,
+  faChevronDown,
+  faChevronRight,
+  faAnglesDown,
+  faAnglesUp,
+} from '@fortawesome/free-solid-svg-icons';
 import API_ENDPOINTS from '../apiConfig';
 import DataGrid from '../components/DataGrid';
 import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
@@ -11,6 +17,8 @@ import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfoli
 import { useToast } from '../context/ToastContext';
 import './industry.css';
 
+const PEER_LIMIT = 80;
+
 const toNum = (v) => (v == null || Number.isNaN(Number(v)) ? null : Number(v));
 
 function displayIndustryName(name) {
@@ -18,9 +26,35 @@ function displayIndustryName(name) {
   return String(name).replace(/<br\s*\/?>/gi, ' ').trim();
 }
 
+async function fetchPeersForSelection(selected, groups) {
+  if (!selected?.sector) return [];
+
+  if (selected.industry) {
+    const peerRes = await axios.get(API_ENDPOINTS.INDUSTRY_PEERS, {
+      params: { industry: selected.industry, sector: selected.sector, limit: PEER_LIMIT },
+    });
+    return peerRes.data?.peers || [];
+  }
+
+  const subindustries = groups.filter((g) => g.sector === selected.sector);
+  const responses = await Promise.all(
+    subindustries.map((item) => axios.get(API_ENDPOINTS.INDUSTRY_PEERS, {
+      params: { industry: item.industry, sector: item.sector, limit: PEER_LIMIT },
+    })),
+  );
+  const byTicker = new Map();
+  responses.forEach((res) => {
+    (res.data?.peers || []).forEach((peer) => {
+      if (!byTicker.has(peer.ticker)) byTicker.set(peer.ticker, peer);
+    });
+  });
+  return [...byTicker.values()].sort((a, b) => a.ticker.localeCompare(b.ticker));
+}
+
 export default function IndustryPage() {
   const [groups, setGroups] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [expandedSectors, setExpandedSectors] = useState(() => new Set());
   const [rows, setRows] = useState([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [loadingPeers, setLoadingPeers] = useState(false);
@@ -42,7 +76,12 @@ export default function IndustryPage() {
         if (!cancelled) {
           setGroups(industries);
           if (industries.length) {
-            setSelected((prev) => prev || { sector: industries[0].sector, industry: industries[0].industry });
+            setSelected((prev) => prev || {
+              sector: industries[0].sector,
+              industry: industries[0].industry,
+            });
+            const firstSector = industries[0].sector || 'Other';
+            setExpandedSectors(new Set([firstSector]));
           }
         }
       } catch (err) {
@@ -55,21 +94,18 @@ export default function IndustryPage() {
   }, []);
 
   useEffect(() => {
-    if (!selected?.industry) return undefined;
+    if (!selected?.sector) return undefined;
     let cancelled = false;
     (async () => {
       setLoadingPeers(true);
       setError('');
       try {
-        const peerRes = await axios.get(API_ENDPOINTS.INDUSTRY_PEERS, {
-          params: { industry: selected.industry, sector: selected.sector || undefined, limit: 80 },
-        });
-        const peers = peerRes.data?.peers || [];
+        const peers = await fetchPeersForSelection(selected, groups);
         if (!peers.length) {
           if (!cancelled) setRows([]);
           return;
         }
-        const tickers = peers.map(p => p.ticker).join(',');
+        const tickers = peers.map((p) => p.ticker).join(',');
         const [fundRes, statsRes, changeRes] = await Promise.allSettled([
           axios.get(`${API_ENDPOINTS.FINANCIALS}?ticker=${tickers}&mostRecent=true`),
           axios.get(API_ENDPOINTS.MARKET_STATS, { params: { tickers } }),
@@ -110,7 +146,7 @@ export default function IndustryPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [selected]);
+  }, [selected, groups]);
 
   const heatRanges = useMemo(() => ({ ep: columnMinMax(rows, 'ep') }), [rows]);
 
@@ -124,11 +160,34 @@ export default function IndustryPage() {
     return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
   }, [groups]);
 
+  const sectorNames = useMemo(() => sectors.map(([sector]) => sector), [sectors]);
+
+  const allExpanded = sectorNames.length > 0 && sectorNames.every((sector) => expandedSectors.has(sector));
+
+  const toggleSectorExpanded = useCallback((sector) => {
+    setExpandedSectors((prev) => {
+      const next = new Set(prev);
+      if (next.has(sector)) next.delete(sector);
+      else next.add(sector);
+      return next;
+    });
+  }, []);
+
+  const toggleExpandAll = useCallback(() => {
+    setExpandedSectors(allExpanded ? new Set() : new Set(sectorNames));
+  }, [allExpanded, sectorNames]);
+
+  const selectionLabel = useMemo(() => {
+    if (!selected?.sector) return 'Select an industry';
+    if (selected.industry) return displayIndustryName(selected.industry);
+    return `${selected.sector} (all sub-industries)`;
+  }, [selected]);
+
   const columns = useMemo(() => [
     {
       header: '',
       id: 'add',
-      cell: info => {
+      cell: (info) => {
         const ticker = info.row.original.ticker;
         return (
           <button
@@ -147,31 +206,31 @@ export default function IndustryPage() {
     {
       header: 'Ticker',
       accessorKey: 'ticker',
-      cell: info => <Link to={`/${info.getValue()}`} className="st-ticker">{info.getValue()}</Link>,
+      cell: (info) => <Link to={`/${info.getValue()}`} className="st-ticker">{info.getValue()}</Link>,
       size: 90,
     },
     { header: 'Name', accessorKey: 'name', size: 180 },
-    { header: 'Mkt Cap', accessorKey: 'marketCap', cell: info => formatUsd(info.getValue(), 0), size: 110 },
-    { header: 'Price', accessorKey: 'price', cell: info => formatUsd(info.getValue()), size: 90 },
+    { header: 'Mkt Cap', accessorKey: 'marketCap', cell: (info) => formatUsd(info.getValue(), 0), size: 110 },
+    { header: 'Price', accessorKey: 'price', cell: (info) => formatUsd(info.getValue()), size: 90 },
     {
       header: 'D% Ch',
       accessorKey: 'change',
       cellStyle: ({ row }) => signedHeatStyle(row.original?.change, 5),
-      cell: info => formatPercent(info.getValue(), 1),
+      cell: (info) => formatPercent(info.getValue(), 1),
       size: 90,
     },
     {
       header: 'E/P',
       accessorKey: 'ep',
       cellStyle: ({ row }) => columnHeatStyle(row.original?.ep, heatRanges.ep.min, heatRanges.ep.max),
-      cell: info => formatDecimal(info.getValue(), 2),
+      cell: (info) => formatDecimal(info.getValue(), 2),
       size: 80,
     },
     {
       header: '% to 52H',
       accessorKey: 'pctTo52wHi',
       cellStyle: ({ row }) => signedHeatStyle(row.original?.pctTo52wHi, 15),
-      cell: info => formatPercent(info.getValue(), 1),
+      cell: (info) => formatPercent(info.getValue(), 1),
       size: 100,
     },
   ], [heatRanges, handleAdd]);
@@ -183,27 +242,67 @@ export default function IndustryPage() {
       {error && <div className="alert alert-danger py-2">{error}</div>}
       <div className="industry-layout">
         <div className="st-panel industry-sidebar">
-          <div className="st-panel-header">Industries</div>
+          <div className="st-panel-header industry-sidebar-header">
+            <span>Industries</span>
+            {!loadingGroups && sectorNames.length > 0 && (
+              <button
+                type="button"
+                className="st-btn-ghost industry-expand-all-btn"
+                title={allExpanded ? 'Collapse all' : 'Expand all'}
+                aria-label={allExpanded ? 'Collapse all industries' : 'Expand all industries'}
+                onClick={toggleExpandAll}
+              >
+                <FontAwesomeIcon icon={allExpanded ? faAnglesUp : faAnglesDown} />
+              </button>
+            )}
+          </div>
           <div className="industry-sidebar-body">
-            {loadingGroups ? <div className="text-muted small">Loading industries…</div> : sectors.map(([sector, items]) => (
-              <div key={sector} className="industry-sector-group">
-                <div className="industry-sector-label">{sector}</div>
-                {items.map((item) => {
-                  const active = selected?.industry === item.industry && selected?.sector === item.sector;
-                  return (
+            {loadingGroups ? <div className="text-muted small">Loading industries…</div> : sectors.map(([sector, items]) => {
+              const expanded = expandedSectors.has(sector);
+              const sectorCount = items.reduce((sum, item) => sum + (item.company_count || 0), 0);
+              const sectorActive = selected?.sector === sector && !selected?.industry;
+              return (
+                <div key={sector} className="industry-sector-group">
+                  <div className="industry-sector-header">
                     <button
-                      key={`${item.sector}-${item.industry}`}
                       type="button"
-                      className={`industry-pick-btn${active ? ' industry-pick-btn-active' : ''}`}
-                      onClick={() => setSelected({ sector: item.sector, industry: item.industry })}
+                      className="industry-sector-toggle"
+                      aria-expanded={expanded}
+                      aria-label={expanded ? `Collapse ${sector}` : `Expand ${sector}`}
+                      onClick={() => toggleSectorExpanded(sector)}
                     >
-                      <span>{displayIndustryName(item.industry)}</span>
-                      <span className="industry-pick-count">{item.company_count}</span>
+                      <FontAwesomeIcon icon={expanded ? faChevronDown : faChevronRight} />
                     </button>
-                  );
-                })}
-              </div>
-            ))}
+                    <button
+                      type="button"
+                      className={`industry-sector-btn${sectorActive ? ' industry-sector-btn-active' : ''}`}
+                      onClick={() => setSelected({ sector, industry: null })}
+                    >
+                      <span className="industry-pick-label">{sector}</span>
+                      <span className="industry-pick-count">{sectorCount}</span>
+                    </button>
+                  </div>
+                  {expanded && (
+                    <div className="industry-subindustry-list">
+                      {items.map((item) => {
+                        const active = selected?.industry === item.industry && selected?.sector === item.sector;
+                        return (
+                          <button
+                            key={`${item.sector}-${item.industry}`}
+                            type="button"
+                            className={`industry-pick-btn industry-subindustry-btn${active ? ' industry-pick-btn-active' : ''}`}
+                            onClick={() => setSelected({ sector: item.sector, industry: item.industry })}
+                          >
+                            <span className="industry-pick-label">{displayIndustryName(item.industry)}</span>
+                            <span className="industry-pick-count">{item.company_count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             {!loadingGroups && groups.length === 0 && (
               <div className="text-muted small">No industries yet. Run Admin → Refresh Fundamentals to enrich SIC metadata.</div>
             )}
@@ -211,7 +310,7 @@ export default function IndustryPage() {
         </div>
         <div className="st-panel industry-main">
           <div className="st-panel-header">
-            {displayIndustryName(selected?.industry) || 'Select an industry'}
+            {selectionLabel}
           </div>
           <div className="industry-main-body">
             {loadingPeers ? (
@@ -220,7 +319,7 @@ export default function IndustryPage() {
               <DataGrid
                 columns={columns}
                 data={rows}
-                getRowId={row => row.ticker}
+                getRowId={(row) => row.ticker}
                 enableRowSelection={false}
                 compact
                 tableExtraClassName="portfolio-grid-table"

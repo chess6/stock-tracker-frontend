@@ -4,7 +4,6 @@ import ScoringPanel from './ScoringPanel';
 import InsiderPanel from './InsiderPanel';
 import FinancialGrid from './FinancialGrid';
 import MarginTrendChart from './MarginTrendChart';
-import CapitalStructurePanel from './CapitalStructurePanel';
 import CapitalStructureSummary from './CapitalStructureSummary';
 import NarrativePanel from './NarrativePanel';
 import StIcon from '../StIcon';
@@ -84,15 +83,14 @@ export default function ResearchDeepDive({
       )}
 
       <div className="research-analytics-row">
-        <div className="research-analytics-col research-analytics-col-primary">
-          <div className="st-panel research-analytics-panel">
+        <div className="research-analytics-col research-analytics-col-margin">
+          <div className="st-panel research-analytics-panel research-margin-panel">
             <div className="st-panel-header">
               <StIcon icon={RESEARCH_ICONS.marginTrends} />
               Margin Trends
             </div>
-            <div className="research-chart-panel st-panel-body research-panel-body-tight">
+            <div className="st-panel-body research-margin-panel-body">
               <MarginTrendChart periods={detailPeriods} compact deepDive />
-              <CapitalStructurePanel periods={detailPeriods} compact inline />
             </div>
           </div>
         </div>

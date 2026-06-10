@@ -791,6 +791,7 @@ export default function ResearchPage() {
                 columns={screenerGridColumns}
                 stickyColumnIds={['metric']}
                 getRowId={(row) => row.id}
+                scrollMode="page"
               />
             )}
           </div>
