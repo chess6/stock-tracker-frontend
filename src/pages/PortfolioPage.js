@@ -11,15 +11,12 @@ import {
 } from '../config/portfolioColumns';
 import {
     buildVisibleColumnsForPreset,
-    getActivePortfolioPresetId,
     getPortfolioPresetById,
     PORTFOLIO_RESEARCH_PRESETS,
     setActivePortfolioPresetId,
 } from '../config/portfolioPresets';
 import {
     buildGroupedDisplayRows,
-    getActivePortfolioGroupBy,
-    getCollapsedPortfolioGroups,
     PORTFOLIO_GROUP_BY_OPTIONS,
     setActivePortfolioGroupBy,
     setCollapsedPortfolioGroups,
@@ -39,7 +36,12 @@ import DataGrid from '../components/DataGrid';
 import CompareMetricsPanel, { MAX_COMPARE_TICKERS } from '../components/research/CompareMetricsPanel';
 import ConfirmModal from '../components/ConfirmModal';
 import PortfolioWatchlists from '../components/PortfolioWatchlists';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import {
+    buildPortfolioSearchParams,
+    loadPortfolioResearchState,
+    savePortfolioResearchState,
+} from '../utils/portfolioResearchState';
 import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT, setPortfolioTickers } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
 import { formatFreshnessTimestamp } from '../utils/dataFreshness';
@@ -80,6 +82,8 @@ const incompleteCacheTitle = (row) => {
 };
 
 const PortfolioPage = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [initialResearchState] = useState(() => loadPortfolioResearchState(searchParams));
     const [portfolio, setPortfolio] = useState(() => getPortfolio());
     const [rows, setRows] = useState([]);
     const rowsRef = useRef(rows);
@@ -91,11 +95,11 @@ const PortfolioPage = () => {
     const { showToast } = useToast();
     const portfolioKey = useMemo(() => portfolio.join(','), [portfolio]);
     const [tagsByTicker, setTagsByTicker] = useState(() => getCompanyTagsMap());
-    const [tagFilter, setTagFilter] = useState(() => getActiveTagFilter());
+    const [tagFilter, setTagFilter] = useState(() => initialResearchState.tagFilter);
     const [tagInput, setTagInput] = useState('');
-    const [compareTickers, setCompareTickers] = useState([]);
-    const [compareOpen, setCompareOpen] = useState(false);
-    const [showPercentileRanks, setShowPercentileRanks] = useState(false);
+    const [compareTickers, setCompareTickers] = useState(() => initialResearchState.compareTickers);
+    const [compareOpen, setCompareOpen] = useState(() => initialResearchState.compareOpen);
+    const [showPercentileRanks, setShowPercentileRanks] = useState(() => initialResearchState.showPercentileRanks);
 
     const tagFilteredRows = useMemo(
         () => filterRowsByTag(rows, tagFilter, tagsByTicker),
@@ -479,18 +483,14 @@ const PortfolioPage = () => {
         [columns],
     );
 
-    const [presetId, setPresetId] = useState(() => getActivePortfolioPresetId());
-    const [visibleColumns, setVisibleColumns] = useState(() => {
-        const preset = getPortfolioPresetById(getActivePortfolioPresetId());
-        return preset.visibleColumns;
-    });
-    const [sorting, setSorting] = useState(() => {
-        const preset = getPortfolioPresetById(getActivePortfolioPresetId());
-        return preset.defaultSort ? [preset.defaultSort] : [];
-    });
+    const [presetId, setPresetId] = useState(() => initialResearchState.presetId);
+    const [visibleColumns, setVisibleColumns] = useState(() => initialResearchState.visibleColumns);
+    const [sorting, setSorting] = useState(() => initialResearchState.sorting);
 
-    const [groupBy, setGroupBy] = useState(() => getActivePortfolioGroupBy());
-    const [collapsedGroups, setCollapsedGroups] = useState(() => getCollapsedPortfolioGroups());
+    const [groupBy, setGroupBy] = useState(() => initialResearchState.groupBy);
+    const [collapsedGroups, setCollapsedGroups] = useState(
+        () => new Set(initialResearchState.collapsedGroups || []),
+    );
     const isGrouped = groupBy !== 'none';
 
     const sortedGridRows = useMemo(
@@ -551,6 +551,44 @@ const PortfolioPage = () => {
         setCompareTickers([]);
         setShowPercentileRanks(false);
     };
+
+    const collapsedGroupsKey = useMemo(() => [...collapsedGroups].sort().join('|'), [collapsedGroups]);
+
+    useEffect(() => {
+        savePortfolioResearchState({
+            presetId,
+            groupBy,
+            tagFilter,
+            visibleColumns,
+            sorting,
+            compareTickers,
+            compareOpen,
+            showPercentileRanks,
+            collapsedGroups: [...collapsedGroups],
+        });
+        setSearchParams(
+            buildPortfolioSearchParams({
+                presetId,
+                groupBy,
+                tagFilter,
+                compareTickers,
+                compareOpen,
+                showPercentileRanks,
+            }),
+            { replace: true },
+        );
+    }, [
+        presetId,
+        groupBy,
+        tagFilter,
+        visibleColumns,
+        sorting,
+        compareTickers,
+        compareOpen,
+        showPercentileRanks,
+        collapsedGroupsKey,
+        setSearchParams,
+    ]);
 
     const columnGroups = useMemo(() => PORTFOLIO_COLUMN_GROUPS.map((group) => ({
         ...group,
