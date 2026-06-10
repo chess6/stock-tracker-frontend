@@ -45,6 +45,11 @@ export default function MoversPage() {
     return () => { cancelled = true; };
   }, [window]);
 
+  const gridRows = useMemo(() => movers.map((row) => ({
+    ...row,
+    _heatStyles: { change: signedHeatStyle(row.change, 10) },
+  })), [movers]);
+
   const columns = useMemo(() => [
     {
       header: '',
@@ -84,7 +89,7 @@ export default function MoversPage() {
     {
       header: window === 'd' ? 'D% Ch' : 'W% Ch',
       accessorKey: 'change',
-      cellStyle: ({ row }) => signedHeatStyle(row.original?.change, 10),
+      cellStyle: ({ row }) => row.original?._heatStyles?.change || {},
       cell: info => formatPercent(info.getValue(), 1),
       size: 110,
     },
@@ -112,7 +117,7 @@ export default function MoversPage() {
       ) : (
         <DataGrid
           columns={columns}
-          data={movers}
+          data={gridRows}
           getRowId={row => row.ticker}
           enableRowSelection={false}
           compact

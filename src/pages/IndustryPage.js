@@ -12,7 +12,8 @@ import {
 import API_ENDPOINTS from '../apiConfig';
 import DataGrid from '../components/DataGrid';
 import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
-import { signedHeatStyle, columnHeatStyle, columnMinMax } from '../utils/heatMap';
+import { signedHeatStyle, columnHeatStyle } from '../utils/heatMap';
+import { getCachedColumnMinMaxMap, rowsDatasetKey } from '../utils/heatmapCache';
 import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
 import './industry.css';
@@ -148,7 +149,22 @@ export default function IndustryPage() {
     return () => { cancelled = true; };
   }, [selected, groups]);
 
-  const heatRanges = useMemo(() => ({ ep: columnMinMax(rows, 'ep') }), [rows]);
+  const heatDatasetKey = useMemo(
+    () => rowsDatasetKey(rows, { idKey: 'ticker', metricKeys: ['ep', 'change', 'pctTo52wHi'] }),
+    [rows],
+  );
+  const heatRanges = useMemo(
+    () => getCachedColumnMinMaxMap(rows, ['ep'], heatDatasetKey),
+    [rows, heatDatasetKey],
+  );
+  const gridRows = useMemo(() => rows.map((row) => ({
+    ...row,
+    _heatStyles: {
+      change: signedHeatStyle(row.change, 5),
+      ep: columnHeatStyle(row.ep, heatRanges.ep.min, heatRanges.ep.max),
+      pctTo52wHi: signedHeatStyle(row.pctTo52wHi, 15),
+    },
+  })), [rows, heatRanges]);
 
   const sectors = useMemo(() => {
     const map = {};
@@ -215,25 +231,25 @@ export default function IndustryPage() {
     {
       header: 'D% Ch',
       accessorKey: 'change',
-      cellStyle: ({ row }) => signedHeatStyle(row.original?.change, 5),
+      cellStyle: ({ row }) => row.original?._heatStyles?.change || {},
       cell: (info) => formatPercent(info.getValue(), 1),
       size: 90,
     },
     {
       header: 'E/P',
       accessorKey: 'ep',
-      cellStyle: ({ row }) => columnHeatStyle(row.original?.ep, heatRanges.ep.min, heatRanges.ep.max),
+      cellStyle: ({ row }) => row.original?._heatStyles?.ep || {},
       cell: (info) => formatDecimal(info.getValue(), 2),
       size: 80,
     },
     {
       header: '% to 52H',
       accessorKey: 'pctTo52wHi',
-      cellStyle: ({ row }) => signedHeatStyle(row.original?.pctTo52wHi, 15),
+      cellStyle: ({ row }) => row.original?._heatStyles?.pctTo52wHi || {},
       cell: (info) => formatPercent(info.getValue(), 1),
       size: 100,
     },
-  ], [heatRanges, handleAdd]);
+  ], [handleAdd]);
 
   return (
     <div className="st-page st-page--full">
@@ -318,7 +334,7 @@ export default function IndustryPage() {
             ) : (
               <DataGrid
                 columns={columns}
-                data={rows}
+                data={gridRows}
                 getRowId={(row) => row.ticker}
                 enableRowSelection={false}
                 compact

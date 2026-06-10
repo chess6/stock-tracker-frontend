@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import StTooltip, { StTooltipMetricHelp } from './StTooltip';
 
 /** Plain-text help for screen readers when tooltip is closed. */
@@ -13,7 +14,15 @@ export function formatColumnHeaderHelp(meta = {}) {
 /**
  * Column header with standard st-tooltip help on hover (formula, source, full name).
  */
-export default function ColumnHeader({ label, meta = {}, canSort, sortDir, onSort }) {
+function ColumnHeader({
+  label,
+  meta = {},
+  canSort,
+  sortDir,
+  onSort,
+  tooltipPlacement = 'bottom-start',
+  tooltipFloating = false,
+}) {
   const hasHelp = meta.tooltip || meta.formula || meta.source || meta.fullName;
   const helpLabel = hasHelp ? formatColumnHeaderHelp(meta) : label;
 
@@ -49,6 +58,8 @@ export default function ColumnHeader({ label, meta = {}, canSort, sortDir, onSor
   return (
     <StTooltip
       className="column-header-help"
+      placement={tooltipPlacement}
+      floating={tooltipFloating}
       tip={(
         <StTooltipMetricHelp
           fullName={meta.fullName}
@@ -62,3 +73,5 @@ export default function ColumnHeader({ label, meta = {}, canSort, sortDir, onSor
     </StTooltip>
   );
 }
+
+export default memo(ColumnHeader);

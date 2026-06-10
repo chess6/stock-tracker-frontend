@@ -31,6 +31,7 @@ const LOCAL_TREND_RULES = {
 /** Populated from backend registry via applyRegistryRules(); includes LOCAL_TREND_RULES. */
 export const METRIC_RULES = { ...LOCAL_TREND_RULES };
 
+/** Fallback when registry has not loaded; prefer METRIC_RULES from applyRegistryRules(). */
 const LEGACY_HEATMAP_MAP = {
   margin: 'profitability',
   column: 'valuation',
@@ -242,7 +243,10 @@ export function applyRegistryRules(entries = []) {
   });
 }
 
-/** @deprecated use applyRegistryRules */
+/**
+ * @deprecated Use applyRegistryRules() — canonical registry merge.
+ * @see docs/P5_CLEANUP_FOLLOWUP.md
+ */
 export function mergeRegistryRules(entries = []) {
   return applyRegistryRules(entries);
 }
@@ -345,10 +349,15 @@ export function getMetricBackground(metricKey, value, context = {}) {
   return {};
 }
 
+/**
+ * @deprecated Use getMetricBackground(...).color
+ * @see docs/P5_CLEANUP_FOLLOWUP.md
+ */
 export function getMetricTextColor(metricKey, value, context = {}) {
   return getMetricBackground(metricKey, value, context).color;
 }
 
+/** @deprecated Use getMetricBackground — alias of getMetricTextColor */
 export function getMetricColor(metricKey, value, context = {}) {
   return getMetricTextColor(metricKey, value, context);
 }
@@ -374,28 +383,24 @@ export function describeHeat(metricKey, value, context = {}) {
   return `${category} · ${mode.replace('_', ' ')} · ${label} (tier ${tier}/5)`;
 }
 
-/** @deprecated use getMetricBackground */
+/** @deprecated Use getMetricBackground('beneishM', value, { mode: 'deep_value' }) */
 export function beneishHeatStyle(value) {
-  const tier = scoreTierForMetric('beneishM', value);
-  return tier != null ? tierHeatStyle(tier) : {};
+  return getMetricBackground('beneishM', value, { mode: 'deep_value' });
 }
 
-/** @deprecated use getMetricBackground */
+/** @deprecated Use getMetricBackground('survivability', value, { mode: 'deep_value' }) */
 export function survivabilityHeatStyle(value) {
-  const tier = scoreTierForMetric('survivability', value);
-  return tier != null ? tierHeatStyle(tier) : {};
+  return getMetricBackground('survivability', value, { mode: 'deep_value' });
 }
 
-/** @deprecated use getMetricBackground */
+/** @deprecated Use getMetricBackground('piotroskiF', value, { mode: 'deep_value' }) */
 export function piotroskiHeatStyle(value) {
-  const tier = scoreTierForMetric('piotroskiF', value);
-  return tier != null ? tierHeatStyle(tier) : {};
+  return getMetricBackground('piotroskiF', value, { mode: 'deep_value' });
 }
 
-/** @deprecated use getMetricBackground */
+/** @deprecated Use getMetricBackground('altmanZ', value, { mode: 'deep_value' }) */
 export function altmanZHeatStyle(value) {
-  const tier = scoreTierForMetric('altmanZ', value);
-  return tier != null ? tierHeatStyle(tier) : {};
+  return getMetricBackground('altmanZ', value, { mode: 'deep_value' });
 }
 
 export function precomputeRowHeatStyles(row, periodCount, context = {}) {
@@ -427,7 +432,10 @@ export function precomputeRowHeatStyles(row, periodCount, context = {}) {
   return styles;
 }
 
-/** Heat style for a single screener cell (per-ticker sector context). */
+/**
+ * @deprecated Use getMetricBackground(metricKey, value, context) directly.
+ * Kept for parity tests during P5 migration.
+ */
 export function screenerCellHeatStyle(metricKey, value, {
   mode = 'deep_value',
   format,
@@ -440,4 +448,41 @@ export function screenerCellHeatStyle(metricKey, value, {
     historical,
     sector: sectorBreakpoints,
   });
+}
+
+/**
+ * Precompute screener heat styles for all ticker columns (sector or cross-sectional modes).
+ * @param {object} row — metric row with t0…tN values
+ * @param {string[]} tickers
+ * @param {object} screenerData
+ * @param {object|null} sectorStats
+ * @param {string} colorMode
+ */
+export function precomputeScreenerRowHeatStyles(row, tickers, screenerData, sectorStats, colorMode) {
+  const styles = {};
+  const metricKey = row.metricKey || row.id;
+  if (!metricKey || row._isGroupHeader) return styles;
+
+  const historical = row._historicalStats;
+  const mode = colorMode === 'historical' ? 'historical' : colorMode;
+
+  tickers.forEach((ticker, idx) => {
+    const colKey = `t${idx}`;
+    const val = row[colKey];
+    const sector = screenerData[ticker]?.sector;
+    const cellContext = {
+      mode,
+      format: row.format,
+      historical,
+      sector: colorMode === 'sector'
+        ? sectorStats?.bySector?.[sector]?.[metricKey]
+        : undefined,
+    };
+    styles[colKey] = getMetricBackground(metricKey, val, cellContext);
+    styles[`${colKey}Title`] = formatMetricCellTooltip(
+      metricKey,
+      describeHeat(metricKey, val, cellContext),
+    );
+  });
+  return styles;
 }

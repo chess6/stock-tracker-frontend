@@ -167,23 +167,22 @@ export function tierHeatStyle(tier) {
   };
 }
 
-/** Piotroski F-score: 0-2 red, 3-5 amber, 6-7 green, 8-9 purple. */
+/**
+ * @deprecated Use getMetricBackground('piotroskiF', value, { mode: 'deep_value' }) from scoringColors.js.
+ * @see docs/P5_CLEANUP_FOLLOWUP.md
+ */
 export function piotroskiHeatStyle(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return {};
-  const num = Math.round(Number(value));
-  if (num >= 8) return tierHeatStyle(5);
-  if (num >= 6) return tierHeatStyle(4);
-  if (num >= 3) return tierHeatStyle(2);
-  return tierHeatStyle(0);
+  // Lazy import avoids scoringColors ↔ heatMap circular dependency at module load.
+  const { getMetricBackground } = require('./scoringColors');
+  return getMetricBackground('piotroskiF', value, { mode: 'deep_value' });
 }
 
-/** Altman Z-score: <1.81 distress, 1.81-2.99 amber, 2.99-4 safe, >4 elite. */
+/**
+ * @deprecated Use getMetricBackground('altmanZ', value, { mode: 'deep_value' }) from scoringColors.js.
+ * @see docs/P5_CLEANUP_FOLLOWUP.md
+ */
 export function altmanZHeatStyle(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return {};
-  const num = Number(value);
-  if (num > 4) return tierHeatStyle(5);
-  if (num > 2.99) return tierHeatStyle(4);
-  if (num >= 1.81) return tierHeatStyle(2);
-  return tierHeatStyle(0);
+  const { getMetricBackground } = require('./scoringColors');
+  return getMetricBackground('altmanZ', value, { mode: 'deep_value' });
 }
 

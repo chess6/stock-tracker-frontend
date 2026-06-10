@@ -3,7 +3,8 @@ import { createColumnHelper } from '@tanstack/react-table';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
-import { signedHeatStyle, insiderDollarStyle, columnHeatStyle, columnMinMax } from '../utils/heatMap';
+import { attachPortfolioHeatStyles, PORTFOLIO_HEAT_METRIC_KEYS } from '../utils/portfolioHeat';
+import { getCachedColumnMinMaxMap, rowsDatasetKey } from '../utils/heatmapCache';
 import {
     PORTFOLIO_COLUMN_META,
     PORTFOLIO_COLUMN_GROUPS,
@@ -11,6 +12,7 @@ import {
 } from '../config/portfolioColumns';
 import DataGrid from '../components/DataGrid';
 import ConfirmModal from '../components/ConfirmModal';
+import PortfolioWatchlists from '../components/PortfolioWatchlists';
 import { Link } from 'react-router-dom';
 import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT, setPortfolioTickers } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
@@ -34,6 +36,8 @@ const meta = (key) => ({
 });
 
 const isRowDataIncomplete = (row) => row.price == null || row.marketCap == null;
+
+const portfolioHeatCell = (key) => ({ row }) => row.original?._heatStyles?.[key] || {};
 
 const incompleteCacheTitle = (row) => {
     if (row.price == null && row.marketCap == null) {
@@ -60,28 +64,18 @@ const PortfolioPage = () => {
     const { showToast } = useToast();
     const portfolioKey = useMemo(() => portfolio.join(','), [portfolio]);
 
-    const heatRanges = useMemo(() => ({
-        sp: columnMinMax(rows, 'sp'),
-        ebitdaEv: columnMinMax(rows, 'ebitdaEv'),
-        tbp: columnMinMax(rows, 'tbp'),
-        bp: columnMinMax(rows, 'bp'),
-        ep: columnMinMax(rows, 'ep'),
-        pe: columnMinMax(rows, 'pe'),
-        cfop: columnMinMax(rows, 'cfop'),
-        sfcfp: columnMinMax(rows, 'sfcfp'),
-        ncfp: columnMinMax(rows, 'ncfp'),
-        cashp: columnMinMax(rows, 'cashp'),
-        assetp: columnMinMax(rows, 'assetp'),
-        revDebt: columnMinMax(rows, 'revDebt'),
-        de: columnMinMax(rows, 'de'),
-        mcEv: columnMinMax(rows, 'mcEv'),
-        currentRatio: columnMinMax(rows, 'currentRatio'),
-        grossMargin: columnMinMax(rows, 'grossMargin'),
-        netMargin: columnMinMax(rows, 'netMargin'),
-        roe: columnMinMax(rows, 'roe'),
-        roa: columnMinMax(rows, 'roa'),
-        divYield: columnMinMax(rows, 'divYield'),
-    }), [rows]);
+    const heatDatasetKey = useMemo(
+        () => rowsDatasetKey(rows, { idKey: 'ticker', metricKeys: PORTFOLIO_HEAT_METRIC_KEYS }),
+        [rows],
+    );
+    const heatRanges = useMemo(
+        () => getCachedColumnMinMaxMap(rows, PORTFOLIO_HEAT_METRIC_KEYS, heatDatasetKey),
+        [rows, heatDatasetKey],
+    );
+    const gridRows = useMemo(
+        () => attachPortfolioHeatStyles(rows, heatRanges),
+        [rows, heatRanges],
+    );
 
     const columnHelper = useMemo(() => createColumnHelper(), []);
     const columns = useMemo(() => [
@@ -131,7 +125,7 @@ const PortfolioPage = () => {
         columnHelper.accessor('change', {
             meta: meta('change'),
             header: 'Change',
-            cellStyle: ({ row }) => signedHeatStyle(row.original?.change, 5),
+            cellStyle: portfolioHeatCell('change'),
             cell: ({ getValue, row }) => {
                 const pending = row.original?._pending?.change;
                 const val = getValue();
@@ -163,25 +157,25 @@ const PortfolioPage = () => {
         columnHelper.accessor('change1w', {
             meta: meta('change1w'),
             header: '1W %',
-            cellStyle: ({ row }) => signedHeatStyle(row.original?.change1w, 8),
+            cellStyle: portfolioHeatCell('change1w'),
             cell: ({ getValue }) => <span>{formatPercent(getValue())}</span>,
         }),
         columnHelper.accessor('change6m', {
             meta: meta('change6m'),
             header: '6M %',
-            cellStyle: ({ row }) => signedHeatStyle(row.original?.change6m, 20),
+            cellStyle: portfolioHeatCell('change6m'),
             cell: ({ getValue }) => <span>{formatPercent(getValue())}</span>,
         }),
         columnHelper.accessor('pctTo52wHi', {
             meta: meta('pctTo52wHi'),
             header: '% to 52H',
-            cellStyle: ({ row }) => signedHeatStyle(row.original?.pctTo52wHi, 15),
+            cellStyle: portfolioHeatCell('pctTo52wHi'),
             cell: ({ getValue }) => <span>{formatPercent(getValue())}</span>,
         }),
         columnHelper.accessor('pctFrom52wLo', {
             meta: meta('pctFrom52wLo'),
             header: '% fr 52L',
-            cellStyle: ({ row }) => signedHeatStyle(row.original?.pctFrom52wLo, 30),
+            cellStyle: portfolioHeatCell('pctFrom52wLo'),
             cell: ({ getValue }) => <span>{formatPercent(getValue())}</span>,
         }),
         columnHelper.accessor('revenue', {
@@ -192,139 +186,139 @@ const PortfolioPage = () => {
         columnHelper.accessor('sp', {
             meta: meta('sp'),
             header: 'SP',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.sp, heatRanges.sp.min, heatRanges.sp.max),
+            cellStyle: portfolioHeatCell('sp'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('ebitdaEv', {
             meta: meta('ebitdaEv'),
             header: 'Eb/EV',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.ebitdaEv, heatRanges.ebitdaEv.min, heatRanges.ebitdaEv.max),
+            cellStyle: portfolioHeatCell('ebitdaEv'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('tbp', {
             meta: meta('tbp'),
             header: 'TBP',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.tbp, heatRanges.tbp.min, heatRanges.tbp.max),
+            cellStyle: portfolioHeatCell('tbp'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('bp', {
             meta: meta('bp'),
             header: 'BP',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.bp, heatRanges.bp.min, heatRanges.bp.max),
+            cellStyle: portfolioHeatCell('bp'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('ep', {
             meta: meta('ep'),
             header: 'EP',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.ep, heatRanges.ep.min, heatRanges.ep.max),
+            cellStyle: portfolioHeatCell('ep'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('pe', {
             meta: meta('pe'),
             header: 'P/E',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.pe, heatRanges.pe.min, heatRanges.pe.max),
+            cellStyle: portfolioHeatCell('pe'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 1)}</span>,
         }),
         columnHelper.accessor('de', {
             meta: meta('de'),
             header: 'D/E',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.de, heatRanges.de.min, heatRanges.de.max),
+            cellStyle: portfolioHeatCell('de'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('currentRatio', {
             meta: meta('currentRatio'),
             header: 'Cur R',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.currentRatio, heatRanges.currentRatio.min, heatRanges.currentRatio.max),
+            cellStyle: portfolioHeatCell('currentRatio'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('grossMargin', {
             meta: meta('grossMargin'),
             header: 'GM%',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.grossMargin, heatRanges.grossMargin.min, heatRanges.grossMargin.max),
+            cellStyle: portfolioHeatCell('grossMargin'),
             cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
         }),
         columnHelper.accessor('netMargin', {
             meta: meta('netMargin'),
             header: 'NM%',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.netMargin, heatRanges.netMargin.min, heatRanges.netMargin.max),
+            cellStyle: portfolioHeatCell('netMargin'),
             cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
         }),
         columnHelper.accessor('roe', {
             meta: meta('roe'),
             header: 'ROE',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.roe, heatRanges.roe.min, heatRanges.roe.max),
+            cellStyle: portfolioHeatCell('roe'),
             cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
         }),
         columnHelper.accessor('roa', {
             meta: meta('roa'),
             header: 'ROA',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.roa, heatRanges.roa.min, heatRanges.roa.max),
+            cellStyle: portfolioHeatCell('roa'),
             cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
         }),
         columnHelper.accessor('divYield', {
             meta: meta('divYield'),
             header: 'Div%',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.divYield, heatRanges.divYield.min, heatRanges.divYield.max),
+            cellStyle: portfolioHeatCell('divYield'),
             cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
         }),
         columnHelper.accessor('cfop', {
             meta: meta('cfop'),
             header: 'CFOP',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.cfop, heatRanges.cfop.min, heatRanges.cfop.max),
+            cellStyle: portfolioHeatCell('cfop'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('sfcfp', {
             meta: meta('sfcfp'),
             header: 'SFCFP',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.sfcfp, heatRanges.sfcfp.min, heatRanges.sfcfp.max),
+            cellStyle: portfolioHeatCell('sfcfp'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('ncfp', {
             meta: meta('ncfp'),
             header: 'NCFP',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.ncfp, heatRanges.ncfp.min, heatRanges.ncfp.max),
+            cellStyle: portfolioHeatCell('ncfp'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('cashp', {
             meta: meta('cashp'),
             header: 'Cash/P',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.cashp, heatRanges.cashp.min, heatRanges.cashp.max),
+            cellStyle: portfolioHeatCell('cashp'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('assetp', {
             meta: meta('assetp'),
             header: 'Asset/P',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.assetp, heatRanges.assetp.min, heatRanges.assetp.max),
+            cellStyle: portfolioHeatCell('assetp'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('revDebt', {
             meta: meta('revDebt'),
             header: 'Rev/Debt',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.revDebt, heatRanges.revDebt.min, heatRanges.revDebt.max),
+            cellStyle: portfolioHeatCell('revDebt'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('mcEv', {
             meta: meta('mcEv'),
             header: 'MC/EV',
-            cellStyle: ({ row }) => columnHeatStyle(row.original?.mcEv, heatRanges.mcEv.min, heatRanges.mcEv.max),
+            cellStyle: portfolioHeatCell('mcEv'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('insiderBuy6m', {
             meta: meta('insiderBuy6m'),
             header: 'Insider Buy 6M',
-            cellStyle: ({ row }) => insiderDollarStyle(row.original?.insiderBuy6m),
+            cellStyle: portfolioHeatCell('insiderBuy6m'),
             cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
         }),
         columnHelper.accessor('insiderBuy3m', {
             meta: meta('insiderBuy3m'),
             header: 'Insider Buy 3M',
-            cellStyle: ({ row }) => insiderDollarStyle(row.original?.insiderBuy3m),
+            cellStyle: portfolioHeatCell('insiderBuy3m'),
             cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
         }),
         columnHelper.accessor('insiderBuy1m', {
             meta: meta('insiderBuy1m'),
             header: 'Insider Buy 1M',
-            cellStyle: ({ row }) => insiderDollarStyle(row.original?.insiderBuy1m),
+            cellStyle: portfolioHeatCell('insiderBuy1m'),
             cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
         }),
         columnHelper.display({
@@ -377,7 +371,7 @@ const PortfolioPage = () => {
                 <a href={insiderScreenerUrl(row.original.ticker, 180)} target="_blank" rel="noopener noreferrer">6M</a>
             ),
         }),
-    ], [columnHelper, heatRanges, isPageLoading]);
+    ], [columnHelper, isPageLoading]);
 
     const columnGroups = useMemo(() => PORTFOLIO_COLUMN_GROUPS.map((group) => ({
         ...group,
@@ -580,6 +574,11 @@ const PortfolioPage = () => {
             <div className="st-page st-page--constrained">
                 <div className="st-panel">
                     <div className="st-panel-body st-empty-state">
+                        <PortfolioWatchlists
+                            portfolio={portfolio}
+                            onLoaded={() => setPortfolio(getPortfolio())}
+                            showToast={showToast}
+                        />
                         <h1 className="st-page-heading">Your portfolio is empty</h1>
                         <p className="st-muted-note">
                             Search for a ticker in the navbar and click <strong>+</strong> to add it.
@@ -600,6 +599,11 @@ const PortfolioPage = () => {
             <div className="st-panel">
                 <div className="st-panel-header">Portfolio</div>
                 <div className="st-panel-body">
+                    <PortfolioWatchlists
+                        portfolio={portfolio}
+                        onLoaded={() => setPortfolio(getPortfolio())}
+                        showToast={showToast}
+                    />
                     {cacheFreshness && (
                         <div className="st-muted-note mb-2">
                             Cache: prices {formatFreshnessTimestamp(cacheFreshness.pricesUpdatedAt)}
@@ -646,7 +650,7 @@ const PortfolioPage = () => {
                             </div>
                         )}
                         <DataGrid
-                            data={rows}
+                            data={gridRows}
                             columns={columns}
                             getRowId={row => String(row.id ?? row.ticker)}
                             enableRowSelection

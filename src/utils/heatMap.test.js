@@ -1,6 +1,19 @@
-import { signedHeatStyle, insiderDollarStyle, columnHeatStyle, piotroskiHeatStyle, altmanZHeatStyle, marginHeatStyle } from './heatMap';
+import registrySnapshot from '../config/__fixtures__/metric_registry.snapshot.json';
+import { applyRegistryRules } from './scoringColors';
+import {
+  signedHeatStyle,
+  insiderDollarStyle,
+  columnHeatStyle,
+  columnMinMax,
+  piotroskiHeatStyle,
+  altmanZHeatStyle,
+  marginHeatStyle,
+} from './heatMap';
 
 describe('heatMap', () => {
+  beforeEach(() => {
+    applyRegistryRules(registrySnapshot.metrics);
+  });
   test('signedHeatStyle returns green for positive', () => {
     const style = signedHeatStyle(3);
     expect(style.backgroundColor).toContain('40, 167, 69');
@@ -36,5 +49,10 @@ describe('heatMap', () => {
     const low = columnHeatStyle(1, 0, 10);
     const high = columnHeatStyle(9, 0, 10);
     expect(low.backgroundColor).not.toEqual(high.backgroundColor);
+  });
+
+  test('columnMinMax ignores nulls', () => {
+    const rows = [{ ep: 2 }, { ep: 8 }, { ep: null }, { ep: NaN }];
+    expect(columnMinMax(rows, 'ep')).toEqual({ min: 2, max: 8 });
   });
 });

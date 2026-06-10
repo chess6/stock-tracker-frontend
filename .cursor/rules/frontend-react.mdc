@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Frontend React
 
-See `AGENTS.md` and `.cursor/rules/frontend-qa.mdc` for the full QA gate.
+See `AGENTS.md` and `.cursor/rules/frontend-qa.mdc` for the full QA gate. Cross-cutting rules: repo `.cursor/rules/engineering-workflow.mdc`.
 
 ## API
 
@@ -35,6 +35,18 @@ See `AGENTS.md` and `.cursor/rules/frontend-qa.mdc` for the full QA gate.
 - Empty states should link to `/admin` when cache or portfolio is empty.
 - Show `meta.source` when present (`sqlite`, `sec_edgar`, `nasdaq`, `disabled`).
 - Bootstrap/Reactstrap + DataGrid + ApexCharts; Redux only for screener state.
+
+## High-density UI
+
+- Preserve information-dense grids and compact layouts (research, screener, industry) — do not inflate spacing or strip columns for aesthetics.
+- Heatmaps and conditional formatting via `heatMap.js` / `scoringColors.js`; metric keys from `config/metricRegistry.js`.
+- No duplicate metric thresholds or composite scoring in page components.
+
+## Performance (grids & screener)
+
+- Memoize column defs and handlers; use stable dataset keys — **never `JSON.stringify(rows)` as a memo dependency**.
+- Heavy stats (`columnMinMax`, percentiles): cache per dataset id (`heatmapCache.js` pattern).
+- Profile before adding new memo/cache layers; precompute row heat styles in `useMemo`, not per-cell on sort.
 
 ## Tests
 

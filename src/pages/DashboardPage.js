@@ -91,6 +91,7 @@ export default function DashboardPage() {
             price,
             change,
             sector: q.sector || null,
+            _changeStyle: signedHeatStyle(change, 5),
           };
         });
         if (!cancelled) setPortfolioRows(built);
@@ -163,7 +164,7 @@ export default function DashboardPage() {
                       <td><Link to={`/${row.ticker}`} className="st-ticker fw-semibold">{row.ticker}</Link></td>
                       <td className="small text-muted">{row.name || '—'}</td>
                       <td className="text-end st-num">{row.price != null ? formatUsd(row.price) : '—'}</td>
-                      <td className="text-end st-num" style={signedHeatStyle(row.change, 5)}>
+                      <td className="text-end st-num" style={row._changeStyle}>
                         {row.change != null ? formatPercent(row.change, 2) : '—'}
                       </td>
                       <td className="small">{row.sector || '—'}</td>

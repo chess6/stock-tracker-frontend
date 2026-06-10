@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Frontend QA gate
 
-Full checklist: `AGENTS.md`. Before marking a frontend task done:
+Applies when changing frontend UI. Full checklist: `AGENTS.md`. Before marking a frontend task done:
 
 1. **Review** — overflow, spacing, responsiveness, a11y, loading/error/empty states, layout shift
 2. **Run** — `npm run qa:frontend` (or `lint`, `build:check`, `test`, `test:visual` separately)
@@ -15,7 +15,16 @@ Full checklist: `AGENTS.md`. Before marking a frontend task done:
 ## Design constraints
 
 - Use **DataGrid**, Reactstrap, Bootstrap grid, **heatMap.js** — no new layout systems
-- Spacing: Bootstrap utilities only (`m-*`, `p-*`, `gap-*`)
+- Spacing: Bootstrap utilities only (`m-*`, `p-*`, `gap-*`); preserve high-density table layouts
 - Colors: Bootstrap palette + heatMap ramps — no arbitrary hex in new code
 - Tables/charts must scroll on small screens
 - API paths only in `apiConfig.js`
+
+## Performance review (screener / scoring / grid changes)
+
+When touching screener pages, `DataGrid`, heatmaps, or scoring display:
+
+1. Confirm no new `JSON.stringify(rows)` memo dependencies or inline renderers in hot paths
+2. Run `e2e/large-grid.spec.js` or React Profiler when render behavior changes
+3. Run `scoringParity.test.js` when metric coloring or thresholds shift
+4. Note perf/parity checks in the validation summary before commit

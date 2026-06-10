@@ -119,6 +119,9 @@ src/
 ```bash
 npm run lint
 CI=true npm test -- --watchAll=false --runInBand
+npm run test:smoke               # key routes + portfolio + research deep-dive
+npm run test:large-grid          # 500-ticker mock screener (relative perf budget)
+npm run test:screener-regression # 75-ticker screener correctness + latency guard
 npm run test:visual              # Playwright screenshot regression (desktop/tablet/mobile)
 npm run test:visual:update       # accept new baselines after intentional UI changes
 npm run qa:frontend              # lint + unit + visual

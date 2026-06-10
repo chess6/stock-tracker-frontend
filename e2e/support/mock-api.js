@@ -1,5 +1,15 @@
 /** Deterministic API mocks for stable Playwright screenshots. */
 
+const path = require('path');
+const fs = require('fs');
+
+const METRIC_REGISTRY_FIXTURE = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, '../../src/config/__fixtures__/metric_registry.snapshot.json'),
+    'utf8',
+  ),
+);
+
 function hoursAgo(hours) {
   return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 }
@@ -142,6 +152,39 @@ function parseTickersParam(raw) {
   return normalizeTickers(raw.split(','));
 }
 
+function buildLargeTickerList(count) {
+  return Array.from({ length: count }, (_, index) => `T${String(index).padStart(3, '0')}`);
+}
+
+function buildScreenerResult(ticker, index) {
+  const sector = index % 2 === 0 ? 'Technology' : 'Financials';
+  return {
+    ticker,
+    companyName: `Mock ${ticker}`,
+    sector,
+    scores: {
+      altmanZ: 1.4 + (index % 5) * 0.25,
+      piotroskiF: 4 + (index % 5),
+      beneishM: -2.8 + (index % 3) * 0.1,
+      survivability: 55 + (index % 20),
+    },
+    metrics: {
+      de: 0.6 + (index % 10) * 0.04,
+      grossMargin: 0.22 + (index % 8) * 0.01,
+      currentRatio: 1.0 + (index % 6) * 0.05,
+      roe: 0.08 + (index % 7) * 0.01,
+    },
+  };
+}
+
+function buildScreenerResults(tickers) {
+  const results = {};
+  tickers.forEach((ticker, index) => {
+    results[ticker] = buildScreenerResult(ticker, index);
+  });
+  return results;
+}
+
 /**
  * @param {import('@playwright/test').Page} page
  * @param {{ portfolio?: string[], theme?: 'dark' | 'light' }} [options]
@@ -238,7 +281,14 @@ async function mockStockTrackerApi(page, options = {}) {
     if (path.startsWith('/api/search')) {
       return json([{ ticker: 'JPM', name: 'JPMorgan Chase' }, { ticker: 'MCD', name: "McDonald's Corp" }]);
     }
+    if (path === '/api/research/metrics/registry') {
+      return json(METRIC_REGISTRY_FIXTURE);
+    }
     if (path === '/api/research/screener') {
+      const tickers = parseTickersParam(url.searchParams.get('tickers'));
+      if (tickers.length) {
+        return json({ results: buildScreenerResults(tickers) });
+      }
       return json({
         results: {
           JPM: { ticker: 'JPM', companyName: 'JPMorgan Chase', sector: 'Financials', scores: { altmanZ: 1.2 } },
@@ -261,6 +311,8 @@ async function mockStockTrackerApi(page, options = {}) {
 
 module.exports = {
   mockStockTrackerApi,
+  buildLargeTickerList,
+  buildScreenerResults,
   FRESHNESS,
   RESEARCH_AAPL,
 };

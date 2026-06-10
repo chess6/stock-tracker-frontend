@@ -26,7 +26,7 @@ import {
   getMetricBackground,
   getTrendColor,
   precomputeRowHeatStyles,
-  screenerCellHeatStyle,
+  precomputeScreenerRowHeatStyles,
 } from '../utils/scoringColors';
 import { computeTrendPair, extractPeriodSeries, trendArrow } from '../utils/researchCalculations';
 import { researchPrefsFromUserData, saveResearchPreferences } from '../utils/researchPrefs';
@@ -44,6 +44,8 @@ import { addToPortfolioWithNotification, getPortfolio, isInPortfolio, loadUserPr
 import { useToast } from '../context/ToastContext';
 import TickerSubnav from '../components/TickerSubnav';
 import './research.css';
+
+const GRID_HEAT_TOOLTIP_PROPS = { placement: 'top-start', floating: true };
 
 function parseTickers(text) {
   return [...new Set(String(text || '').split(/[,\s]+/).map((t) => t.trim().toUpperCase()).filter(Boolean))];
@@ -342,7 +344,9 @@ export default function ResearchPage() {
       setSectorStats(null);
       return undefined;
     }
-    const tickers = isDeepDive && activeTicker ? [activeTicker] : screenerTickers;
+    const tickers = isDeepDive && activeTicker
+      ? [activeTicker]
+      : (screenerTickersKey ? screenerTickersKey.split(',') : []);
     if (!tickers.length) {
       setSectorStats(null);
       return undefined;
@@ -383,17 +387,19 @@ export default function ResearchPage() {
           row._historicalStats = buildHistoricalStats(
             screenerTickers.map((_, idx) => row[`t${idx}`]),
           );
-          if (colorMode !== 'sector') {
-            row._heatStyles = precomputeRowHeatStyles(row, screenerTickers.length, {
-              mode: colorMode === 'historical' ? 'historical' : colorMode,
-            });
+          if (colorMode !== 'sector' || sectorStats) {
+            row._heatStyles = colorMode === 'sector'
+              ? precomputeScreenerRowHeatStyles(row, screenerTickers, screenerData, sectorStats, colorMode)
+              : precomputeRowHeatStyles(row, screenerTickers.length, {
+                mode: colorMode === 'historical' ? 'historical' : colorMode,
+              });
           }
         }
         rows.push(row);
       });
     });
     return rows;
-  }, [screenerTickers, screenerData, screenerExpandedGroups, colorMode]);
+  }, [screenerTickers, screenerData, screenerExpandedGroups, colorMode, sectorStats]);
 
   const screenerGridColumns = useMemo(() => {
     const cols = [
@@ -443,16 +449,6 @@ export default function ResearchPage() {
         meta: { numeric: true, ticker },
         cellStyle: ({ row }) => {
           if (row.original?._isGroupHeader || !row.original?.scoreCategory) return {};
-          const val = row.original[`t${idx}`];
-          if (colorMode === 'sector') {
-            const sector = data?.sector;
-            return screenerCellHeatStyle(row.original.metricKey, val, {
-              mode: 'sector',
-              format: row.original.format,
-              historical: row.original._historicalStats,
-              sectorBreakpoints: sectorStats?.bySector?.[sector]?.[row.original.metricKey],
-            });
-          }
           return row.original._heatStyles?.[`t${idx}`] || {};
         },
         cell: ({ row }) => {
@@ -473,7 +469,7 @@ export default function ResearchPage() {
           const formatted = formatCellValue(val, row.original.format);
           if (!tip) return <span>{formatted}</span>;
           return (
-            <StTooltip tip={<StTooltipText text={tip} />}>
+            <StTooltip tip={<StTooltipText text={tip} />} {...GRID_HEAT_TOOLTIP_PROPS}>
               <span>{formatted}</span>
             </StTooltip>
           );
@@ -605,7 +601,7 @@ export default function ResearchPage() {
           const formatted = fmt(val, row.original.format);
           if (!tip) return <span>{formatted}</span>;
           return (
-            <StTooltip tip={<StTooltipText text={tip} />}>
+            <StTooltip tip={<StTooltipText text={tip} />} {...GRID_HEAT_TOOLTIP_PROPS}>
               <span>{formatted}</span>
             </StTooltip>
           );
@@ -634,7 +630,7 @@ export default function ResearchPage() {
           );
           if (!tip) return <span>{body}</span>;
           return (
-            <StTooltip tip={<StTooltipText text={tip} />}>
+            <StTooltip tip={<StTooltipText text={tip} />} {...GRID_HEAT_TOOLTIP_PROPS}>
               <span>{body}</span>
             </StTooltip>
           );
@@ -663,7 +659,7 @@ export default function ResearchPage() {
           );
           if (!tip) return <span>{body}</span>;
           return (
-            <StTooltip tip={<StTooltipText text={tip} />}>
+            <StTooltip tip={<StTooltipText text={tip} />} {...GRID_HEAT_TOOLTIP_PROPS}>
               <span>{body}</span>
             </StTooltip>
           );

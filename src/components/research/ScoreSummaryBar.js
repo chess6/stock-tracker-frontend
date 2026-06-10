@@ -11,15 +11,6 @@ const SCORE_COLUMNS = [
   { key: 'survivability', label: 'Surv' },
 ];
 
-function ScoreBadge({ label, value, style }) {
-  return (
-    <span className="research-score-summary-badge" style={style}>
-      <span className="research-score-summary-label">{label}</span>
-      <span className="research-score-summary-value">{value ?? '-'}</span>
-    </span>
-  );
-}
-
 function formatScoreValue(key, scores) {
   const value = scores?.[key];
   if (value == null) return '-';
@@ -37,53 +28,77 @@ function tickerScores(screenerData, ticker) {
   return screenerData?.[ticker]?.scores || null;
 }
 
+function ScoreHeaderCell({ col }) {
+  const meta = getMetricTooltipMeta(col.key, col.label);
+  const label = <span className="research-score-summary-th-label">{col.label}</span>;
+  if (!meta) return label;
+  return (
+    <StTooltip
+      className="research-score-summary-tip"
+      placement="top-start"
+      tip={<StTooltipMetricHelp {...meta} />}
+    >
+      {label}
+    </StTooltip>
+  );
+}
+
 export default function ScoreSummaryBar({ tickers, screenerData }) {
   if (!tickers?.length) return null;
 
+  const rows = tickers.map((ticker) => {
+    const scores = tickerScores(screenerData, ticker);
+    const row = screenerData?.[ticker];
+    return { ticker, scores, error: row?.error };
+  }).filter((row) => row.scores || row.error);
+
+  if (!rows.length) return null;
+
   return (
     <div className="research-score-summary-bar">
-      {tickers.map((ticker) => {
-        const scores = tickerScores(screenerData, ticker);
-        const row = screenerData?.[ticker];
-        if (!scores && row?.error) {
-          return (
-            <div key={ticker} className="research-score-summary-row">
-              <span className="research-score-summary-ticker-name st-ticker">{ticker}</span>
-              <span className="research-score-summary-empty small text-muted">No data</span>
-            </div>
-          );
-        }
-        if (!scores) return null;
-
-        return (
-          <div key={ticker} className="research-score-summary-row">
-            <Link to={`/research/${ticker}`} className="research-score-summary-ticker-name st-ticker">
-              {ticker}
-            </Link>
-            {SCORE_COLUMNS.map((col) => {
-              const meta = getMetricTooltipMeta(col.key, col.label);
-              const badge = (
-                <ScoreBadge
-                  label={col.label}
-                  value={formatScoreValue(col.key, scores)}
-                  style={scoreBadgeStyle(col.key, scores)}
-                />
-              );
-              if (!meta) return <span key={col.key}>{badge}</span>;
-              return (
-                <StTooltip
-                  key={col.key}
-                  className="research-score-summary-tip"
-                  placement="bottom-start"
-                  tip={<StTooltipMetricHelp {...meta} />}
-                >
-                  {badge}
-                </StTooltip>
-              );
-            })}
-          </div>
-        );
-      })}
+      <table className="research-score-summary-table">
+        <thead>
+          <tr>
+            <th scope="col" className="research-score-summary-th-ticker" />
+            {SCORE_COLUMNS.map((col) => (
+              <th key={col.key} scope="col" className="research-score-summary-th-metric">
+                <ScoreHeaderCell col={col} />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ ticker, scores, error }) => (
+            <tr key={ticker}>
+              <th scope="row" className="research-score-summary-ticker-name">
+                {scores ? (
+                  <Link to={`/research/${ticker}`} className="st-ticker">
+                    {ticker}
+                  </Link>
+                ) : (
+                  <span className="st-ticker">{ticker}</span>
+                )}
+              </th>
+              {error && !scores ? (
+                <td colSpan={SCORE_COLUMNS.length} className="research-score-summary-empty">
+                  No data
+                </td>
+              ) : (
+                SCORE_COLUMNS.map((col) => (
+                  <td key={col.key} className="research-score-summary-td-metric">
+                    <span
+                      className="research-score-summary-pill"
+                      style={scoreBadgeStyle(col.key, scores)}
+                    >
+                      {formatScoreValue(col.key, scores)}
+                    </span>
+                  </td>
+                ))
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -11,7 +11,12 @@ export default function MetricTooltipLabel({ metricKey, label, className }) {
   }
   return (
     <span className={className}>
-      <ColumnHeader label={label} meta={meta} />
+      <ColumnHeader
+        label={label}
+        meta={meta}
+        tooltipPlacement="right-start"
+        tooltipFloating
+      />
     </span>
   );
 }

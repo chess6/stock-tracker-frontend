@@ -6,6 +6,7 @@ import {
   getMetricBackground,
   getScoreTier,
   METRIC_RULES,
+  precomputeScreenerRowHeatStyles,
   screenerCellHeatStyle,
   tierFromRegistryThresholds,
 } from './scoringColors';
@@ -108,5 +109,25 @@ describe('scoringColors', () => {
     expect(METRIC_RULES.cashToDebt.excellentThreshold).toBe(1.5);
     expect(getScoreTier(1.6, 'cashToDebt', { mode: 'deep_value' })).toBe(5);
     expect(getScoreTier(0.1, 'cashToDebt', { mode: 'deep_value' })).toBe(0);
+  });
+
+  test('precomputeScreenerRowHeatStyles fills per-ticker styles', () => {
+    const row = {
+      metricKey: 'grossMargin',
+      format: 'percent',
+      t0: 0.45,
+      t1: 0.32,
+      _historicalStats: buildHistoricalStats([0.45, 0.32]),
+    };
+    const styles = precomputeScreenerRowHeatStyles(
+      row,
+      ['AAPL', 'MSFT'],
+      { AAPL: { sector: 'Technology' }, MSFT: { sector: 'Technology' } },
+      null,
+      'deep_value',
+    );
+    expect(styles.t0?.backgroundColor).toBeTruthy();
+    expect(styles.t1?.backgroundColor).toBeTruthy();
+    expect(styles.t0Title).toBeTruthy();
   });
 });

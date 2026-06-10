@@ -1,5 +1,5 @@
 import './DataGrid.css';
-import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import ColumnHeader from './ColumnHeader';
 import {
   useReactTable,
@@ -131,16 +131,17 @@ export default function DataGrid({
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [data, pageChunkSize, sorting, globalFilter]);
 
-  // Infinite scroll handler
-  const onScroll = () => {
+  const rowCountRef = useRef(0);
+  rowCountRef.current = table.getRowModel().rows.length;
+
+  const onScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    // Trigger earlier: when within one viewport height (or at least 600px) from bottom
     const threshold = Math.max(600, el.clientHeight);
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - threshold) {
-      setVisibleCount((prev) => Math.min(prev + pageChunkSize, table.getRowModel().rows.length));
+      setVisibleCount((prev) => Math.min(prev + pageChunkSize, rowCountRef.current));
     }
-  };
+  }, [pageChunkSize]);
 
   // Build the list of rows to render (filtered and sorted by table, then sliced)
   const allRows = table.getRowModel().rows;
@@ -496,8 +497,10 @@ export default function DataGrid({
                       cellStyle.whiteSpace = 'normal';
                       cellStyle.wordBreak = 'break-word';
                     }
-                    // Merge cellStyle from column definition if present
-                    if (typeof cell.column.columnDef.cellStyle === 'function') {
+                    const precomputedStyle = row.original?._heatStyles?.[colId];
+                    if (precomputedStyle) {
+                      Object.assign(cellStyle, precomputedStyle);
+                    } else if (typeof cell.column.columnDef.cellStyle === 'function') {
                       Object.assign(cellStyle, cell.column.columnDef.cellStyle(cell.getContext()));
                     } else if (cell.column.columnDef.cellStyle) {
                       Object.assign(cellStyle, cell.column.columnDef.cellStyle);

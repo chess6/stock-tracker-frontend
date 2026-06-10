@@ -1,8 +1,3 @@
-jest.mock('axios', () => ({
-  get: jest.fn(),
-  post: jest.fn(),
-}));
-
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import { SP500_COUNT } from '../config/sp500Tickers';
@@ -12,6 +7,11 @@ import {
   queueSp500InsiderRefresh,
   staticSp500Meta,
 } from './adminSp500';
+
+jest.mock('axios', () => ({
+  get: jest.fn(),
+  post: jest.fn(),
+}));
 
 describe('adminSp500', () => {
   test('staticSp500Meta exposes bundled count', () => {

@@ -12,24 +12,7 @@ function normalizeTickers(tickers) {
   return [...new Set(tickers.map((t) => String(t).trim().toUpperCase()).filter(Boolean))];
 }
 
-function readLegacyPortfolio() {
-  try {
-    const stored = localStorage.getItem(LEGACY_PORTFOLIO_KEY);
-    return stored ? normalizeTickers(JSON.parse(stored)) : [];
-  } catch {
-    return [];
-  }
-}
-
-function readLegacyTheme() {
-  try {
-    const stored = localStorage.getItem(LEGACY_THEME_KEY);
-    return stored === 'light' || stored === 'dark' ? stored : null;
-  } catch {
-    return null;
-  }
-}
-
+/** Drop stale browser-only keys so portfolio always follows /api/preferences. */
 function clearLegacyStorage() {
   try {
     localStorage.removeItem(LEGACY_PORTFOLIO_KEY);
@@ -48,11 +31,18 @@ async function savePreferences(body) {
   if (!res.ok) {
     throw new Error('Failed to save preferences');
   }
-  return res.json();
+  const data = await res.json();
+  applyPreferencesPayload(data);
+  return data;
 }
 
 export function getPortfolio() {
   return [...portfolioCache];
+}
+
+function applyPreferencesPayload(data) {
+  portfolioCache = normalizeTickers(data.portfolio || []);
+  notifyPortfolioUpdated();
 }
 
 export function notifyPortfolioUpdated() {
@@ -96,32 +86,14 @@ export async function loadUserPreferences() {
         throw new Error('Failed to load preferences');
       }
       const data = await res.json();
-      portfolioCache = normalizeTickers(data.portfolio || []);
-      notifyPortfolioUpdated();
+      applyPreferencesPayload(data);
       clearLegacyStorage();
       return data;
     } catch {
-      const legacyPortfolio = readLegacyPortfolio();
-      const legacyTheme = readLegacyTheme();
-      portfolioCache = legacyPortfolio;
+      portfolioCache = [];
       notifyPortfolioUpdated();
-
-      if (legacyPortfolio.length || legacyTheme) {
-        try {
-          const migrated = await savePreferences({
-            portfolio: legacyPortfolio,
-            ...(legacyTheme ? { theme: legacyTheme } : {}),
-          });
-          portfolioCache = normalizeTickers(migrated.portfolio || legacyPortfolio);
-          notifyPortfolioUpdated();
-          clearLegacyStorage();
-          return migrated;
-        } catch {
-          return { theme: legacyTheme || 'dark', portfolio: portfolioCache };
-        }
-      }
-
-      return { theme: 'dark', portfolio: portfolioCache };
+      clearLegacyStorage();
+      return { theme: 'dark', portfolio: [] };
     }
   })();
 

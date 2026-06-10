@@ -37,6 +37,8 @@
     "pretest:visual": "npx playwright install chromium && DISABLE_ESLINT_PLUGIN=true npm run build",
     "pretest:visual:update": "npx playwright install chromium && DISABLE_ESLINT_PLUGIN=true npm run build",
     "test:smoke": "playwright test e2e/smoke.spec.js",
+    "test:large-grid": "playwright test e2e/large-grid.spec.js",
+    "test:screener-regression": "playwright test e2e/screener-regression.spec.js",
     "test:visual": "playwright test e2e/visual-regression.spec.js",
     "test:visual:update": "playwright test e2e/visual-regression.spec.js --update-snapshots",
     "qa:frontend": "npm run lint && CI=true npm test -- --watchAll=false --runInBand && npm run test:visual",

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import StTooltip, { StTooltipText } from './StTooltip';
 
 describe('StTooltip', () => {
@@ -15,5 +15,20 @@ describe('StTooltip', () => {
       </StTooltip>,
     );
     expect(screen.getByRole('tooltip')).toHaveTextContent('profitability · strong');
+  });
+
+  test('portals floating tooltip to document.body above overflow containers', () => {
+    render(
+      <StTooltip floating placement="top-start" tip={<StTooltipText text="gross profit / revenue" />}>
+        <span>Gross Margin</span>
+      </StTooltip>,
+    );
+    fireEvent.mouseEnter(screen.getByText('Gross Margin'));
+    const portalTip = screen.getByRole('tooltip');
+    expect(portalTip).toHaveTextContent('gross profit / revenue');
+    expect(portalTip).toHaveClass('st-tooltip-popup-portal');
+    expect(portalTip).toHaveStyle({ position: 'fixed', zIndex: '10000' });
+    fireEvent.mouseLeave(screen.getByText('Gross Margin'));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 });
