@@ -33,6 +33,7 @@ function staleClass(value, maxAgeHours) {
 
 export default function AdminConsolePage() {
   const [status, setStatus] = useState({ counts: {}, freshness: {}, feeds: [], jobs: {}, recentJobRuns: [] });
+  const [pipelineStatus, setPipelineStatus] = useState(null);
   const [statusLoaded, setStatusLoaded] = useState(false);
   const [feeds, setFeeds] = useState([]);
   const [tickers, setTickers] = useState(initialTickersField);
@@ -51,11 +52,13 @@ export default function AdminConsolePage() {
   );
 
   const loadStatus = async () => {
-    const [statusRes, feedsRes] = await Promise.all([
+    const [statusRes, feedsRes, pipelineRes] = await Promise.all([
       axios.get(API_ENDPOINTS.ADMIN_STATUS),
       axios.get(API_ENDPOINTS.ADMIN_DEFAULT_FEEDS),
+      axios.get(API_ENDPOINTS.ADMIN_PIPELINE_STATUS),
     ]);
     setStatus(statusRes.data || { counts: {}, freshness: {}, feeds: [], jobs: {}, recentJobRuns: [] });
+    setPipelineStatus(pipelineRes.data || null);
     setFeeds(feedsRes.data?.feeds || []);
     setStatusLoaded(true);
   };
@@ -367,6 +370,76 @@ export default function AdminConsolePage() {
           </div>
         </div>
       </div>
+
+      {pipelineStatus && (
+        <div className="st-panel">
+          <div className="st-panel-header">Pipeline observability</div>
+          <div className="st-panel-body">
+            <div className="admin-stats-grid">
+              <div>
+                <div className="small text-muted mb-1">Article enrichment pipeline</div>
+                <ul className="admin-stat-list mb-0">
+                  <li>Pending / error queue: {pipelineStatus.articles?.pending ?? 0}</li>
+                  <li>Processing: {pipelineStatus.articles?.processing ?? 0}</li>
+                  <li>Complete: {pipelineStatus.articles?.complete ?? 0}</li>
+                  <li>Duplicates: {pipelineStatus.articles?.duplicate ?? 0}</li>
+                </ul>
+              </div>
+              <div>
+                <div className="small text-muted mb-1">Stale backlog (needs refresh)</div>
+                <ul className="admin-stat-list mb-0">
+                  <li className={(pipelineStatus.stale?.fundamentalsTickers ?? 0) > 0 ? 'text-warning fw-semibold' : ''}>
+                    Stale fundamentals: {pipelineStatus.stale?.fundamentalsTickers ?? 0}
+                    {' '}tickers (&gt;{pipelineStatus.stale?.staleAfterDays?.fundamentals ?? '?'}d)
+                  </li>
+                  <li className={(pipelineStatus.stale?.pricesTickers ?? 0) > 0 ? 'text-warning fw-semibold' : ''}>
+                    Stale prices: {pipelineStatus.stale?.pricesTickers ?? 0}
+                    {' '}tickers (&gt;{pipelineStatus.stale?.staleAfterDays?.prices ?? '?'}d)
+                  </li>
+                  <li className={(pipelineStatus.stale?.scoresNeedingRecompute ?? 0) > 0 ? 'text-warning fw-semibold' : ''}>
+                    Scores needing recompute: {pipelineStatus.stale?.scoresNeedingRecompute ?? 0}
+                    {' '}(v{pipelineStatus.versions?.scoring ?? 1})
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <div className="small text-muted mb-1">Pipeline freshness</div>
+                <ul className="admin-stat-list mb-0">
+                  <li className={staleClass(pipelineStatus.freshness?.pricesFetchedAt, FRESHNESS_THRESHOLDS.pricesUpdatedAt)}>
+                    Prices fetched: {formatDate(pipelineStatus.freshness?.pricesFetchedAt)}
+                  </li>
+                  <li className={staleClass(pipelineStatus.freshness?.fundamentalsUpdatedAt, FRESHNESS_THRESHOLDS.fundamentalsUpdatedAt)}>
+                    Fundamentals updated: {formatDate(pipelineStatus.freshness?.fundamentalsUpdatedAt)}
+                  </li>
+                  <li>SEC source updated: {formatDate(pipelineStatus.freshness?.fundamentalsSourceUpdatedAt)}</li>
+                  <li className={staleClass(pipelineStatus.freshness?.scoresComputedAt, FRESHNESS_THRESHOLDS.companyScoresUpdatedAt)}>
+                    Scores computed: {formatDate(pipelineStatus.freshness?.scoresComputedAt)}
+                  </li>
+                  <li>Embeddings updated: {formatDate(pipelineStatus.freshness?.embeddingsUpdatedAt)}</li>
+                  <li className={staleClass(pipelineStatus.freshness?.articlesFetchedAt, FRESHNESS_THRESHOLDS.latestArticleFetchedAt)}>
+                    Articles fetched: {formatDate(pipelineStatus.freshness?.articlesFetchedAt)}
+                  </li>
+                  <li>Max enrichment version: {pipelineStatus.freshness?.articlesMaxEnrichmentVersion ?? 0}</li>
+                </ul>
+              </div>
+              <div>
+                <div className="small text-muted mb-1">Last pipeline job</div>
+                {pipelineStatus.lastJobRun ? (
+                  <ul className="admin-stat-list mb-0">
+                    <li>{pipelineStatus.lastJobRun.job_type} — {pipelineStatus.lastJobRun.status}</li>
+                    <li>Finished: {formatDate(pipelineStatus.lastJobRun.finished_at)}</li>
+                    {pipelineStatus.lastJobRun.error_message && (
+                      <li className="small text-danger">{pipelineStatus.lastJobRun.error_message}</li>
+                    )}
+                  </ul>
+                ) : (
+                  <div className="st-muted-note">No completed pipeline jobs yet.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="st-panel">
         <div className="st-panel-header">Feed Health</div>

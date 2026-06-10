@@ -1,5 +1,10 @@
 import './FinancialGrid.css';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  commitResearchScroll,
+  readResearchScroll,
+  touchResearchScroll,
+} from '../../utils/researchScrollState';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   useReactTable,
@@ -23,6 +28,8 @@ export default function FinancialGrid({
   scrollMode = 'panel',
   enableKeyboardNav = true,
   compact = false,
+  scrollPersistenceKey,
+  highlightedColumnId,
 }) {
   const scrollRef = useRef(null);
   const pageScroll = scrollMode === 'page';
@@ -146,6 +153,38 @@ export default function FinancialGrid({
       return { dataRowPos: nextPos, colIndex: nextCol, rowIndex: dataRowIndices[nextPos].idx };
     });
   }, [dataRowIndices, visibleHeaders.length]);
+
+  useEffect(() => {
+    if (!scrollPersistenceKey || !pageScroll) return undefined;
+    const onScroll = () => {
+      touchResearchScroll(scrollPersistenceKey, window.scrollY);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [scrollPersistenceKey, pageScroll]);
+
+  useEffect(() => {
+    if (!scrollPersistenceKey) return undefined;
+    return () => {
+      if (pageScroll) {
+        commitResearchScroll(scrollPersistenceKey);
+      } else if (scrollRef.current) {
+        touchResearchScroll(scrollPersistenceKey, scrollRef.current.scrollTop);
+        commitResearchScroll(scrollPersistenceKey);
+      }
+    };
+  }, [scrollPersistenceKey, pageScroll]);
+
+  useLayoutEffect(() => {
+    if (!scrollPersistenceKey) return;
+    const saved = readResearchScroll(scrollPersistenceKey);
+    if (saved == null) return;
+    if (pageScroll) {
+      window.scrollTo(0, saved);
+    } else if (scrollRef.current) {
+      scrollRef.current.scrollTop = saved;
+    }
+  }, [scrollPersistenceKey, pageScroll, data.length]);
 
   useEffect(() => {
     if (!enableKeyboardNav) return undefined;
@@ -296,7 +335,10 @@ export default function FinancialGrid({
                     <th
                       key={header.id}
                       data-col-id={colId}
-                      className={header.column.columnDef.meta?.numeric ? 'numeric-header' : undefined}
+                      className={[
+                        header.column.columnDef.meta?.numeric ? 'numeric-header' : '',
+                        highlightedColumnId && highlightedColumnId === colId ? 'research-grid-col--selected' : '',
+                      ].filter(Boolean).join(' ') || undefined}
                       style={applyWidthStyle(
                         applyStickyStyle(colId, {
                           ...headerStyle,

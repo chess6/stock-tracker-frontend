@@ -17,6 +17,7 @@ const NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/news', label: 'News' },
   { to: '/research', label: 'Research' },
+  { to: '/screen', label: 'Screen' },
   { to: '/screener', label: 'Screener' },
   { to: '/industry', label: 'Industry' },
   { to: '/movers', label: 'Movers' },

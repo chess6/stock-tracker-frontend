@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import HeatLegend from '../components/research/HeatLegend';
@@ -11,6 +11,22 @@ import MetricTooltipLabel from '../components/research/MetricTooltipLabel';
 import InsiderPanel from '../components/research/InsiderPanel';
 import ResearchDeepDive from '../components/research/ResearchDeepDive';
 import CompareMetricsPanel, { MAX_COMPARE_TICKERS } from '../components/research/CompareMetricsPanel';
+import ResearchCompactScoreBadges from '../components/research/ResearchCompactScoreBadges';
+import ResearchPinnedStrip from '../components/research/ResearchPinnedStrip';
+import useResearchKeyboard from '../hooks/useResearchKeyboard';
+import { clampTickerIndex } from '../utils/researchKeyboard';
+import {
+  isPinnedTicker,
+  loadPinnedTickers,
+  togglePinnedTicker,
+} from '../utils/researchPinned';
+import { clearResearchScrollPeak, readResearchScroll } from '../utils/researchScrollState';
+import ResearchTickerLink from '../components/research/ResearchTickerLink';
+import {
+  readScreenerTickersContext,
+  saveScreenerContextBeforeLeave,
+} from '../utils/researchNavigation';
+import { hydratePinnedTickersFromApi } from '../utils/researchPinned';
 import StTooltip, { StTooltipText } from '../components/StTooltip';
 import {
   RESEARCH_METRIC_GROUPS,
@@ -93,13 +109,20 @@ function metricRowHasValues(row, periodCount) {
 
 export default function ResearchPage() {
   const { ticker: routeTicker } = useParams();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const { exportScreener, copyScreener, exportDetail, copyDetail } = useResearchExport({ showToast });
   const isDeepDive = Boolean(routeTicker);
   const activeTicker = routeTicker?.toUpperCase();
 
-  const [tickersText, setTickersText] = useState(searchParams.get('tickers') || getPortfolio().slice(0, 10).join(','));
+  const [tickersText, setTickersText] = useState(() => {
+    const fromUrl = searchParams.get('tickers');
+    if (fromUrl) return fromUrl;
+    const saved = readScreenerTickersContext();
+    if (saved) return saved;
+    return getPortfolio().slice(0, 10).join(',');
+  });
   const [dimension, setDimension] = useState(searchParams.get('dim') || 'MRY');
   const [years, setYears] = useState(() => {
     const raw = searchParams.get('years');
@@ -125,6 +148,19 @@ export default function ResearchPage() {
   const [colorMode, setColorMode] = useState(() => searchParams.get('colorMode') || 'deep_value');
   const [showHeatLegend, setShowHeatLegend] = useState(searchParams.get('heatLegend') !== '0');
   const [sectorStats, setSectorStats] = useState(null);
+  const [pinnedTickers, setPinnedTickers] = useState(() => loadPinnedTickers());
+  const pinsLocallyModifiedRef = useRef(false);
+  const [selectedTickerIndex, setSelectedTickerIndex] = useState(0);
+  const [compareFocusIndex, setCompareFocusIndex] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    hydratePinnedTickersFromApi(() => !pinsLocallyModifiedRef.current).then((tickers) => {
+      if (cancelled || pinsLocallyModifiedRef.current) return;
+      setPinnedTickers(tickers);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const urlColorMode = searchParams.get('colorMode');
@@ -338,6 +374,103 @@ export default function ResearchPage() {
     [rawScreenerTickers, screenerData, sortMetric],
   );
   const screenerTickersKey = useMemo(() => screenerTickers.join(','), [screenerTickers]);
+  const selectedTicker = screenerTickers[selectedTickerIndex] || null;
+  const highlightedColumnId = !isDeepDive && screenerTickers.length
+    ? `t${clampTickerIndex(selectedTickerIndex, screenerTickers.length)}`
+    : null;
+
+  useEffect(() => {
+    setSelectedTickerIndex((idx) => clampTickerIndex(idx, screenerTickers.length));
+  }, [screenerTickers]);
+
+  useEffect(() => {
+    if (isDeepDive || !screenerTickers.length || loading) return undefined;
+    const saved = readResearchScroll('research-screener');
+    if (saved == null) return undefined;
+    let attempts = 0;
+    let frame = 0;
+    const restore = () => {
+      window.scrollTo(0, saved);
+      if (window.scrollY < saved - 16 && attempts < 16) {
+        attempts += 1;
+        frame = requestAnimationFrame(restore);
+        return;
+      }
+      clearResearchScrollPeak('research-screener');
+    };
+    frame = requestAnimationFrame(restore);
+    return () => cancelAnimationFrame(frame);
+  }, [isDeepDive, screenerTickersKey, loading]);
+
+  useEffect(() => {
+    if (!isDeepDive || !activeTicker || compareTickers.length < 2) return;
+    const idx = compareTickers.indexOf(activeTicker);
+    if (idx >= 0) setCompareFocusIndex(idx);
+  }, [isDeepDive, activeTicker, compareTickers]);
+
+  const handleOpenTicker = useCallback((ticker) => {
+    saveScreenerContextBeforeLeave(tickersText);
+    navigate(`/research/${ticker}?dim=${encodeURIComponent(dimension)}`);
+  }, [navigate, dimension, tickersText]);
+
+  const handleEscapeToScreener = useCallback(() => {
+    const params = buildScreenerSearchParams({
+      tickers: parseTickers(tickersText),
+      dim: dimension,
+      compare: compareTickers,
+      groups: serializeGroupParam(
+        screenerExpandedGroups,
+        SCREENER_METRIC_GROUPS.map((group) => group.id),
+      ),
+      sort: sortMetric,
+      hideEmpty: hideEmptyRows,
+    });
+    const qs = new URLSearchParams(params).toString();
+    navigate(`/research${qs ? `?${qs}` : ''}`);
+  }, [
+    compareTickers,
+    dimension,
+    hideEmptyRows,
+    navigate,
+    screenerExpandedGroups,
+    sortMetric,
+    tickersText,
+  ]);
+
+  const handleTogglePin = useCallback((ticker) => {
+    pinsLocallyModifiedRef.current = true;
+    setPinnedTickers((prev) => {
+      const wasPinned = isPinnedTicker(ticker, prev);
+      const next = togglePinnedTicker(ticker, prev);
+      showToast(wasPinned ? `Unpinned ${ticker}` : `Pinned ${ticker}`, 'success', 2500);
+      return next;
+    });
+  }, [showToast]);
+
+  const handleSelectPinned = useCallback((ticker) => {
+    const idx = screenerTickers.indexOf(ticker);
+    if (idx >= 0) setSelectedTickerIndex(idx);
+    else handleOpenTicker(ticker);
+  }, [handleOpenTicker, screenerTickers]);
+
+  useResearchKeyboard({
+    enabled: true,
+    tickers: screenerTickers,
+    selectedIndex: selectedTickerIndex,
+    onSelectedIndexChange: setSelectedTickerIndex,
+    isDeepDive,
+    compareTickers,
+    compareFocusIndex,
+    onCompareFocusIndexChange: (nextIndex) => {
+      setCompareFocusIndex(nextIndex);
+      const ticker = compareTickers[nextIndex];
+      if (ticker) navigate(`/research/${ticker}?dim=${encodeURIComponent(dimension)}`);
+    },
+    onOpenTicker: handleOpenTicker,
+    onTogglePin: handleTogglePin,
+    onToggleCompare: toggleCompareTicker,
+    onEscape: handleEscapeToScreener,
+  });
 
   useEffect(() => {
     if (colorMode !== 'sector') {
@@ -423,7 +556,7 @@ export default function ResearchPage() {
         id: `t${idx}`,
         accessorKey: `t${idx}`,
         header: () => (
-          <div className="research-ticker-header">
+          <div className={`research-ticker-header${selectedTicker === ticker ? ' research-ticker-header--selected' : ''}`}>
             <label className="research-compare-toggle mb-0">
               <input
                 type="checkbox"
@@ -432,9 +565,15 @@ export default function ResearchPage() {
                 aria-label={`Compare ${ticker}`}
               />
             </label>
-            <Link to={`/research/${ticker}?dim=${dimension}`} className="st-ticker">
+            <ResearchTickerLink
+              ticker={ticker}
+              dimension={dimension}
+              className="st-ticker"
+              onBeforeNavigate={() => saveScreenerContextBeforeLeave(tickersText)}
+            >
               {ticker}
-            </Link>
+            </ResearchTickerLink>
+            <ResearchCompactScoreBadges scores={data?.scores} />
             {data?.companyName && (
               <div className="text-muted research-ticker-subtitle" title={data.companyName}>
                 {data.companyName}
@@ -477,7 +616,7 @@ export default function ResearchPage() {
       });
     });
     return cols;
-  }, [screenerTickers, screenerData, dimension, compareTickers, toggleCompareTicker, colorMode, sectorStats]);
+  }, [screenerTickers, screenerData, dimension, compareTickers, toggleCompareTicker, colorMode, sectorStats, selectedTicker, tickersText]);
 
   const detailPeriods = useMemo(() => {
     if (!detailData?.periods) return [];
@@ -721,6 +860,25 @@ export default function ResearchPage() {
 
       {showHeatLegend && <HeatLegend colorMode={colorMode} />}
 
+      <ResearchPinnedStrip
+        pinnedTickers={pinnedTickers}
+        selectedTicker={isDeepDive ? activeTicker : selectedTicker}
+        onUnpin={handleTogglePin}
+        onSelect={handleSelectPinned}
+        onBeforeDeepDive={!isDeepDive ? () => saveScreenerContextBeforeLeave(tickersText) : undefined}
+      />
+
+      {!isDeepDive && screenerTickers.length > 0 && (
+        <div className="research-keyboard-hints small text-muted mb-2">
+          <kbd>j</kbd> prev · <kbd>k</kbd> next ticker · <kbd>Enter</kbd> deep-dive · <kbd>p</kbd> pin · <kbd>c</kbd> compare · <kbd>←</kbd>/<kbd>→</kbd> cycle compare
+        </div>
+      )}
+      {isDeepDive && (
+        <div className="research-keyboard-hints small text-muted mb-2">
+          <kbd>Esc</kbd> back to screener · <kbd>←</kbd>/<kbd>→</kbd> cycle compare
+        </div>
+      )}
+
       {error && <div className="st-alert-warn">{error}</div>}
 
       {isDeepDive && (
@@ -756,7 +914,7 @@ export default function ResearchPage() {
           <summary className="st-details-summary research-screener-card-summary">
             <span>Financial Screener</span>
             <span className="research-screener-card-meta">
-              {screenerTickers.length} ticker{screenerTickers.length === 1 ? '' : 's'} · metrics × tickers · arrow keys to navigate
+              {screenerTickers.length} ticker{screenerTickers.length === 1 ? '' : 's'} · metrics × tickers · arrows move cells · <kbd>j</kbd>/<kbd>k</kbd> prev/next ticker
             </span>
           </summary>
           <div className="research-screener-card-toolbar">
@@ -788,6 +946,8 @@ export default function ResearchPage() {
                 stickyColumnIds={['metric']}
                 getRowId={(row) => row.id}
                 scrollMode="page"
+                scrollPersistenceKey="research-screener"
+                highlightedColumnId={highlightedColumnId}
               />
             )}
           </div>
@@ -799,7 +959,11 @@ export default function ResearchPage() {
           {Object.keys(screenerData).length > 0 && (
             <details className="st-details research-screener-summary-col research-screener-summary-col--scores" open>
               <summary className="st-details-summary">Score Summary</summary>
-              <ScoreSummaryBar tickers={screenerTickers} screenerData={screenerData} />
+              <ScoreSummaryBar
+                tickers={screenerTickers}
+                screenerData={screenerData}
+                onBeforeDeepDive={() => saveScreenerContextBeforeLeave(tickersText)}
+              />
             </details>
           )}
           <details className="st-details research-screener-summary-col research-insider-panel" open>

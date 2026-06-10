@@ -26,6 +26,28 @@ const FRESHNESS = {
   latestArticleFetchedAt: hoursAgo(1),
 };
 
+const ADMIN_PIPELINE_STATUS = {
+  articles: { pending: 2, processing: 0, complete: 98, error: 0, duplicate: 5 },
+  freshness: {
+    ...FRESHNESS,
+    fundamentalsSourceUpdatedAt: hoursAgo(30),
+    pricesFetchedAt: hoursAgo(2),
+    scoresComputedAt: hoursAgo(8),
+    embeddingsUpdatedAt: hoursAgo(4),
+    articlesFetchedAt: hoursAgo(1),
+    articlesMaxEnrichmentVersion: 1,
+  },
+  stale: {
+    fundamentalsTickers: 0,
+    pricesTickers: 1,
+    scoresNeedingRecompute: 0,
+    staleAfterDays: { fundamentals: 14, prices: 3 },
+  },
+  versions: { scoring: 1 },
+  lastJobRun: null,
+  recentJobRuns: [],
+};
+
 const ADMIN_STATUS = {
   counts: {
     companies: 10234,
@@ -193,6 +215,9 @@ async function mockStockTrackerApi(page, options = {}) {
   const state = {
     portfolio: normalizeTickers(options.portfolio ?? []),
     theme: options.theme === 'light' ? 'light' : 'dark',
+    researchPinnedTickers: [],
+    researchColorMode: 'deep_value',
+    researchHeatLegend: true,
   };
 
   await page.route('**/api/**', async (route) => {
@@ -207,11 +232,23 @@ async function mockStockTrackerApi(page, options = {}) {
         const body = route.request().postDataJSON() || {};
         if (Array.isArray(body.portfolio)) state.portfolio = normalizeTickers(body.portfolio);
         if (body.theme === 'light' || body.theme === 'dark') state.theme = body.theme;
+        if (Array.isArray(body.researchPinnedTickers)) {
+          state.researchPinnedTickers = normalizeTickers(body.researchPinnedTickers);
+        }
+        if (body.researchColorMode) state.researchColorMode = body.researchColorMode;
+        if (typeof body.researchHeatLegend === 'boolean') state.researchHeatLegend = body.researchHeatLegend;
       }
-      return json({ theme: state.theme, portfolio: state.portfolio });
+      return json({
+        theme: state.theme,
+        portfolio: state.portfolio,
+        researchPinnedTickers: state.researchPinnedTickers,
+        researchColorMode: state.researchColorMode,
+        researchHeatLegend: state.researchHeatLegend,
+      });
     }
 
     if (path === '/api/admin/status') return json(ADMIN_STATUS);
+    if (path === '/api/admin/pipeline-status') return json(ADMIN_PIPELINE_STATUS);
     if (path === '/api/admin/default-feeds') return json({ feeds: DEFAULT_FEEDS });
     if (path === '/api/admin/universes') {
       return json({ universes: [{ id: 'sp500', label: 'S&P 500', count: 503, updatedAt: '2026-06-09' }] });
@@ -283,6 +320,42 @@ async function mockStockTrackerApi(page, options = {}) {
     }
     if (path === '/api/research/metrics/registry') {
       return json(METRIC_REGISTRY_FIXTURE);
+    }
+    if (path === '/api/research/screen' && route.request().method() === 'POST') {
+      const body = route.request().postDataJSON() || {};
+      const filters = Array.isArray(body.filters) ? body.filters : [];
+      const mockRows = ['JPM', 'MCD'].map((ticker, index) => {
+        const base = buildScreenerResult(ticker, index);
+        const filterEvidence = filters.map((filter) => ({
+          metric: filter.metric,
+          op: filter.op,
+          value: filter.value,
+          actual: filter.metric === 'buy6m' ? 600000 : 0.5,
+          passed: true,
+        }));
+        return {
+          ...base,
+          periodEnd: '2024-12-31',
+          price: ticker === 'JPM' ? 198.42 : 258.11,
+          derived: { fcf_yield: 0.09, gross_margin_trend: 0.02 },
+          insider: { buy6m: 600000, buy3m: 200000, cluster_count: 2 },
+          filterEvidence,
+          filtersPassed: filterEvidence.length,
+          filtersTotal: filterEvidence.length,
+        };
+      });
+      return json({
+        meta: {
+          universe: body.universe || 'sp500',
+          universeSize: 503,
+          evaluated: 503,
+          matched: mockRows.length,
+          returned: mockRows.length,
+          limit: body.limit || 100,
+        },
+        spec: body,
+        results: mockRows,
+      });
     }
     if (path === '/api/research/screener') {
       const tickers = parseTickersParam(url.searchParams.get('tickers'));

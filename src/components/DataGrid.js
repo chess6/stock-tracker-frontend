@@ -1,5 +1,6 @@
 import './DataGrid.css';
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
+import { readResearchScroll, saveResearchScroll } from '../utils/researchScrollState';
 import ColumnHeader from './ColumnHeader';
 import {
   useReactTable,
@@ -42,6 +43,8 @@ export default function DataGrid({
   onSortingChange,
   manualSorting = false,
   onGroupHeaderToggle,
+  scrollPersistenceKey,
+  activeRowId,
 }) {
   const defaultColWidth = 150;
   const stickyColumnKey = stickyColumnIds.join(',');
@@ -141,11 +144,26 @@ export default function DataGrid({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showColumnDropdown]);
 
+  useEffect(() => {
+    if (!scrollPersistenceKey) return undefined;
+    return () => {
+      if (scrollRef.current) {
+        saveResearchScroll(scrollPersistenceKey, scrollRef.current.scrollTop);
+      }
+    };
+  }, [scrollPersistenceKey]);
+
+  useLayoutEffect(() => {
+    if (!scrollPersistenceKey || !scrollRef.current) return;
+    const saved = readResearchScroll(scrollPersistenceKey);
+    if (saved != null) scrollRef.current.scrollTop = saved;
+  }, [scrollPersistenceKey, data.length]);
+
   // Reset visible rows when data/sorting/filter changes
   useEffect(() => {
     setVisibleCount(pageChunkSize);
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
-  }, [data, pageChunkSize, sorting, globalFilter]);
+    if (!scrollPersistenceKey && scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [data, pageChunkSize, sorting, globalFilter, scrollPersistenceKey]);
 
   const rowCountRef = useRef(0);
   rowCountRef.current = table.getRowModel().rows.length;
@@ -505,10 +523,12 @@ export default function DataGrid({
                     </tr>
                   );
                 }
+                const rowId = getRowId(row.original);
+                const isActive = row.getIsSelected() || (activeRowId != null && String(activeRowId) === String(rowId));
                 return (
                 <tr
                   key={row.id}
-                  className={row.getIsSelected() ? 'table-active' : undefined}
+                  className={isActive ? 'table-active' : undefined}
                   style={{
                     cursor: onRowClick ? 'pointer' : 'default',
                   }}

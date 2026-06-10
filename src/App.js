@@ -17,6 +17,7 @@ import DashboardPage from './pages/DashboardPage';
 import IndustryPage from './pages/IndustryPage';
 import MoversPage from './pages/MoversPage';
 import ResearchPage from './pages/ResearchPage';
+import ScreenPage from './pages/ScreenPage';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { loadMetricRegistry } from './config/metricRegistry';
@@ -51,6 +52,7 @@ function App() {
           <Route path="/news" element={<NewsPage />} />
           <Route path="/research" element={<ResearchPage />} />
           <Route path="/research/:ticker" element={<ResearchPage />} />
+          <Route path="/screen" element={<ScreenPage />} />
           <Route path="columns" element={<NasdaqColumnsGrid />} />
           {/* legacy: direct Nasdaq reference path — redirect kept for bookmarks */}
           <Route path="nasdaq-columns" element={<Navigate to="/columns" replace />} />

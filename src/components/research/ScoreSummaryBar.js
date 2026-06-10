@@ -43,7 +43,7 @@ function ScoreHeaderCell({ col }) {
   );
 }
 
-export default function ScoreSummaryBar({ tickers, screenerData }) {
+export default function ScoreSummaryBar({ tickers, screenerData, onBeforeDeepDive }) {
   if (!tickers?.length) return null;
 
   const rows = tickers.map((ticker) => {
@@ -72,7 +72,11 @@ export default function ScoreSummaryBar({ tickers, screenerData }) {
             <tr key={ticker}>
               <th scope="row" className="research-score-summary-ticker-name">
                 {scores ? (
-                  <Link to={`/research/${ticker}`} className="st-ticker">
+                  <Link
+                    to={`/research/${ticker}`}
+                    className="st-ticker"
+                    onClick={() => onBeforeDeepDive?.()}
+                  >
                     {ticker}
                   </Link>
                 ) : (
