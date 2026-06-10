@@ -1,3 +1,5 @@
+import API_ENDPOINTS from '../apiConfig';
+
 export const COMPANY_TAGS_STORAGE_KEY = 'portfolio-company-tags';
 export const ALL_TAGS_FILTER = 'all';
 export const MAX_TAGS_PER_TICKER = 12;
@@ -70,6 +72,35 @@ function writeStore(store) {
   );
 }
 
+function persistCompanyTagsToApi(tickerTags) {
+  try {
+    const request = fetch(API_ENDPOINTS.COMPANY_TAGS, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tickerTags }),
+    });
+    if (request?.catch) {
+      request.catch(() => {});
+    }
+  } catch {
+    // Offline or test env without fetch — localStorage remains source of truth.
+  }
+}
+
+export async function hydrateCompanyTagsFromApi() {
+  try {
+    const res = await fetch(API_ENDPOINTS.COMPANY_TAGS);
+    if (!res.ok) throw new Error('company tags fetch failed');
+    const data = await res.json();
+    const store = readStore();
+    store.tickerTags = sanitizeTickerTags(data.tickerTags || {});
+    writeStore(store);
+    return store.tickerTags;
+  } catch {
+    return getCompanyTagsMap();
+  }
+}
+
 export function getCompanyTagsMap() {
   return readStore().tickerTags;
 }
@@ -132,6 +163,7 @@ export function addTagToTicker(ticker, tag) {
 
   store.tickerTags[normalizedTicker] = next;
   writeStore(store);
+  persistCompanyTagsToApi(store.tickerTags);
   return next;
 }
 
@@ -149,6 +181,7 @@ export function removeTagFromTicker(ticker, tag) {
     delete store.tickerTags[normalizedTicker];
   }
   writeStore(store);
+  persistCompanyTagsToApi(store.tickerTags);
   return next;
 }
 

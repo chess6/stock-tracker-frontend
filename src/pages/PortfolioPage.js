@@ -31,6 +31,7 @@ import {
     getCompanyTagsMap,
     setActiveTagFilter,
     removeTagFromTicker,
+    hydrateCompanyTagsFromApi,
 } from '../utils/companyTags';
 import DataGrid from '../components/DataGrid';
 import CompareMetricsPanel, { MAX_COMPARE_TICKERS } from '../components/research/CompareMetricsPanel';
@@ -610,6 +611,17 @@ const PortfolioPage = () => {
         const sync = () => setPortfolio(getPortfolio());
         window.addEventListener(PORTFOLIO_UPDATED_EVENT, sync);
         return () => window.removeEventListener(PORTFOLIO_UPDATED_EVENT, sync);
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        hydrateCompanyTagsFromApi().then((map) => {
+            if (!cancelled) {
+                setTagsByTicker(map);
+                setTagFilter(getActiveTagFilter());
+            }
+        });
+        return () => { cancelled = true; };
     }, []);
 
     useEffect(() => {

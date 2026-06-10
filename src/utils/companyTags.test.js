@@ -6,6 +6,7 @@ import {
   getAllUniqueTags,
   getCompanyTagsMap,
   getTagsForTicker,
+  hydrateCompanyTagsFromApi,
   removeTagFromTicker,
   resetCompanyTagsForTests,
   setActiveTagFilter,
@@ -14,6 +15,10 @@ import {
 describe('companyTags', () => {
   beforeEach(() => {
     resetCompanyTagsForTests();
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ tickerTags: {} }),
+    });
   });
 
   it('adds and reads tags per ticker with dedupe and normalization', () => {
@@ -52,6 +57,17 @@ describe('companyTags', () => {
     expect(filterRowsByTag(rows, 'Value').map((row) => row.ticker)).toEqual(['AAPL']);
     expect(filterRowsByTag(rows, 'Growth').map((row) => row.ticker)).toEqual(['MSFT']);
     expect(filterRowsByTag(rows, 'Missing')).toEqual([]);
+  });
+
+  it('hydrates tags from API into localStorage', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ tickerTags: { AAPL: ['Synced'] } }),
+    });
+
+    const map = await hydrateCompanyTagsFromApi();
+    expect(map).toEqual({ AAPL: ['Synced'] });
+    expect(getCompanyTagsMap()).toEqual({ AAPL: ['Synced'] });
   });
 
   it('persists tag filter in localStorage and drops stale filters', () => {

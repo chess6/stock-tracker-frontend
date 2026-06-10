@@ -6,6 +6,7 @@ const API_BASE = '/api';
 export const API_ENDPOINTS = {
   SEARCH: `${API_BASE}/search`,
   PREFERENCES: `${API_BASE}/preferences`,
+  COMPANY_TAGS: `${API_BASE}/company-tags`,
   SUMMARY: ticker => `${API_BASE}/ticker/${ticker}/summary`,
   NEWS: ticker => `${API_BASE}/ticker/${ticker}/news`,
   NEWS_FEED: `${API_BASE}/news`,
