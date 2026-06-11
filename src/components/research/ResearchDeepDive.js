@@ -39,6 +39,7 @@ export default function ResearchDeepDive({
   pillarLoading,
   thesisData,
   thesisLoading,
+  pillarThesisError,
 }) {
   const priceSparkline = (detailData?.price?.history || []).map((point) => point.close);
 
@@ -148,6 +149,10 @@ export default function ResearchDeepDive({
           </div>
         </div>
       </div>
+
+      {pillarThesisError && (
+        <div className="st-alert-warn research-pillar-thesis-error">{pillarThesisError}</div>
+      )}
 
       <div className="research-thesis-row">
         <div className="st-panel research-thesis-panel">

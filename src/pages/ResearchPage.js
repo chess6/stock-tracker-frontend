@@ -148,6 +148,7 @@ export default function ResearchPage() {
   const [pillarLoading, setPillarLoading] = useState(false);
   const [thesisData, setThesisData] = useState(null);
   const [thesisLoading, setThesisLoading] = useState(false);
+  const [pillarThesisError, setPillarThesisError] = useState(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -325,6 +326,7 @@ export default function ResearchPage() {
     if (!symbol) return;
     setPillarLoading(true);
     setThesisLoading(true);
+    setPillarThesisError(null);
     try {
       const [pillarsPayload, thesisPayload] = await Promise.all([
         fetchPillarProfile(symbol),
@@ -332,9 +334,21 @@ export default function ResearchPage() {
       ]);
       setPillarData(pillarsPayload);
       setThesisData(thesisPayload);
-    } catch {
+    } catch (err) {
       setPillarData(null);
       setThesisData(null);
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.error;
+      if (status === 404) {
+        setPillarThesisError('Pillar and thesis endpoints are unavailable. Restart the backend to load the thesis engine routes.');
+      } else if (status >= 500) {
+        setPillarThesisError('Pillar/thesis evaluation failed on the server. Check backend logs for this ticker.');
+      } else {
+        setPillarThesisError('Could not load pillar profile or investment thesis for this ticker.');
+      }
+      if (detail) {
+        setPillarThesisError((prev) => `${prev} (${detail})`);
+      }
     } finally {
       setPillarLoading(false);
       setThesisLoading(false);
@@ -372,6 +386,7 @@ export default function ResearchPage() {
     setCompositeRankHistory([]);
     setPillarData(null);
     setThesisData(null);
+    setPillarThesisError(null);
     const tickers = parseTickers(tickersText);
     if (tickers.length) loadScreener(tickers, dimension);
     // Initial load only; toolbar actions refresh explicitly.
@@ -963,7 +978,7 @@ export default function ResearchPage() {
       )}
       {isDeepDive && (
         <div className="research-keyboard-hints small text-muted mb-2">
-          <kbd>Esc</kbd> back to screener · <kbd>←</kbd>/<kbd>→</kbd> cycle compare
+          <kbd>Esc</kbd> close section, then back to screener · <kbd>←</kbd>/<kbd>→</kbd> cycle compare
         </div>
       )}
 
@@ -998,6 +1013,7 @@ export default function ResearchPage() {
           pillarLoading={pillarLoading}
           thesisData={thesisData}
           thesisLoading={thesisLoading}
+          pillarThesisError={pillarThesisError}
         />
       )}
 

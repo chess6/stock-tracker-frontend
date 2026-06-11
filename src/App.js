@@ -2,8 +2,9 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import PortfolioPage from './pages/PortfolioPage';
 import SummaryPage from './pages/SummaryPage';
+import ResearchOverviewPage from './pages/ResearchOverviewPage';
 import NasdaqColumnsGrid from './pages/NasdaqColumnsGrid';
-import GridDemoPage from './pages/GridDemoPage';
+// import GridDemoPage from './pages/GridDemoPage';
 import './App.css';
 import "@svar-ui/react-grid/all.css";
 import AppNavbar from './components/AppNavbar';
@@ -57,7 +58,7 @@ function App() {
           {/* legacy: direct Nasdaq reference path — redirect kept for bookmarks */}
           <Route path="nasdaq-columns" element={<Navigate to="/columns" replace />} />
           {/* legacy: <Route path="nasdaq-columns" element={<NasdaqColumnsGrid />} /> */}
-          <Route path="grid-demo" element={<GridDemoPage />} />
+          {/* <Route path="grid-demo" element={<GridDemoPage />} /> */}
           <Route path="screener" element={<StockScreenerPage />} />
           <Route path="industry" element={<IndustryPage />} />
           <Route path="movers" element={<MoversPage />} />
@@ -67,7 +68,8 @@ function App() {
           {/* legacy: screener linked here before /:ticker/insiders */}
           <Route path="ticker/:ticker" element={<LegacyInsiderRedirect />} />
           {/* legacy: <Route path="ticker/:ticker" element={<TickerDetailsPage />} /> */}
-          <Route path=":ticker" element={<SummaryPage />} />
+          <Route path=":ticker/summary" element={<SummaryPage />} />
+          <Route path=":ticker" element={<ResearchOverviewPage />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>

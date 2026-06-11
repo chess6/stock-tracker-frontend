@@ -1,15 +1,16 @@
 import {
   clampTickerIndex,
   cycleCompareIndex,
+  hasOpenResearchDetails,
   resolveResearchKeyAction,
   shouldIgnoreResearchKey,
 } from './researchKeyboard';
 
 describe('researchKeyboard', () => {
-  it('ignores keys when typing in inputs', () => {
+  it('ignores keys when typing in inputs including Escape', () => {
     const input = document.createElement('input');
     expect(shouldIgnoreResearchKey({ target: input })).toBe(true);
-    expect(shouldIgnoreResearchKey({ key: 'Escape', target: input })).toBe(false);
+    expect(shouldIgnoreResearchKey({ key: 'Escape', target: input })).toBe(true);
   });
 
   it('navigates tickers with j/k and opens on Enter', () => {
@@ -38,6 +39,18 @@ describe('researchKeyboard', () => {
       { isDeepDive: true },
     );
     expect(esc).toEqual({ type: 'escape' });
+
+    const details = document.createElement('details');
+    details.className = 'st-details';
+    details.setAttribute('open', '');
+    document.body.appendChild(details);
+    expect(hasOpenResearchDetails()).toBe(true);
+    const close = resolveResearchKeyAction(
+      { key: 'Escape', target: document.body },
+      { isDeepDive: true },
+    );
+    expect(close).toEqual({ type: 'close_details' });
+    document.body.removeChild(details);
 
     expect(cycleCompareIndex(0, 1, 3)).toBe(1);
     expect(cycleCompareIndex(2, 1, 3)).toBe(0);

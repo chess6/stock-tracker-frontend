@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 
 const TABS = [
-  { id: 'summary', suffix: '', label: 'Summary' },
-  { id: 'financials', label: 'Financials', research: true },
+  { id: 'overview', suffix: '', label: 'Overview' },
+  { id: 'research', label: 'Research', research: true },
   { id: 'insiders', suffix: '/insiders', label: 'Insider Transactions' },
 ];
 

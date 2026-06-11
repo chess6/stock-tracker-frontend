@@ -63,7 +63,12 @@ const SummaryPage = () => {
             failures.push('intraday quote');
           }
           if (newsRes.status === 'fulfilled') {
-            setNews(newsRes.value.data || []);
+            const raw = newsRes.value.data || [];
+            setNews([...raw].sort((a, b) => {
+              const da = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
+              const db = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
+              return db - da;
+            }));
           } else {
             setNews([]);
             failures.push('news');

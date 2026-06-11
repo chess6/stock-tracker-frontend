@@ -37,23 +37,28 @@ describe('ThesisPanel', () => {
     expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
   });
 
-  it('shows disqualification banner when gates fail', () => {
+  it('shows disqualification banner and hides non-premortem sections', () => {
     render(
       <ThesisPanel
         thesisData={{
           disqualified: true,
+          disqualificationNotice: { failedGates: ['solvency_runway'] },
           sections: {
-            preMortem: { headline: 'Disqualified', statements: [] },
+            preMortem: {
+              headline: 'Disqualified',
+              statements: [{ text: 'Gate failure dominates.', source: 'solvency_runway' }],
+            },
             bearCase: [],
             bullCase: [],
-            disconfirmingConditions: [
-              { text: 'Condition A', factorKey: 'a' },
-              { text: 'Condition B', factorKey: 'b' },
-            ],
+            disconfirmingConditions: [],
           },
         }}
       />,
     );
     expect(screen.getByText(/Disqualified — gate failure/i)).toBeInTheDocument();
+    expect(screen.getByText(/Failed gates: solvency_runway/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Bear case/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Valuation assessment/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Disconfirming conditions/i)).not.toBeInTheDocument();
   });
 });

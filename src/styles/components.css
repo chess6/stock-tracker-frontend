@@ -187,6 +187,17 @@ a.st-link-muted:focus-visible {
   background: rgba(45, 111, 75, 0.25);
 }
 
+.st-btn-danger {
+  border-color: rgba(220, 53, 69, 0.55);
+  background: transparent;
+  color: var(--st-negative);
+}
+
+.st-btn-danger:hover {
+  background: rgba(220, 53, 69, 0.14);
+  border-color: var(--st-negative);
+}
+
 .st-segment {
   display: inline-flex;
   overflow: hidden;
@@ -242,6 +253,24 @@ a.st-link-muted:focus-visible {
 .st-badge-muted {
   background: var(--st-surface-muted);
   color: var(--st-text-subtle);
+}
+
+.st-badge-positive {
+  border-color: rgba(40, 167, 69, 0.45);
+  background: rgba(40, 167, 69, 0.12);
+  color: var(--st-positive);
+}
+
+.st-badge-negative {
+  border-color: rgba(220, 53, 69, 0.45);
+  background: rgba(220, 53, 69, 0.12);
+  color: var(--st-negative);
+}
+
+.st-badge-blue {
+  border-color: rgba(91, 156, 245, 0.45);
+  background: rgba(91, 156, 245, 0.12);
+  color: var(--st-accent-blue);
 }
 
 .portfolio-tag-pills {
@@ -535,4 +564,25 @@ a.st-ticker:focus-visible {
 .data-grid-table thead th,
 .portfolio-grid-table thead th {
   overflow: visible;
+}
+
+/* Inline filter toolbar — controls size to content, not full column width */
+.st-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.35rem 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.st-toolbar-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.st-toolbar .st-select,
+.st-toolbar .st-input {
+  width: auto;
+  min-width: 5.5rem;
 }

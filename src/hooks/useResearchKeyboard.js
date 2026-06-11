@@ -42,6 +42,11 @@ export default function useResearchKeyboard({
         case 'toggle_compare':
           onToggleCompare?.(action.ticker);
           break;
+        case 'close_details': {
+          const open = document.querySelector('details.st-details[open]');
+          if (open) open.removeAttribute('open');
+          break;
+        }
         case 'escape':
           onEscape?.();
           break;

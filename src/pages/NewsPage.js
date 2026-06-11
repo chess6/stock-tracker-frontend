@@ -32,8 +32,8 @@ function snippet(text, maxLen = 140) {
 
 function sentimentBadge(label) {
   if (!label || label === 'neutral') return null;
-  const color = label === 'positive' ? 'success' : label === 'negative' ? 'danger' : 'secondary';
-  return <span className={`badge text-bg-${color} ms-2`}>{label}</span>;
+  const cls = label === 'positive' ? 'st-badge-positive' : label === 'negative' ? 'st-badge-negative' : 'st-badge-muted';
+  return <span className={`st-badge ${cls} ms-2`}>{label}</span>;
 }
 
 function matchStrategyLabel(strategy) {
@@ -51,10 +51,10 @@ function tickerMatchBadge(match) {
   const strategy = match.matchStrategy || 'ticker';
   const confidence = match.confidence != null ? `${Math.round(match.confidence * 100)}%` : '';
   const title = `${match.ticker}: ${strategy}${confidence ? ` (${confidence})` : ''}`;
-  const color = strategy === 'cashtag' || strategy === 'headline_ticker' ? 'primary' : 'secondary';
+  const cls = strategy === 'cashtag' || strategy === 'headline_ticker' ? 'st-badge-blue' : 'st-badge-muted';
   return (
     <Link key={`${match.ticker}-${strategy}`} to={`/${match.ticker}`} title={title}>
-      <span className={`badge text-bg-${color} me-1`}>
+      <span className={`st-badge ${cls} me-1`}>
         {match.ticker}
         <span className="opacity-75 ms-1">{matchStrategyLabel(strategy)}</span>
       </span>
@@ -108,7 +108,12 @@ export default function NewsPage() {
         params.tickers = filters.tickers;
       }
       const res = await axios.get(API_ENDPOINTS.NEWS_FEED, { params });
-      setArticles(res.data?.articles || []);
+      const raw = res.data?.articles || [];
+      setArticles([...raw].sort((a, b) => {
+        const da = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
+        const db = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
+        return db - da;
+      }));
       setTotal(res.data?.total || 0);
       setOffset(nextOffset);
     } catch (err) {
@@ -258,7 +263,7 @@ export default function NewsPage() {
                         ? tickerMatchBadge(match)
                         : (
                           <Link key={match.ticker} to={`/${match.ticker}`}>
-                            <span className="badge text-bg-secondary me-1">{match.ticker}</span>
+                            <span className="st-badge st-badge-muted me-1">{match.ticker}</span>
                           </Link>
                         )
                     ))}

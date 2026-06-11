@@ -444,12 +444,12 @@ export default function ScreenPage() {
 
   return (
     <div className="st-page st-page--full research-page screen-page">
-      <div className="research-toolbar d-flex flex-wrap align-items-end gap-3 mb-3">
-        <div>
-          <label className="form-label small text-muted mb-1" htmlFor="screen-preset">Preset</label>
+      <div className="st-toolbar mb-2">
+        <div className="st-toolbar-field">
+          <label className="st-label" htmlFor="screen-preset">Preset</label>
           <select
             id="screen-preset"
-            className="form-select form-select-sm"
+            className="st-select"
             value={preset.id}
             onChange={(e) => handlePresetChange(e.target.value)}
           >
@@ -458,11 +458,11 @@ export default function ScreenPage() {
             ))}
           </select>
         </div>
-        <div>
-          <label className="form-label small text-muted mb-1" htmlFor="screen-composite">Composite</label>
+        <div className="st-toolbar-field">
+          <label className="st-label" htmlFor="screen-composite">Composite</label>
           <select
             id="screen-composite"
-            className="form-select form-select-sm"
+            className="st-select"
             value={compositeId}
             onChange={(e) => setCompositeId(e.target.value)}
           >
@@ -471,11 +471,11 @@ export default function ScreenPage() {
             ))}
           </select>
         </div>
-        <div>
-          <label className="form-label small text-muted mb-1" htmlFor="screen-universe">Universe</label>
+        <div className="st-toolbar-field">
+          <label className="st-label" htmlFor="screen-universe">Universe</label>
           <select
             id="screen-universe"
-            className="form-select form-select-sm"
+            className="st-select"
             value={universe}
             onChange={(e) => setUniverse(e.target.value)}
           >
@@ -484,11 +484,11 @@ export default function ScreenPage() {
             ))}
           </select>
         </div>
-        <div>
-          <label className="form-label small text-muted mb-1" htmlFor="screen-saved">Saved</label>
+        <div className="st-toolbar-field">
+          <label className="st-label" htmlFor="screen-saved">Saved</label>
           <select
             id="screen-saved"
-            className="form-select form-select-sm"
+            className="st-select"
             value={activeSavedScreenId}
             onChange={(e) => handleLoadSavedScreen(e.target.value)}
           >
@@ -500,7 +500,7 @@ export default function ScreenPage() {
         </div>
         <button
           type="button"
-          className="btn btn-primary btn-sm"
+          className="st-btn-primary"
           onClick={runScreen}
           disabled={loading}
         >
@@ -508,7 +508,7 @@ export default function ScreenPage() {
         </button>
         <button
           type="button"
-          className="btn btn-outline-secondary btn-sm"
+          className="st-btn-ghost"
           onClick={handleClonePreset}
           title="Copy preset filters into the editor"
         >
@@ -516,7 +516,7 @@ export default function ScreenPage() {
         </button>
         <button
           type="button"
-          className="btn btn-outline-secondary btn-sm"
+          className="st-btn-ghost"
           onClick={handleSaveScreen}
           title="Save current filter configuration"
         >
@@ -525,7 +525,7 @@ export default function ScreenPage() {
         {activeSavedScreenId && (
           <button
             type="button"
-            className="btn btn-outline-danger btn-sm"
+            className="st-btn-danger"
             onClick={handleDeleteSavedScreen}
             title="Delete selected saved screen"
           >
@@ -564,7 +564,7 @@ export default function ScreenPage() {
         </div>
       )}
 
-      {error && <div className="alert alert-danger py-2">{error}</div>}
+      {error && <div className="st-alert-danger">{error}</div>}
 
       {meta && (
         <div className="small text-muted mb-2">

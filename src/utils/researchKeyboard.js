@@ -1,11 +1,15 @@
 export function shouldIgnoreResearchKey(event) {
-  if (event?.key === 'Escape') return false;
   const target = event.target;
   if (!target || typeof target !== 'object') return false;
   const tag = target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
   if (target.isContentEditable) return true;
   return false;
+}
+
+export function hasOpenResearchDetails() {
+  if (typeof document === 'undefined') return false;
+  return Boolean(document.querySelector('details.st-details[open]'));
 }
 
 export function clampTickerIndex(index, length) {
@@ -33,7 +37,10 @@ export function resolveResearchKeyAction(event, {
   const lower = key.length === 1 ? key.toLowerCase() : key;
 
   if (isDeepDive) {
-    if (key === 'Escape') return { type: 'escape' };
+    if (key === 'Escape') {
+      if (hasOpenResearchDetails()) return { type: 'close_details' };
+      return { type: 'escape' };
+    }
     if (compareTickers.length >= 2 && (key === 'ArrowLeft' || key === 'ArrowRight')) {
       return {
         type: 'cycle_compare',
