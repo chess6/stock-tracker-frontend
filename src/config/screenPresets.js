@@ -40,6 +40,23 @@ export const SCREEN_PRESETS = [
     },
   },
   {
+    id: 'rerating_candidates',
+    label: 'Rerating Candidates',
+    description:
+      'Improving Piotroski, positive gross margin trend, narrative divergence, insider cluster.',
+    spec: {
+      universe: 'sp500',
+      filters: [
+        { metric: 'piotroski', op: 'gte', value: 5 },
+        { metric: 'gross_margin_trend', op: 'gte', value: 0 },
+        { metric: 'divergence_score', op: 'gte', value: 0.7 },
+        { metric: 'cluster_count', op: 'gte', value: 3 },
+      ],
+      sort: { metric: 'divergence_score', dir: 'desc' },
+      limit: 100,
+    },
+  },
+  {
     id: 'distressed_survivable',
     label: 'Distressed but Survivable',
     description: 'Altman distress zone with survivability cushion and positive FCF margin.',

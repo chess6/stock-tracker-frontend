@@ -8,8 +8,8 @@ import {
 } from './screenPresets';
 
 describe('screenPresets', () => {
-  it('exposes ten built-in presets', () => {
-    expect(SCREEN_PRESETS).toHaveLength(10);
+  it('exposes eleven built-in presets', () => {
+    expect(SCREEN_PRESETS).toHaveLength(11);
     expect(getScreenPreset(DEFAULT_SCREEN_PRESET_ID).id).toBe('deep_value');
   });
 

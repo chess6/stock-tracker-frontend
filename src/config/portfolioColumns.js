@@ -205,6 +205,7 @@ export const PORTFOLIO_COLUMN_META = {
     source: 'SEC CompanyFacts + prices',
     group: 'valuation',
     heat: 'column',
+    higherIsBetter: false,
   },
   revDebt: {
     label: 'Rev/Debt',
@@ -223,6 +224,7 @@ export const PORTFOLIO_COLUMN_META = {
     source: 'SEC CompanyFacts',
     group: 'valuation',
     heat: 'column',
+    higherIsBetter: false,
   },
   mcEv: {
     label: 'MC/EV',
@@ -334,6 +336,23 @@ export const PORTFOLIO_COLUMN_META = {
     fullName: 'Assets per Share',
     tooltip: 'Total assets per share',
     group: 'cashflow',
+    heat: 'column',
+  },
+  divergenceSignal: {
+    label: 'Divergence',
+    shortLabel: 'Div',
+    fullName: 'Narrative Divergence Signal',
+    tooltip: 'Fundamental vs sentiment divergence classification',
+    source: 'Narrative intelligence snapshots',
+    group: 'insider',
+  },
+  divergenceScore: {
+    label: 'Div Score',
+    shortLabel: 'Div#',
+    fullName: 'Narrative Divergence Score',
+    tooltip: 'Composite divergence score (0–1)',
+    source: 'Narrative intelligence snapshots',
+    group: 'insider',
     heat: 'column',
   },
   insiderBuy6m: {

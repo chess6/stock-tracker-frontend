@@ -8,6 +8,9 @@ import CapitalStructureSummary from './CapitalStructureSummary';
 import NarrativePanel from './NarrativePanel';
 import CompositeFactorPanel from './CompositeFactorPanel';
 import CompositeRankHistory from './CompositeRankHistory';
+import PillarRadarPanel from './PillarRadarPanel';
+import PillarFactorPanel from './PillarFactorPanel';
+import ThesisPanel from './ThesisPanel';
 import StIcon from '../StIcon';
 import { RESEARCH_METRIC_GROUPS } from '../../config/researchMetrics';
 import { FINANCIAL_GROUP_ICONS, RESEARCH_ICONS } from '../../icons/researchIcons';
@@ -32,6 +35,10 @@ export default function ResearchDeepDive({
   compositeRankHistory,
   compositeRankLoading,
   compositeId,
+  pillarData,
+  pillarLoading,
+  thesisData,
+  thesisLoading,
 }) {
   const priceSparkline = (detailData?.price?.history || []).map((point) => point.close);
 
@@ -115,24 +122,55 @@ export default function ResearchDeepDive({
             </div>
           </div>
         </div>
+        <div className="research-analytics-col research-analytics-col-composite">
+          <div className="st-panel research-analytics-panel research-composite-panel">
+            <div className="st-panel-header">
+              <StIcon icon={RESEARCH_ICONS.scores} />
+              Composite Opportunity
+            </div>
+            <div className="st-panel-body research-composite-split">
+              <div className="research-composite-factors-col">
+                <CompositeFactorPanel
+                  rankRow={compositeRank}
+                  compositeId={compositeId}
+                  loading={compositeRankLoading}
+                  embedded
+                />
+              </div>
+              <div className="research-composite-history-col">
+                <CompositeRankHistory
+                  history={compositeRankHistory}
+                  loading={compositeRankLoading}
+                  compact
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="st-panel research-composite-panel mb-2">
-        <div className="st-panel-header">
-          <StIcon icon={RESEARCH_ICONS.scores} />
-          Composite Opportunity
+      <div className="research-thesis-row">
+        <div className="st-panel research-thesis-panel">
+          <div className="st-panel-header">
+            <StIcon icon={RESEARCH_ICONS.scores} />
+            Investment Thesis
+          </div>
+          <div className="st-panel-body research-panel-body-tight">
+            <ThesisPanel thesisData={thesisData} loading={thesisLoading} />
+          </div>
         </div>
-        <div className="st-panel-body">
-          <CompositeFactorPanel
-            rankRow={compositeRank}
-            compositeId={compositeId}
-            loading={compositeRankLoading}
-            embedded
-          />
-          <CompositeRankHistory
-            history={compositeRankHistory}
-            loading={compositeRankLoading}
-          />
+      </div>
+
+      <div className="research-pillar-row">
+        <div className="st-panel research-pillar-panel">
+          <div className="st-panel-header">
+            <StIcon icon={RESEARCH_ICONS.scoreBreakdown} />
+            Pillar Profile
+          </div>
+          <div className="st-panel-body research-pillar-split">
+            <PillarRadarPanel pillarData={pillarData} loading={pillarLoading} embedded />
+            <PillarFactorPanel pillars={pillarData?.pillars || []} loading={pillarLoading} />
+          </div>
         </div>
       </div>
 

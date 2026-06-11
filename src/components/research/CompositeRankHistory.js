@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import Chart from 'react-apexcharts';
-import { mergeApexOptions } from '../../utils/chartTheme';
+import { ANALYTICS_DEEP_DIVE_STRIP_HEIGHT, mergeApexOptions } from '../../utils/chartTheme';
 import { formatCompositeScore } from '../../utils/compositeRank';
 
-export default function CompositeRankHistory({ history = [], loading = false }) {
+export default function CompositeRankHistory({ history = [], loading = false, compact = false }) {
   const chartPayload = useMemo(() => {
     const labels = history.map((point) => point.snapshot_date);
     const scores = history.map((point) => (
@@ -22,19 +22,24 @@ export default function CompositeRankHistory({ history = [], loading = false }) 
     stroke: { width: 2, curve: 'smooth' },
     xaxis: {
       categories: chartPayload.labels,
-      labels: { show: chartPayload.labels.length <= 12 },
+      labels: {
+        show: chartPayload.labels.length <= 12,
+        style: { fontSize: compact ? '9px' : '11px' },
+      },
     },
     yaxis: [
       {
         min: 0,
         max: 1,
         decimalsInFloat: 2,
-        title: { text: 'Score' },
+        title: { text: compact ? undefined : 'Score' },
+        labels: { style: { fontSize: compact ? '9px' : '11px' } },
       },
       {
         opposite: true,
         reversed: true,
-        title: { text: 'Rank' },
+        title: { text: compact ? undefined : 'Rank' },
+        labels: { style: { fontSize: compact ? '9px' : '11px' } },
       },
     ],
     tooltip: {
@@ -45,8 +50,8 @@ export default function CompositeRankHistory({ history = [], loading = false }) 
         ),
       },
     },
-    legend: { show: true, position: 'top' },
-  }), [chartPayload.labels]);
+    legend: { show: !compact, position: 'top' },
+  }), [chartPayload.labels, compact]);
 
   if (loading) {
     return <div className="research-chart-empty">Loading rank history…</div>;
@@ -60,11 +65,14 @@ export default function CompositeRankHistory({ history = [], loading = false }) 
     );
   }
 
+  const chartHeight = compact ? ANALYTICS_DEEP_DIVE_STRIP_HEIGHT : 180;
+
   return (
-    <div className="composite-rank-history">
+    <div className={`composite-rank-history${compact ? ' composite-rank-history--compact' : ''}`}>
+      {compact && <div className="composite-rank-history-title">Rank history</div>}
       <Chart
         type="line"
-        height={180}
+        height={chartHeight}
         series={[
           { name: 'Composite score', data: chartPayload.scores },
           { name: 'Universe rank', data: chartPayload.ranks, yAxisIndex: 1 },

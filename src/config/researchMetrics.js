@@ -112,7 +112,7 @@ export const SCREENER_METRIC_GROUPS = [
     metrics: [
       { id: 'grossMargin3yrDelta', label: 'GM 3Y Δ', path: ['marginTrends', 'grossMargin3yrDelta'], format: 'percent', scoreCategory: 'trend' },
       { id: 'operatingMargin3yrDelta', label: 'Op Margin 3Y Δ', path: ['marginTrends', 'operatingMargin3yrDelta'], format: 'percent', scoreCategory: 'trend' },
-      { id: 'shareDilutionRate', label: 'Share Dilution', format: 'percent', scoreCategory: 'trend' },
+      { id: 'shareDilutionRate', label: 'Share Dilution', path: ['shareDilutionRate'], format: 'percent', scoreCategory: 'trend' },
     ],
   },
   {
@@ -122,6 +122,18 @@ export const SCREENER_METRIC_GROUPS = [
       { id: 'buyCount90d', label: 'Insider Buys 90d', path: ['insiderSummary', 'buyCount90d'], format: 'integer' },
       { id: 'intensityScore90d', label: 'Buy Intensity', path: ['insiderSummary', 'intensityScore90d'], format: 'decimal', scoreCategory: 'trend' },
       { id: 'buySellRatio', label: 'Buy/Sell Ratio', path: ['insiderSummary', 'buySellRatio'], format: 'decimal', scoreCategory: 'trend' },
+    ],
+  },
+  {
+    id: 'narrative',
+    label: 'Narrative',
+    metrics: [
+      {
+        id: 'narrativeDivergence',
+        label: 'Divergence',
+        path: ['narrativeDivergence'],
+        format: 'divergence_badge',
+      },
     ],
   },
 ];
@@ -156,6 +168,9 @@ export function getNestedValue(obj, path) {
 
 export function getScreenerMetricValue(rowData, metric) {
   if (!rowData || rowData.error) return null;
+  if (metric.format === 'divergence_badge') {
+    return getNestedValue(rowData, metric.path || ['narrativeDivergence']);
+  }
   if (metric.path) return getNestedValue(rowData, metric.path);
   return rowData[metric.id] ?? null;
 }

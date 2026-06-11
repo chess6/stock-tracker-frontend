@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
   RESEARCH_SCREENER: `${API_BASE}/research/screener`,
   RESEARCH_SCREEN: `${API_BASE}/research/screen`,
   RESEARCH_RANK: `${API_BASE}/research/rank`,
+  RESEARCH_RANK_VALIDATION: `${API_BASE}/research/rank/validation`,
   RESEARCH_RANK_HISTORY: ticker => `${API_BASE}/research/rank/history/${encodeURIComponent(ticker)}`,
   RESEARCH_METRICS_REGISTRY: `${API_BASE}/research/metrics/registry`,
   RESEARCH_SECTOR_STATS: `${API_BASE}/research/metrics/sector-stats`,
@@ -33,6 +34,10 @@ export const API_ENDPOINTS = {
   RESEARCH_INSIDERS: ticker => `${API_BASE}/research/insiders/${encodeURIComponent(ticker)}`,
   RESEARCH_INSIDER_CLUSTERS: `${API_BASE}/research/insiders/clusters`,
   RESEARCH_NARRATIVE: ticker => `${API_BASE}/research/narrative/${encodeURIComponent(ticker)}`,
+  RESEARCH_GATES: ticker => `${API_BASE}/research/gates/${encodeURIComponent(ticker)}`,
+  RESEARCH_PILLARS: ticker => `${API_BASE}/research/pillars/${encodeURIComponent(ticker)}`,
+  RESEARCH_THESIS: ticker => `${API_BASE}/research/thesis/${encodeURIComponent(ticker)}`,
+  RESEARCH_RANK_BASERATE: `${API_BASE}/research/rank/baserate`,
   INSIDER_BUYING_SUMS: `${API_BASE}/insiders/buying-sums`,
   /** SEC Form 4 insider transactions (SQLite; response keeps SF2-compatible datatable shape). */
   INSIDER_TRANSACTIONS: ticker => `${API_BASE}/ticker/${ticker}/sf2`,

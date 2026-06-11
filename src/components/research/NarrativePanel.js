@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import Chart from 'react-apexcharts';
 import {
-  ANALYTICS_CHART_HEIGHT_NARRATIVE,
   ANALYTICS_CHART_HEIGHT_SHORT,
+  ANALYTICS_DEEP_DIVE_STRIP_HEIGHT,
   analyticsChartOptions,
 } from '../../utils/chartTheme';
 import { formatDecimal, formatPercent } from '../../utils/formatters';
@@ -116,6 +116,8 @@ export default function NarrativePanel({
     })),
   }]), [sentimentTrend]);
 
+  const hasOverlayChart = overlaySeries[0]?.data?.length >= 2;
+
   if (loading && !narrativeData) {
     return <div className="research-chart-empty">Loading narrative correlation…</div>;
   }
@@ -125,14 +127,14 @@ export default function NarrativePanel({
   }
 
   const overlayHeight = deepDive
-    ? ANALYTICS_CHART_HEIGHT_NARRATIVE
+    ? ANALYTICS_DEEP_DIVE_STRIP_HEIGHT
     : (compact ? ANALYTICS_CHART_HEIGHT_SHORT : 260);
   const sentimentHeight = compact ? 110 : 180;
   const showCharts = deepDive || !tablesOnly;
   const showTables = deepDive || !chartsOnly;
 
   const phaseDSection = (narrativeStates.length > 0 || narrativeDivergence) && (
-    <div className="research-narrative-phase-d mb-2">
+    <div className={`research-narrative-phase-d${deepDive ? '' : ' mb-2'}`}>
       {narrativeDivergence && (
         <div className={`research-narrative-divergence-pill research-narrative-divergence-${narrativeDivergence.signal || 'neutral'}`}>
           <span className="research-narrative-divergence-label">
@@ -242,17 +244,40 @@ export default function NarrativePanel({
     </div>
   );
 
+  const hasTopEventsTable = topEvents.length > 0;
+
   if (deepDive) {
     return (
       <div className="research-narrative-panel research-narrative-deep-dive">
-        {phaseDSection}
-        {inlineStats}
-        {overlaySeries[0]?.data?.length >= 2 && (
-          <div className="research-chart-plot research-chart-plot-narrative">
-            <Chart options={overlayOptions} series={overlaySeries} type="line" height={overlayHeight} />
+        <div className="research-narrative-deep-dive-top">
+          {phaseDSection}
+          {inlineStats}
+        </div>
+        {(hasOverlayChart || hasTopEventsTable) && (
+          <div
+            className={`research-narrative-body-split${
+              hasOverlayChart && hasTopEventsTable ? '' : ' research-narrative-body-split--solo'
+            }`}
+          >
+            {hasOverlayChart && (
+              <div className="research-narrative-chart-col">
+                <div className="research-chart-plot research-chart-plot-narrative research-chart-plot-narrative-deep">
+                  <Chart
+                    options={overlayOptions}
+                    series={overlaySeries}
+                    type="line"
+                    height={overlayHeight}
+                  />
+                </div>
+              </div>
+            )}
+            {hasTopEventsTable && (
+              <div className="research-narrative-table-col">
+                {topEventsTable}
+              </div>
+            )}
           </div>
         )}
-        {topEventsTable}
       </div>
     );
   }

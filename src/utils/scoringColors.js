@@ -102,7 +102,6 @@ export function buildHistoricalStats(values) {
 function historicalTier(value, stats, higherIsBetter) {
   if (!stats || stats.count < 2 || !isValidNumber(value)) return null;
   const num = Number(value);
-  if (num < 0) return 0;
 
   const breakpoints = higherIsBetter
     ? [stats.p20, stats.p40, stats.p60, stats.p80, stats.p95]
@@ -315,7 +314,7 @@ export function getScoreTier(value, metricKey, context = {}) {
     return scoreTierForMetric(metricKey, value);
   }
 
-  if (mode === 'historical' && context.historical) {
+  if ((mode === 'historical' || mode === 'relative') && context.historical) {
     const tier = historicalTier(num, context.historical, rule.higherIsBetter !== false);
     if (tier != null) return tier;
   }

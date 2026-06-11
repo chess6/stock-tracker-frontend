@@ -1,7 +1,8 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import Chart from 'react-apexcharts';
 import {
   ANALYTICS_CHART_HEIGHT,
+  ANALYTICS_DEEP_DIVE_STRIP_HEIGHT,
   analyticsChartOptions,
   tightPercentBounds,
 } from '../../utils/chartTheme';
@@ -36,35 +37,10 @@ function fcfMargin(period) {
 }
 
 const MARGIN_COLORS = ['#6ecf97', '#5b9cf5', '#f5a623', '#e87882'];
-const MARGIN_DEEP_DIVE_MIN_HEIGHT = 180;
-
-function usePlotHeight(enabled, active, minHeight) {
-  const ref = useRef(null);
-  const [height, setHeight] = useState(minHeight);
-
-  useLayoutEffect(() => {
-    if (!enabled || !active) return undefined;
-    const el = ref.current;
-    if (!el) return undefined;
-
-    const update = () => {
-      const next = Math.floor(el.clientHeight);
-      if (next >= minHeight) setHeight(next);
-    };
-
-    update();
-    const observer = new ResizeObserver(() => update());
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [enabled, active, minHeight]);
-
-  return [ref, height];
-}
 
 export default function MarginTrendChart({ periods = [], compact = false, deepDive = false }) {
   const annual = useMemo(() => annualPeriods(periods), [periods]);
   const hasData = annual.length >= 2;
-  const [measureRef, plotHeight] = usePlotHeight(deepDive, hasData, MARGIN_DEEP_DIVE_MIN_HEIGHT);
 
   const chartData = useMemo(() => {
     const labels = annual.map((period) => (period.periodEnd || '').slice(0, 4));
@@ -151,15 +127,14 @@ export default function MarginTrendChart({ periods = [], compact = false, deepDi
   }
 
   const height = deepDive
-    ? plotHeight
+    ? ANALYTICS_DEEP_DIVE_STRIP_HEIGHT
     : (compact ? ANALYTICS_CHART_HEIGHT : 260);
 
   if (deepDive) {
     return (
-      <div ref={measureRef} className="research-margin-chart-measure">
+      <div className="research-margin-chart-measure">
         <div className="research-chart-plot-margin" style={{ height }}>
           <Chart
-            key={`margin-${height}`}
             options={options}
             series={series}
             type="line"

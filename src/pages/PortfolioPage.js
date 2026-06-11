@@ -50,6 +50,7 @@ import {
     secEdgarUrl, instHoldingsUrl, analysisUrl, tickerFinancialsUrl, tickerNewsUrl,
     extChartUrl, insiderScreenerUrl,
 } from '../utils/tickerLinks';
+import { divergenceSignalLabel } from '../config/narrativeStates';
 import './research.css';
 
 const toNullableNumber = (value) => {
@@ -409,6 +410,35 @@ const PortfolioPage = () => {
             cellStyle: portfolioHeatCell('mcEv'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
+        columnHelper.accessor('divergenceSignal', {
+            meta: meta('divergenceSignal'),
+            header: 'Divergence',
+            cell: ({ getValue, row }) => {
+                const signal = getValue();
+                const score = row.original.divergenceScore;
+                if (!signal && score == null) return <span className="text-muted">—</span>;
+                return (
+                    <span
+                        className={`research-narrative-divergence-pill research-narrative-divergence-${signal || 'neutral'}`}
+                        title={score != null ? `Score ${Number(score).toFixed(2)}` : undefined}
+                    >
+                        <span className="research-narrative-divergence-label">
+                            {divergenceSignalLabel(signal)}
+                        </span>
+                    </span>
+                );
+            },
+        }),
+        columnHelper.accessor('divergenceScore', {
+            meta: meta('divergenceScore'),
+            header: 'Div Score',
+            cellStyle: portfolioHeatCell('divergenceScore'),
+            cell: ({ getValue }) => {
+                const val = getValue();
+                if (val == null) return <span className="text-muted">—</span>;
+                return <span>{formatDecimal(val, 2)}</span>;
+            },
+        }),
         columnHelper.accessor('insiderBuy6m', {
             meta: meta('insiderBuy6m'),
             header: 'Insider Buy 6M',
@@ -695,6 +725,8 @@ const PortfolioPage = () => {
                             roe: toNullableNumber(m.roe),
                             roa: toNullableNumber(m.roa),
                             divYield: toNullableNumber(m.divYield),
+                            divergenceSignal: null,
+                            divergenceScore: null,
                             insiderBuy6m: null,
                             insiderBuy3m: null,
                             insiderBuy1m: null,
@@ -777,6 +809,26 @@ const PortfolioPage = () => {
                             change6m: toNullableNumber(s.change6m),
                             pctTo52wHi: toNullableNumber(s.pctTo52wHi),
                             pctFrom52wLo: toNullableNumber(s.pctFrom52wLo),
+                        };
+                    }));
+                } catch { /* ignore */ }
+
+                if (signal.aborted) return;
+
+                try {
+                    const screenerRes = await axios.get(API_ENDPOINTS.RESEARCH_SCREENER, {
+                        params: { tickers: fetchTickers.join(',') },
+                        signal,
+                    });
+                    if (signal.aborted) return;
+                    const results = screenerRes.data?.results || {};
+                    setRows((prev) => prev.map((row) => {
+                        const data = results[row.ticker];
+                        if (!data?.narrativeDivergence) return row;
+                        return {
+                            ...row,
+                            divergenceSignal: data.narrativeDivergence.signal || null,
+                            divergenceScore: toNullableNumber(data.narrativeDivergence.divergenceScore),
                         };
                     }));
                 } catch { /* ignore */ }

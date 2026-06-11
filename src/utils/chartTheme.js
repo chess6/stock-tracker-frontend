@@ -65,6 +65,8 @@ export function mergeApexOptions(specific = {}) {
 
 /** Plot height for deep-dive analytics columns. */
 export const ANALYTICS_CHART_HEIGHT = 300;
+/** Fixed height for charts in the research deep-dive analytics strip (prevents flex/resize growth). */
+export const ANALYTICS_DEEP_DIVE_STRIP_HEIGHT = 220;
 /** Compact sparkline under margins (capital leverage trend). */
 export const ANALYTICS_CHART_HEIGHT_SHORT = 130;
 /** Narrative overlay in the wider analytics column. */

@@ -40,6 +40,12 @@ const COMPARE_METRICS = [
     format: 'decimal',
     read: (period) => period.scoreSnapshot?.altmanZ ?? null,
   },
+  {
+    id: 'survivability',
+    label: 'Survivability',
+    format: 'integer',
+    read: (period) => period.scoreSnapshot?.survivability ?? null,
+  },
 ];
 
 const CHART_COLORS = ['#5b9cf5', '#f5a623', '#6ecf97', '#e87882', '#9aa3ad'];
@@ -74,6 +80,64 @@ function formatTooltipValue(value, format) {
     default:
       return formatDecimal(value, 2);
   }
+}
+
+function DivergenceHistoryChart({ tickerData }) {
+  const chartPayload = useMemo(() => {
+    const labelSet = new Set();
+    tickerData.forEach(({ history }) => {
+      (history || []).forEach((point) => {
+        if (point.snapshotDate) labelSet.add(point.snapshotDate.slice(0, 10));
+      });
+    });
+    const labels = [...labelSet].sort();
+    const series = tickerData.map(({ ticker, history }) => {
+      const byDate = {};
+      (history || []).forEach((point) => {
+        const key = (point.snapshotDate || '').slice(0, 10);
+        byDate[key] = point.divergenceScore;
+      });
+      return {
+        name: ticker,
+        data: labels.map((label) => (byDate[label] == null ? null : byDate[label])),
+      };
+    });
+    return { labels, series };
+  }, [tickerData]);
+
+  const options = useMemo(() => mergeApexOptions({
+    chart: { type: 'line', toolbar: { show: false }, zoom: { enabled: false } },
+    stroke: { width: 2, curve: 'smooth' },
+    dataLabels: { enabled: false },
+    colors: CHART_COLORS,
+    xaxis: {
+      categories: chartPayload.labels,
+      labels: { rotate: -45, style: { fontSize: '10px' } },
+    },
+    yaxis: {
+      min: 0,
+      max: 1,
+      labels: { formatter: (value) => formatDecimal(value, 2) },
+      title: { text: 'Divergence Score' },
+    },
+    legend: { position: 'top', fontSize: '11px' },
+    tooltip: {
+      y: { formatter: (value) => formatDecimal(value, 2) },
+    },
+  }), [chartPayload.labels]);
+
+  if (chartPayload.labels.length < 2) {
+    return <div className="small text-muted">Not enough divergence history.</div>;
+  }
+
+  return (
+    <Chart
+      options={options}
+      series={chartPayload.series}
+      type="line"
+      height={180}
+    />
+  );
 }
 
 function CompareMetricChart({ metric, tickerData }) {
@@ -207,12 +271,14 @@ export default function CompareMetricsPanel({
   onClose,
 }) {
   const [detailByTicker, setDetailByTicker] = useState({});
+  const [narrativeByTicker, setNarrativeByTicker] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (compareTickers.length < 2) {
       setDetailByTicker({});
+      setNarrativeByTicker({});
       setError(null);
       return;
     }
@@ -226,16 +292,21 @@ export default function CompareMetricsPanel({
           compareTickers.map(async (ticker) => {
             const params = { dimension: 'ARY' };
             if (gte) params.gte = gte;
-            const res = await axios.get(API_ENDPOINTS.RESEARCH_TICKER(ticker), { params });
-            return [ticker, res.data];
+            const [detailRes, narrativeRes] = await Promise.all([
+              axios.get(API_ENDPOINTS.RESEARCH_TICKER(ticker), { params }),
+              axios.get(API_ENDPOINTS.RESEARCH_NARRATIVE(ticker)),
+            ]);
+            return [ticker, detailRes.data, narrativeRes.data];
           }),
         );
         if (cancelled) return;
-        setDetailByTicker(Object.fromEntries(results));
+        setDetailByTicker(Object.fromEntries(results.map(([ticker, detail]) => [ticker, detail])));
+        setNarrativeByTicker(Object.fromEntries(results.map(([ticker, , narrative]) => [ticker, narrative])));
       } catch {
         if (!cancelled) {
           setError('Failed to load comparison history.');
           setDetailByTicker({});
+          setNarrativeByTicker({});
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -252,6 +323,18 @@ export default function CompareMetricsPanel({
       }))
       .filter((entry) => entry.periods.length > 0),
     [compareTickers, detailByTicker],
+  );
+
+  const divergenceTickerData = useMemo(
+    () => compareTickers.map((ticker) => ({
+      ticker,
+      history: narrativeByTicker[ticker]?.divergenceHistory || [],
+    })),
+    [compareTickers, narrativeByTicker],
+  );
+
+  const hasDivergenceHistory = divergenceTickerData.some(
+    (entry) => (entry.history || []).length >= 2,
   );
 
   if (compareTickers.length < 2) {
@@ -308,6 +391,14 @@ export default function CompareMetricsPanel({
                 </div>
               </div>
             ))}
+            {hasDivergenceHistory && (
+              <div>
+                <div className="research-compare-chart-card">
+                  <div className="research-compare-chart-title">Divergence Score</div>
+                  <DivergenceHistoryChart tickerData={divergenceTickerData} />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

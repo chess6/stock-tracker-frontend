@@ -34,6 +34,7 @@ import {
   buildGteDate,
   getScreenerMetricValue,
 } from '../config/researchMetrics';
+import { divergenceSignalLabel } from '../config/narrativeStates';
 import { formatMetricCellTooltip } from '../config/tooltipRegistry';
 import { formatDecimal, formatPercent, formatUsd, formatCompactUsd } from '../utils/formatters';
 import {
@@ -61,6 +62,8 @@ import { useToast } from '../context/ToastContext';
 import TickerSubnav from '../components/TickerSubnav';
 import { DEFAULT_COMPOSITE_ID } from '../config/compositePresets';
 import { fetchCompositeRank, fetchCompositeRankHistory } from '../utils/compositeRankApi';
+import { fetchPillarProfile, fetchThesis } from '../utils/researchThesisApi';
+import { isRegistryLoaded, loadMetricRegistry } from '../config/metricRegistry';
 import './research.css';
 
 const GRID_HEAT_TOOLTIP_PROPS = { placement: 'top-start', floating: true };
@@ -141,6 +144,10 @@ export default function ResearchPage() {
   const [compositeRank, setCompositeRank] = useState(null);
   const [compositeRankHistory, setCompositeRankHistory] = useState([]);
   const [compositeRankLoading, setCompositeRankLoading] = useState(false);
+  const [pillarData, setPillarData] = useState(null);
+  const [pillarLoading, setPillarLoading] = useState(false);
+  const [thesisData, setThesisData] = useState(null);
+  const [thesisLoading, setThesisLoading] = useState(false);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -152,6 +159,7 @@ export default function ResearchPage() {
   );
   const [colorMode, setColorMode] = useState(() => searchParams.get('colorMode') || 'deep_value');
   const [showHeatLegend, setShowHeatLegend] = useState(searchParams.get('heatLegend') !== '0');
+  const [registryReady, setRegistryReady] = useState(isRegistryLoaded);
   const [sectorStats, setSectorStats] = useState(null);
   const [pinnedTickers, setPinnedTickers] = useState(() => loadPinnedTickers());
   const pinsLocallyModifiedRef = useRef(false);
@@ -164,6 +172,16 @@ export default function ResearchPage() {
       if (cancelled || pinsLocallyModifiedRef.current) return;
       setPinnedTickers(tickers);
     }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadMetricRegistry()
+      .then(() => {
+        if (!cancelled) setRegistryReady(true);
+      })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -303,6 +321,26 @@ export default function ResearchPage() {
     }
   }, []);
 
+  const loadPillarThesis = useCallback(async (symbol) => {
+    if (!symbol) return;
+    setPillarLoading(true);
+    setThesisLoading(true);
+    try {
+      const [pillarsPayload, thesisPayload] = await Promise.all([
+        fetchPillarProfile(symbol),
+        fetchThesis(symbol),
+      ]);
+      setPillarData(pillarsPayload);
+      setThesisData(thesisPayload);
+    } catch {
+      setPillarData(null);
+      setThesisData(null);
+    } finally {
+      setPillarLoading(false);
+      setThesisLoading(false);
+    }
+  }, []);
+
   const loadCompositeRank = useCallback(async (symbol) => {
     if (!symbol) return;
     setCompositeRankLoading(true);
@@ -326,11 +364,14 @@ export default function ResearchPage() {
       loadDetail(activeTicker, dimension, years);
       loadNarrative(activeTicker);
       loadCompositeRank(activeTicker);
+      loadPillarThesis(activeTicker);
       return;
     }
     setNarrativeData(null);
     setCompositeRank(null);
     setCompositeRankHistory([]);
+    setPillarData(null);
+    setThesisData(null);
     const tickers = parseTickers(tickersText);
     if (tickers.length) loadScreener(tickers, dimension);
     // Initial load only; toolbar actions refresh explicitly.
@@ -550,7 +591,7 @@ export default function ResearchPage() {
             row._heatStyles = colorMode === 'sector'
               ? precomputeScreenerRowHeatStyles(row, screenerTickers, screenerData, sectorStats, colorMode)
               : precomputeRowHeatStyles(row, screenerTickers.length, {
-                mode: colorMode === 'historical' ? 'historical' : colorMode,
+                mode: colorMode === 'historical' ? 'relative' : colorMode,
               });
           }
         }
@@ -558,7 +599,7 @@ export default function ResearchPage() {
       });
     });
     return rows;
-  }, [screenerTickers, screenerData, screenerExpandedGroups, colorMode, sectorStats]);
+  }, [screenerTickers, screenerData, screenerExpandedGroups, colorMode, sectorStats, registryReady]);
 
   const screenerGridColumns = useMemo(() => {
     const cols = [
@@ -581,35 +622,33 @@ export default function ResearchPage() {
       cols.push({
         id: `t${idx}`,
         accessorKey: `t${idx}`,
-        header: () => (
-          <div className={`research-ticker-header${selectedTicker === ticker ? ' research-ticker-header--selected' : ''}`}>
-            <label className="research-compare-toggle mb-0">
-              <input
-                type="checkbox"
-                checked={compareTickers.includes(ticker)}
-                onChange={() => toggleCompareTicker(ticker)}
-                aria-label={`Compare ${ticker}`}
-              />
-            </label>
-            <ResearchTickerLink
-              ticker={ticker}
-              dimension={dimension}
-              className="st-ticker"
-              onBeforeNavigate={() => saveScreenerContextBeforeLeave(tickersText)}
+        header: () => {
+          const subtitle = [data?.companyName, data?.sector].filter(Boolean).join(' · ');
+          return (
+            <div
+              className={`research-ticker-header research-ticker-header--compact${selectedTicker === ticker ? ' research-ticker-header--selected' : ''}`}
+              title={subtitle || undefined}
             >
-              {ticker}
-            </ResearchTickerLink>
-            <ResearchCompactScoreBadges scores={data?.scores} />
-            {data?.companyName && (
-              <div className="text-muted research-ticker-subtitle" title={data.companyName}>
-                {data.companyName}
-              </div>
-            )}
-            {data?.sector && (
-              <div className="text-muted research-ticker-subtitle">{data.sector}</div>
-            )}
-          </div>
-        ),
+              <label className="research-compare-toggle mb-0">
+                <input
+                  type="checkbox"
+                  checked={compareTickers.includes(ticker)}
+                  onChange={() => toggleCompareTicker(ticker)}
+                  aria-label={`Compare ${ticker}`}
+                />
+              </label>
+              <ResearchTickerLink
+                ticker={ticker}
+                dimension={dimension}
+                className="st-ticker"
+                onBeforeNavigate={() => saveScreenerContextBeforeLeave(tickersText)}
+              >
+                {ticker}
+              </ResearchTickerLink>
+              <ResearchCompactScoreBadges scores={data?.scores} />
+            </div>
+          );
+        },
         size: 96,
         meta: { numeric: true, ticker },
         cellStyle: ({ row }) => {
@@ -618,6 +657,29 @@ export default function ResearchPage() {
         },
         cell: ({ row }) => {
           const val = row.original[`t${idx}`];
+          if (row.original.format === 'divergence_badge') {
+            const divergence = val;
+            if (!divergence?.signal && divergence?.divergenceScore == null) {
+              return <span className="text-muted">—</span>;
+            }
+            return (
+              <span
+                className={`research-narrative-divergence-pill research-narrative-divergence-${divergence?.signal || 'neutral'}`}
+                title={divergence?.divergenceScore != null
+                  ? `Divergence score ${Number(divergence.divergenceScore).toFixed(2)}`
+                  : undefined}
+              >
+                <span className="research-narrative-divergence-label">
+                  {divergenceSignalLabel(divergence?.signal)}
+                </span>
+                {divergence?.divergenceScore != null && (
+                  <span className="research-narrative-divergence-score st-num">
+                    {Number(divergence.divergenceScore).toFixed(2)}
+                  </span>
+                )}
+              </span>
+            );
+          }
           const sector = data?.sector;
           const cellContext = {
             mode: colorMode === 'historical' ? 'historical' : colorMode,
@@ -727,7 +789,7 @@ export default function ResearchPage() {
       });
     });
     return rows;
-  }, [columnPeriods, detailPeriods, scoreByPeriod, expandedGroups, hideEmptyRows, colorMode, detailData, sectorStats]);
+  }, [columnPeriods, detailPeriods, scoreByPeriod, expandedGroups, hideEmptyRows, colorMode, detailData, sectorStats, registryReady]);
 
   const detailColumns = useMemo(() => {
     const fmt = (value, format) => formatCellValue(value, format, { compact: true });
@@ -932,6 +994,10 @@ export default function ResearchPage() {
           compositeRankHistory={compositeRankHistory}
           compositeRankLoading={compositeRankLoading}
           compositeId={DEFAULT_COMPOSITE_ID}
+          pillarData={pillarData}
+          pillarLoading={pillarLoading}
+          thesisData={thesisData}
+          thesisLoading={thesisLoading}
         />
       )}
 
@@ -978,6 +1044,7 @@ export default function ResearchPage() {
                 scrollMode="page"
                 scrollPersistenceKey="research-screener"
                 highlightedColumnId={highlightedColumnId}
+                compact
               />
             )}
           </div>
