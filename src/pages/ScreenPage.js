@@ -7,9 +7,12 @@ import {
   DEFAULT_SCREEN_PRESET_ID,
   SCREEN_PRESETS,
   SCREEN_UNIVERSE_OPTIONS,
+  buildScreenRequestSpec,
   formatScreenFilter,
   getScreenPreset,
+  groupsFromSpec,
 } from '../config/screenPresets';
+import ScreenFilterBuilder from '../components/research/ScreenFilterBuilder';
 import { formatDecimal, formatPercent, formatUsd } from '../utils/formatters';
 import { useToast } from '../context/ToastContext';
 import ResearchPinnedStrip from '../components/research/ResearchPinnedStrip';
@@ -34,11 +37,36 @@ import {
 } from '../utils/compositeRank';
 import './research.css';
 
-function formatEvidenceValue(value) {
+const EVIDENCE_USD_METRICS = new Set(['buy6m', 'buy3m', 'market_cap']);
+const EVIDENCE_PERCENT_DECIMAL_METRICS = new Set([
+  'fcf_margin',
+  'gross_margin',
+  'roe',
+  'fcf_yield',
+  'dilution_rate',
+]);
+const EVIDENCE_INTEGER_METRICS = new Set([
+  'cluster_count',
+  'piotroski',
+  'piotroski_f',
+  'survivability',
+  'survivability_score',
+]);
+
+function formatEvidenceValue(metric, value) {
   if (value == null || Number.isNaN(Number(value))) return '—';
   const num = Number(value);
-  if (Math.abs(num) >= 1_000_000) return formatUsd(num, 0);
-  if (Math.abs(num) <= 1 && Math.abs(num) > 0) return formatPercent(num * 100);
+  const key = String(metric || '').trim().toLowerCase();
+
+  if (EVIDENCE_USD_METRICS.has(key)) {
+    return formatUsd(num, 0);
+  }
+  if (EVIDENCE_INTEGER_METRICS.has(key)) {
+    return formatDecimal(num, 0);
+  }
+  if (EVIDENCE_PERCENT_DECIMAL_METRICS.has(key)) {
+    return formatPercent(num * 100);
+  }
   return formatDecimal(num, 2);
 }
 
@@ -73,6 +101,7 @@ export default function ScreenPage() {
   const presetId = searchParams.get('preset') || DEFAULT_SCREEN_PRESET_ID;
   const preset = useMemo(() => getScreenPreset(presetId), [presetId]);
   const [universe, setUniverse] = useState(preset.spec.universe || 'sp500');
+  const [filterGroups, setFilterGroups] = useState(() => groupsFromSpec(preset.spec));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [payload, setPayload] = useState(null);
@@ -231,7 +260,7 @@ export default function ScreenPage() {
             <li key={`${item.metric}-${item.op}`} className={item.passed ? 'text-success' : 'text-danger'}>
               {formatScreenFilter(item)}
               {' '}
-              ({formatEvidenceValue(item.actual)})
+              ({formatEvidenceValue(item.metric, item.actual)})
             </li>
           ))}
         </ul>
@@ -239,9 +268,12 @@ export default function ScreenPage() {
     },
   ], []);
 
+  useEffect(() => {
+    setUniverse(preset.spec.universe || 'sp500');
+    setFilterGroups(groupsFromSpec(preset.spec));
+  }, [preset]);
+
   const handlePresetChange = (nextId) => {
-    const nextPreset = getScreenPreset(nextId);
-    setUniverse(nextPreset.spec.universe || 'sp500');
     setSearchParams({ preset: nextId }, { replace: true });
   };
 
@@ -266,10 +298,12 @@ export default function ScreenPage() {
     setLoading(true);
     setError(null);
     try {
-      const spec = {
-        ...preset.spec,
+      const spec = buildScreenRequestSpec({
         universe,
-      };
+        filterGroups,
+        sort: preset.spec.sort,
+        limit: preset.spec.limit,
+      });
       const res = await axios.post(API_ENDPOINTS.RESEARCH_SCREEN, spec);
       setPayload(res.data || null);
     } catch (err) {
@@ -281,7 +315,7 @@ export default function ScreenPage() {
     } finally {
       setLoading(false);
     }
-  }, [preset.spec, showToast, universe]);
+  }, [filterGroups, preset.spec.limit, preset.spec.sort, showToast, universe]);
 
   useEffect(() => {
     const tickers = (payload?.results || []).map((row) => row.ticker).filter(Boolean);
@@ -351,13 +385,7 @@ export default function ScreenPage() {
         <div className="st-panel-header">{preset.label}</div>
         <div className="st-panel-body">
           <p className="small text-muted mb-2">{preset.description}</p>
-          <ul className="screen-filter-spec mb-0">
-            {preset.spec.filters.map((filter) => (
-              <li key={`${filter.metric}-${filter.op}-${filter.value}`}>
-                <code>{formatScreenFilter(filter)}</code>
-              </li>
-            ))}
-          </ul>
+          <ScreenFilterBuilder groups={filterGroups} onChange={setFilterGroups} />
         </div>
       </div>
 

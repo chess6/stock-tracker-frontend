@@ -164,6 +164,71 @@ export function getScreenPreset(id) {
   return SCREEN_PRESETS.find((preset) => preset.id === id) || SCREEN_PRESETS[0];
 }
 
+export const SCREEN_FILTER_OPS = [
+  { id: 'lt', label: '<' },
+  { id: 'lte', label: '≤' },
+  { id: 'gt', label: '>' },
+  { id: 'gte', label: '≥' },
+  { id: 'eq', label: '=' },
+];
+
+function cloneFilter(filter) {
+  return {
+    metric: filter?.metric || '',
+    op: filter?.op || 'gte',
+    value: filter?.value ?? 0,
+  };
+}
+
+function cloneGroup(group) {
+  return {
+    op: group?.op === 'OR' ? 'OR' : 'AND',
+    filters: (group?.filters || []).map(cloneFilter),
+  };
+}
+
+/** Convert legacy flat filters or filter_groups into editable group state. */
+export function groupsFromSpec(spec = {}) {
+  if (spec.filter_groups?.length) {
+    return spec.filter_groups.map(cloneGroup);
+  }
+  if (spec.filters?.length) {
+    return [{ op: 'AND', filters: spec.filters.map(cloneFilter) }];
+  }
+  return [{ op: 'AND', filters: [] }];
+}
+
+export function createEmptyFilter() {
+  return { metric: '', op: 'gte', value: 0 };
+}
+
+export function createEmptyGroup(op = 'AND') {
+  return { op: op === 'OR' ? 'OR' : 'AND', filters: [createEmptyFilter()] };
+}
+
+/** Build POST body for /api/research/screen using filter groups. */
+export function buildScreenRequestSpec({ universe, filterGroups, sort, limit }) {
+  const normalizedGroups = (filterGroups || [])
+    .map((group) => ({
+      op: group.op === 'OR' ? 'OR' : 'AND',
+      filters: (group.filters || [])
+        .filter((filter) => String(filter.metric || '').trim())
+        .map((filter) => ({
+          metric: String(filter.metric).trim(),
+          op: filter.op || 'gte',
+          value: filter.value,
+        })),
+    }))
+    .filter((group) => group.filters.length > 0);
+
+  return {
+    universe,
+    filter_groups: normalizedGroups,
+    ...(sort ? { sort } : {}),
+    ...(limit != null ? { limit } : {}),
+  };
+}
+
 export function formatScreenFilter(filter) {
   if (!filter) return '';
   const { metric, op, value } = filter;
