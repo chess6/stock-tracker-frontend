@@ -1,8 +1,10 @@
-import { useEffect } from 'react';
-import { resolveResearchKeyAction } from '../utils/researchKeyboard';
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import { isResearchRoute, resolveResearchKeyAction } from '../utils/researchKeyboard';
 
 export default function useResearchKeyboard({
   enabled = true,
+  routePrefix = '/research',
   tickers = [],
   selectedIndex = 0,
   onSelectedIndexChange,
@@ -15,10 +17,15 @@ export default function useResearchKeyboard({
   onToggleCompare,
   onEscape,
 }) {
+  const location = useLocation();
+  const pathnameRef = useRef(location.pathname);
+  pathnameRef.current = location.pathname;
+
   useEffect(() => {
-    if (!enabled) return undefined;
+    if (!enabled || !isResearchRoute(location.pathname, routePrefix)) return undefined;
 
     const onKeyDown = (event) => {
+      if (!isResearchRoute(pathnameRef.current, routePrefix)) return;
       const action = resolveResearchKeyAction(event, {
         tickers,
         selectedIndex,
@@ -62,6 +69,8 @@ export default function useResearchKeyboard({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [
     enabled,
+    routePrefix,
+    location.pathname,
     tickers,
     selectedIndex,
     isDeepDive,

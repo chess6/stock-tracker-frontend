@@ -1,6 +1,6 @@
 
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
@@ -10,6 +10,7 @@ import API_ENDPOINTS from '../apiConfig';
 import { summarizeFreshness } from '../utils/dataFreshness';
 import { useToast } from '../context/ToastContext';
 import ThemeProfileMenu from './ThemeProfileMenu';
+import { useCloseOnOutside } from '../hooks/useDismissiblePopover';
 import '../navbar-search-dropdown.css';
 import '../navbar-layout.css';
 
@@ -39,6 +40,13 @@ const AppNavbar = () => {
   const location = useLocation();
   const { showToast } = useToast();
 
+  const closeSearchDropdown = useCallback(() => {
+    setDropdownOpen(false);
+    setActiveResultIdx(-1);
+  }, []);
+
+  useCloseOnOutside(dropdownOpen, searchAreaRef, closeSearchDropdown);
+
   useEffect(() => {
     let cancelled = false;
     const loadFreshness = async () => {
@@ -55,28 +63,6 @@ const AppNavbar = () => {
     const id = setInterval(loadFreshness, 5 * 60 * 1000);
     return () => { cancelled = true; clearInterval(id); };
   }, []);
-
-  useEffect(() => {
-    if (!dropdownOpen) return undefined;
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setDropdownOpen(false);
-        setActiveResultIdx(-1);
-      }
-    };
-    const onMouseDown = (event) => {
-      if (searchAreaRef.current && !searchAreaRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-        setActiveResultIdx(-1);
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('mousedown', onMouseDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('mousedown', onMouseDown);
-    };
-  }, [dropdownOpen]);
 
   const handleSearchChange = (e) => {
     const value = e.target.value;
@@ -187,8 +173,8 @@ const AppNavbar = () => {
             )}
           </ul>
         </nav>
-        <div ref={searchAreaRef} className="navbar-tools">
-          <div className="navbar-search-area">
+        <div className="navbar-tools">
+          <div ref={searchAreaRef} className="navbar-search-area">
             <input
               type="search"
               className="navbar-search-input st-input"

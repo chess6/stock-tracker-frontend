@@ -15,11 +15,16 @@
 
 .data-grid-column-menu {
     position: absolute;
-    right: 0;
+    left: 0;
+    right: auto;
     top: calc(100% + 0.15rem);
     min-width: 11rem;
-    z-index: 20;
+    max-width: min(18rem, calc(100vw - 1.5rem));
+    max-height: min(60vh, 24rem);
+    overflow-y: auto;
+    z-index: 1100;
     padding: 0.35rem 0.45rem;
+    animation: st-dropdown-in 80ms ease-out;
 }
 
 .data-grid-column-menu-header {

@@ -1,6 +1,7 @@
 import './DataGrid.css';
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { readResearchScroll, saveResearchScroll } from '../utils/researchScrollState';
+import useDismissiblePopover from '../hooks/useDismissiblePopover';
 import ColumnHeader from './ColumnHeader';
 import {
   useReactTable,
@@ -60,13 +61,18 @@ export default function DataGrid({
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnSizingInfo, setColumnSizingInfo] = useState({});
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
+  const {
+    rootRef: columnMenuRef,
+    close: closeColumnMenu,
+    onTriggerClick: onColumnMenuTriggerClick,
+    onTriggerDoubleClick: onColumnMenuTriggerDoubleClick,
+  } = useDismissiblePopover(showColumnDropdown, setShowColumnDropdown);
   const [visibleCount, setVisibleCount] = useState(pageChunkSize);
   const allColumnIds = columns.map(col => col.accessorKey ?? col.id).filter(Boolean);
   const defaultVisible = defaultVisibleColumns ?? allColumnIds;
   const [internalVisibleColumns, setInternalVisibleColumns] = useState(
     controlledColumnVisibility ?? defaultVisible.filter((id) => allColumnIds.includes(id)),
   );
-  const dropdownRef = useRef(null);
   const scrollRef = useRef(null);
 
   const rowSelection = controlledRowSelection ?? internalRowSelection;
@@ -131,18 +137,6 @@ export default function DataGrid({
       setInternalVisibleColumns((prev) => updater(prev));
     }
   };
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!showColumnDropdown) return;
-    const handleClick = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setShowColumnDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [showColumnDropdown]);
 
   useEffect(() => {
     if (!scrollPersistenceKey) return undefined;
@@ -281,26 +275,28 @@ export default function DataGrid({
     } else {
       setInternalVisibleColumns(next);
     }
-    setShowColumnDropdown(false);
+    closeColumnMenu();
   };
 
   return (
     <div style={{ position: 'relative', maxWidth: '100%', ...style }}>
       {/* Controls aligned to the right edge of the table area (stay fixed while grid scrolls) */}
       <div className="data-grid-toolbar d-flex justify-content-end align-items-center mb-1">
-        <div className="position-relative">
+        <div ref={columnMenuRef} className="position-relative st-dropdown">
           <button
             type="button"
             className="st-btn-ghost st-btn-icon"
-            onClick={() => setShowColumnDropdown((v) => !v)}
+            onClick={onColumnMenuTriggerClick}
+            onDoubleClick={onColumnMenuTriggerDoubleClick}
             title="Show/hide columns"
             aria-label="Show/hide columns"
+            aria-expanded={showColumnDropdown}
+            aria-haspopup="true"
           >
             ☰
           </button>
           {showColumnDropdown && (
             <div
-              ref={dropdownRef}
               className="data-grid-column-menu st-dropdown-menu"
             >
               <div className="data-grid-column-menu-header">
@@ -464,6 +460,8 @@ export default function DataGrid({
                               canSort={canSort}
                               sortDir={sortDir}
                               onSort={canSort ? header.column.getToggleSortingHandler() : undefined}
+                              tooltipPlacement="top-start"
+                              tooltipFloating
                             />
                           ) : (
                             <div

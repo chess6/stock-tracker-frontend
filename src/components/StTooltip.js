@@ -15,17 +15,21 @@ function rectsOverlap(a, b, pad = 2) {
 }
 
 /** Sticky grid headers / nav bands that should not cover portaled tooltips. */
-function getGridObstacleRects() {
+function getGridObstacleRects(anchorEl) {
   if (typeof document === 'undefined') return [];
+  const ownHeader = anchorEl?.closest?.('th') ?? null;
   const selectors = [
     '.research-grid-thead-page th',
     '.research-grid-scroll thead th',
+    '.data-grid-table thead th[style*="position: sticky"]',
+    '.portfolio-grid-table thead th[style*="position: sticky"]',
     '.research-screener-card-toolbar',
     '.st-navbar',
   ];
   const rects = [];
   selectors.forEach((selector) => {
     document.querySelectorAll(selector).forEach((el) => {
+      if (el === ownHeader) return;
       const rect = el.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) rects.push(rect);
     });
@@ -95,7 +99,7 @@ function boxToStyle(box, placement) {
 
 function avoidObstacles(anchorEl, popupEl, placement) {
   const anchorRect = anchorEl.getBoundingClientRect();
-  const obstacles = getGridObstacleRects();
+  const obstacles = getGridObstacleRects(anchorEl);
   let effectivePlacement = placement;
   let box = popupBox(anchorRect, popupEl, effectivePlacement);
 

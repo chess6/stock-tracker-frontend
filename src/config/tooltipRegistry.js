@@ -35,8 +35,9 @@ export const TOOLTIP_REGISTRY = {
   // —— Margins & profitability ——
   grossMargin: {
     fullName: 'Gross Margin',
-    tooltip: 'Revenue retained after direct costs. Stable or expanding margins often indicate pricing power or cost discipline.',
+    tooltip: 'Gross profit ÷ revenue from latest annual SEC filing. High software margins (80%+) are normal; insurers/utilities often mis-map COGS in XBRL so treat those with caution.',
     formula: 'gross profit / revenue',
+    source: 'SEC CompanyFacts (GrossProfit or revenue − cost of revenue)',
   },
   operatingMargin: {
     fullName: 'Operating Margin',

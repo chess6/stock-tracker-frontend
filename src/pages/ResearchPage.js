@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import HeatLegend from '../components/research/HeatLegend';
@@ -115,7 +115,9 @@ function metricRowHasValues(row, periodCount) {
 export default function ResearchPage() {
   const { ticker: routeTicker } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const mountedRef = useRef(true);
   const { showToast } = useToast();
   const { exportScreener, copyScreener, exportDetail, copyDetail } = useResearchExport({ showToast });
   const isDeepDive = Boolean(routeTicker);
@@ -168,6 +170,17 @@ export default function ResearchPage() {
   const [compareFocusIndex, setCompareFocusIndex] = useState(0);
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const safeNavigate = useCallback((to) => {
+    if (!mountedRef.current) return;
+    if (!window.location.pathname.startsWith('/research')) return;
+    navigate(to);
+  }, [navigate]);
+
+  useEffect(() => {
     let cancelled = false;
     hydratePinnedTickersFromApi(() => !pinsLocallyModifiedRef.current).then((tickers) => {
       if (cancelled || pinsLocallyModifiedRef.current) return;
@@ -208,6 +221,7 @@ export default function ResearchPage() {
   }, []);
 
   const syncScreenerParams = useCallback((overrides = {}) => {
+    if (!mountedRef.current || location.pathname !== '/research') return;
     const tickers = overrides.tickers ?? parseTickers(tickersText);
     const params = buildScreenerSearchParams({
       tickers,
@@ -225,6 +239,7 @@ export default function ResearchPage() {
     compareTickers,
     dimension,
     hideEmptyRows,
+    location.pathname,
     screenerExpandedGroups,
     setSearchParams,
     sortMetric,
@@ -232,6 +247,7 @@ export default function ResearchPage() {
   ]);
 
   const syncDeepDiveParams = useCallback((overrides = {}) => {
+    if (!mountedRef.current || !location.pathname.startsWith('/research/')) return;
     const params = buildDeepDiveSearchParams({
       dim: overrides.dim ?? dimension,
       years: overrides.years ?? years,
@@ -242,10 +258,11 @@ export default function ResearchPage() {
       ),
     });
     setSearchParams(params, { replace: true });
-  }, [dimension, expandedGroups, hideEmptyRows, setSearchParams, years]);
+  }, [dimension, expandedGroups, hideEmptyRows, location.pathname, setSearchParams, years]);
 
   const loadScreener = useCallback(async (tickers, dim) => {
     if (!tickers.length) {
+      if (!mountedRef.current) return;
       setError('Enter at least one ticker.');
       setScreenerData({});
       return;
@@ -256,13 +273,15 @@ export default function ResearchPage() {
       const res = await axios.get(API_ENDPOINTS.RESEARCH_SCREENER, {
         params: { tickers: tickers.join(','), dimension: dim },
       });
+      if (!mountedRef.current) return;
       setScreenerData(res.data?.results || {});
       syncScreenerParams({ tickers, dim });
     } catch {
+      if (!mountedRef.current) return;
       setError('Failed to load research screener data.');
       setScreenerData({});
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [syncScreenerParams]);
 
@@ -492,10 +511,11 @@ export default function ResearchPage() {
 
   const handleOpenTicker = useCallback((ticker) => {
     saveScreenerContextBeforeLeave(tickersText);
-    navigate(`/research/${ticker}?dim=${encodeURIComponent(dimension)}`);
-  }, [navigate, dimension, tickersText]);
+    safeNavigate(`/research/${ticker}?dim=${encodeURIComponent(dimension)}`);
+  }, [safeNavigate, dimension, tickersText]);
 
   const handleEscapeToScreener = useCallback(() => {
+    if (!window.location.pathname.startsWith('/research/')) return;
     const params = buildScreenerSearchParams({
       tickers: parseTickers(tickersText),
       dim: dimension,
@@ -508,12 +528,12 @@ export default function ResearchPage() {
       hideEmpty: hideEmptyRows,
     });
     const qs = new URLSearchParams(params).toString();
-    navigate(`/research${qs ? `?${qs}` : ''}`);
+    safeNavigate(`/research${qs ? `?${qs}` : ''}`);
   }, [
     compareTickers,
     dimension,
     hideEmptyRows,
-    navigate,
+    safeNavigate,
     screenerExpandedGroups,
     sortMetric,
     tickersText,
@@ -537,6 +557,7 @@ export default function ResearchPage() {
 
   useResearchKeyboard({
     enabled: true,
+    routePrefix: '/research',
     tickers: screenerTickers,
     selectedIndex: selectedTickerIndex,
     onSelectedIndexChange: setSelectedTickerIndex,
@@ -546,7 +567,7 @@ export default function ResearchPage() {
     onCompareFocusIndexChange: (nextIndex) => {
       setCompareFocusIndex(nextIndex);
       const ticker = compareTickers[nextIndex];
-      if (ticker) navigate(`/research/${ticker}?dim=${encodeURIComponent(dimension)}`);
+      if (ticker) safeNavigate(`/research/${ticker}?dim=${encodeURIComponent(dimension)}`);
     },
     onOpenTicker: handleOpenTicker,
     onTogglePin: handleTogglePin,

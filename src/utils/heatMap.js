@@ -85,23 +85,31 @@ export function signedHeatForeground(value, scale = 5) {
 }
 
 /**
- * Column-relative heatmap (low → blue, high → green) for valuation ratios.
+ * Column-relative heatmap for valuation ratios and similar cross-sectional metrics.
+ * Maps column min/max to red (worst in view) ↔ green (best in view), matching signed heat.
+ * @param {boolean} invert — when true, lower values are better (e.g. P/E, D/E).
  */
 export function columnHeatStyle(value, min, max, { invert = false } = {}) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return {};
   if (min === max || min == null || max == null) return { fontVariantNumeric: 'tabular-nums' };
   const num = Number(value);
   const raw = clamp01((num - min) / (max - min));
-  const t = invert ? 1 - raw : raw;
-  const dark = isDarkTheme();
-  const bg = dark
-    ? `rgba(${Math.round(60 + t * 40)}, ${Math.round(120 + t * 60)}, ${Math.round(200 - t * 40)}, ${0.18 + t * 0.32})`
-    : `rgba(${Math.round(30 + (1 - t) * 40)}, ${Math.round(100 + t * 80)}, ${Math.round(180 - t * 60)}, ${0.12 + t * 0.35})`;
-  return {
-    backgroundColor: bg,
-    color: dark ? '#e8f4ff' : '#0a3268',
-    fontVariantNumeric: 'tabular-nums',
-  };
+  const goodness = invert ? 1 - raw : raw;
+
+  // Middle of the visible column range is neither clearly good nor bad.
+  if (Math.abs(goodness - 0.5) <= 0.04) {
+    return { fontVariantNumeric: 'tabular-nums' };
+  }
+
+  if (goodness > 0.5) {
+    const intensity = (goodness - 0.5) * 2;
+    const step = pickStep(greenSteps(), intensity);
+    return { backgroundColor: step.bg, color: step.fg, fontVariantNumeric: 'tabular-nums' };
+  }
+
+  const intensity = (0.5 - goodness) * 2;
+  const step = pickStep(redSteps(), intensity);
+  return { backgroundColor: step.bg, color: step.fg, fontVariantNumeric: 'tabular-nums' };
 }
 
 export function columnMinMax(rows, key) {

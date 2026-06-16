@@ -1,15 +1,27 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import useResearchKeyboard from './useResearchKeyboard';
 
+const mockLocation = { pathname: '/research' };
+
+jest.mock(
+  'react-router-dom',
+  () => ({
+    useLocation: () => mockLocation,
+  }),
+  { virtual: true },
+);
+
 function KeyboardHarness({
   tickers,
   selectedIndex,
   isDeepDive,
   compareTickers,
+  routePrefix = '/research',
   handlers,
 }) {
   useResearchKeyboard({
     enabled: true,
+    routePrefix,
     tickers,
     selectedIndex,
     onSelectedIndexChange: handlers.onSelectedIndexChange,
@@ -25,6 +37,11 @@ function KeyboardHarness({
   return <div data-testid="harness">ready</div>;
 }
 
+function renderHarness(props) {
+  mockLocation.pathname = props.initialPath || '/research';
+  return render(<KeyboardHarness {...props} />);
+}
+
 describe('useResearchKeyboard', () => {
   it('wires j/k and Enter to handlers', () => {
     const handlers = {
@@ -35,14 +52,14 @@ describe('useResearchKeyboard', () => {
       onEscape: jest.fn(),
       onCompareFocusIndexChange: jest.fn(),
     };
-    render(
-      <KeyboardHarness
-        tickers={['AAPL', 'MSFT']}
-        selectedIndex={0}
-        isDeepDive={false}
-        compareTickers={[]}
-        handlers={handlers}
-      />,
+    renderHarness(
+      {
+        tickers: ['AAPL', 'MSFT'],
+        selectedIndex: 0,
+        isDeepDive: false,
+        compareTickers: [],
+        handlers,
+      },
     );
     expect(screen.getByTestId('harness')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'k' });
@@ -62,18 +79,43 @@ describe('useResearchKeyboard', () => {
       onEscape: jest.fn(),
       onCompareFocusIndexChange: jest.fn(),
     };
-    render(
-      <KeyboardHarness
-        tickers={[]}
-        selectedIndex={0}
-        isDeepDive
-        compareTickers={['AAPL', 'MSFT']}
-        handlers={handlers}
-      />,
+    renderHarness(
+      {
+        tickers: [],
+        selectedIndex: 0,
+        isDeepDive: true,
+        compareTickers: ['AAPL', 'MSFT'],
+        initialPath: '/research/AAPL',
+        handlers,
+      },
     );
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(handlers.onEscape).toHaveBeenCalled();
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(handlers.onCompareFocusIndexChange).toHaveBeenCalledWith(1);
+  });
+
+  it('does not handle keys when route prefix does not match', () => {
+    const handlers = {
+      onSelectedIndexChange: jest.fn(),
+      onOpenTicker: jest.fn(),
+      onTogglePin: jest.fn(),
+      onToggleCompare: jest.fn(),
+      onEscape: jest.fn(),
+      onCompareFocusIndexChange: jest.fn(),
+    };
+    renderHarness(
+      {
+        tickers: ['AAPL', 'MSFT'],
+        selectedIndex: 0,
+        isDeepDive: false,
+        compareTickers: [],
+        routePrefix: '/research',
+        initialPath: '/news',
+        handlers,
+      },
+    );
+    fireEvent.keyDown(window, { key: 'k' });
+    expect(handlers.onSelectedIndexChange).not.toHaveBeenCalled();
   });
 });

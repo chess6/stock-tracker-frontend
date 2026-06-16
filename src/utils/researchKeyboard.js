@@ -4,7 +4,13 @@ export function shouldIgnoreResearchKey(event) {
   const tag = target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
   if (target.isContentEditable) return true;
+  if (typeof target.closest === 'function' && target.closest('.st-navbar')) return true;
   return false;
+}
+
+export function isResearchRoute(pathname, routePrefix = '/research') {
+  if (!pathname || !routePrefix) return false;
+  return pathname === routePrefix || pathname.startsWith(`${routePrefix}/`);
 }
 
 export function hasOpenResearchDetails() {

@@ -164,6 +164,7 @@ export default function ScreenPage() {
 
   useResearchKeyboard({
     enabled: rows.length > 0,
+    routePrefix: '/screen',
     tickers: screenTickers,
     selectedIndex: selectedRowIndex,
     onSelectedIndexChange: setSelectedRowIndex,

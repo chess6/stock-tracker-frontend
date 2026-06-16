@@ -1406,7 +1406,7 @@
 
 .research-thesis-row,
 .research-pillar-row {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
 }
 
 .research-pillar-split {
@@ -1553,7 +1553,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(280px, 1fr));
   gap: 0.35rem;
-  align-items: stretch;
+  align-items: start;
 }
 
 .research-overview-col {
@@ -1575,10 +1575,79 @@
   border-top: 1px solid var(--st-border);
 }
 
+.research-overview-kpi-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.35rem;
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .research-overview-kpi-row {
+    grid-template-columns: 5fr 3fr;
+  }
+}
+
+.research-overview-metrics-panel {
+  margin-bottom: 0;
+}
+
+.research-overview-metrics-body {
+  display: flex;
+  align-items: center;
+  min-height: 100%;
+}
+
+.research-overview-why-matters {
+  margin-bottom: 0;
+}
+
+.research-overview-why-matters-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.research-overview-why-rank {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.research-overview-why-disqualified {
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  background: rgba(155, 34, 38, 0.15);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.research-overview-why-headline {
+  font-weight: 600;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.research-overview-why-bull,
+.research-overview-why-bear {
+  flex: 1 1 10rem;
+  min-width: 0;
+  font-size: 0.74rem;
+}
+
 .research-overview-signals {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.35rem;
+}
+
+@media (min-width: 768px) {
+  .research-overview-signals {
+    grid-template-columns: 2fr 3fr;
+  }
 }
 
 .research-overview-signals-col {

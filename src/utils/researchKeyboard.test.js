@@ -2,6 +2,7 @@ import {
   clampTickerIndex,
   cycleCompareIndex,
   hasOpenResearchDetails,
+  isResearchRoute,
   resolveResearchKeyAction,
   shouldIgnoreResearchKey,
 } from './researchKeyboard';
@@ -11,6 +12,23 @@ describe('researchKeyboard', () => {
     const input = document.createElement('input');
     expect(shouldIgnoreResearchKey({ target: input })).toBe(true);
     expect(shouldIgnoreResearchKey({ key: 'Escape', target: input })).toBe(true);
+  });
+
+  it('ignores keys when focus is in the navbar', () => {
+    const navbar = document.createElement('header');
+    navbar.className = 'st-navbar';
+    const button = document.createElement('button');
+    navbar.appendChild(button);
+    document.body.appendChild(navbar);
+    expect(shouldIgnoreResearchKey({ key: 'Escape', target: button })).toBe(true);
+    document.body.removeChild(navbar);
+  });
+
+  it('matches research routes only', () => {
+    expect(isResearchRoute('/research', '/research')).toBe(true);
+    expect(isResearchRoute('/research/AAPL', '/research')).toBe(true);
+    expect(isResearchRoute('/news', '/research')).toBe(false);
+    expect(isResearchRoute('/screen', '/screen')).toBe(true);
   });
 
   it('navigates tickers with j/k and opens on Enter', () => {

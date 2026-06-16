@@ -45,10 +45,23 @@ describe('heatMap', () => {
     expect(marginHeatStyle(0.2).backgroundColor).toBeDefined();
   });
 
-  test('columnHeatStyle interpolates', () => {
-    const low = columnHeatStyle(1, 0, 10);
-    const high = columnHeatStyle(9, 0, 10);
-    expect(low.backgroundColor).not.toEqual(high.backgroundColor);
+  test('columnHeatStyle uses red for low and green for high when higher is better', () => {
+    const low = columnHeatStyle(0, 0, 10);
+    const high = columnHeatStyle(10, 0, 10);
+    expect(low.backgroundColor).toContain('220, 53, 69');
+    expect(high.backgroundColor).toContain('40, 167, 69');
+  });
+
+  test('columnHeatStyle inverts for lower-is-better metrics', () => {
+    const low = columnHeatStyle(0, 0, 10, { invert: true });
+    const high = columnHeatStyle(10, 0, 10, { invert: true });
+    expect(low.backgroundColor).toContain('40, 167, 69');
+    expect(high.backgroundColor).toContain('220, 53, 69');
+  });
+
+  test('columnHeatStyle is neutral near column midpoint', () => {
+    const mid = columnHeatStyle(5, 0, 10);
+    expect(mid.backgroundColor).toBeUndefined();
   });
 
   test('columnMinMax ignores nulls', () => {

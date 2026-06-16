@@ -48,6 +48,7 @@
   max-height: 280px;
   overflow-y: auto;
   padding: 0.25rem 0;
+  animation: st-dropdown-in 80ms ease-out;
 }
 
 .navbar-search-result {

@@ -180,6 +180,70 @@ function KeyMetricsStrip({ detailData }) {
   );
 }
 
+function WhyThisStockMatters({ thesisData, compositeRank, compositeRankLoading }) {
+  const sections = thesisData?.sections || {};
+  const preMortem = sections.preMortem || {};
+  const headline = preMortem.headline || null;
+  const topBull = (sections.bullCase || [])[0]?.rebuttal || null;
+  const topBear = (sections.bearCase || [])[0]?.text || null;
+  const disqualified = Boolean(thesisData?.disqualified);
+  const failedGates = thesisData?.disqualificationNotice?.failedGates || [];
+  const hasRank = compositeRank != null;
+  const hasContent = hasRank || headline || topBull || topBear || disqualified;
+
+  if (!hasContent && !compositeRankLoading) {
+    return null;
+  }
+
+  return (
+    <div className="st-panel research-overview-why-matters">
+      <div className="st-panel-header">
+        <StIcon icon={RESEARCH_ICONS.scores} />
+        Why This Stock Matters
+      </div>
+      <div className="st-panel-body research-panel-body-tight research-overview-why-matters-body">
+        {compositeRankLoading && !hasRank && (
+          <span className="small text-muted">Loading rank…</span>
+        )}
+        {hasRank && (
+          <span className="research-overview-why-rank">
+            Rank
+            {' '}
+            <strong className="st-num">#{compositeRank.rank ?? '—'}</strong>
+            {' · '}
+            Score
+            {' '}
+            <strong className="st-num">{formatCompositeScore(compositeRank.compositeScore)}</strong>
+          </span>
+        )}
+        {disqualified && (
+          <span className="research-overview-why-disqualified">
+            Disqualified
+            {failedGates.length > 0 && ` — ${failedGates.join(', ')}`}
+          </span>
+        )}
+        {headline && (
+          <span className="research-overview-why-headline">{headline}</span>
+        )}
+        {topBull && (
+          <span className="research-overview-why-bull research-text-positive">
+            <strong>Bull:</strong>
+            {' '}
+            {topBull}
+          </span>
+        )}
+        {topBear && (
+          <span className="research-overview-why-bear research-text-negative">
+            <strong>Bear:</strong>
+            {' '}
+            {topBear}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CatalystsRisksPanel({ thesisData }) {
   if (!thesisData) {
     return <div className="research-chart-empty">No catalyst or risk data.</div>;
@@ -510,6 +574,12 @@ export default function ResearchOverviewPage() {
         </div>
       </div>
 
+      <WhyThisStockMatters
+        thesisData={thesisData}
+        compositeRank={compositeRank}
+        compositeRankLoading={compositeRankLoading}
+      />
+
       <div className="research-overview-grid">
         <div className="st-panel research-overview-col">
           <div className="st-panel-header">
@@ -528,20 +598,6 @@ export default function ResearchOverviewPage() {
           </div>
           <div className="st-panel-body research-panel-body-tight">
             <PillarRadarPanel pillarData={pillarData} loading={false} embedded />
-            {compositeRank && (
-              <div className="research-overview-composite-rank small mt-2">
-                Composite rank
-                {' '}
-                <strong className="st-num">#{compositeRank.rank ?? '—'}</strong>
-                {' · '}
-                score
-                {' '}
-                <strong className="st-num">{formatCompositeScore(compositeRank.compositeScore)}</strong>
-              </div>
-            )}
-            {compositeRankLoading && !compositeRank && (
-              <div className="small text-muted mt-2">Loading composite rank…</div>
-            )}
           </div>
         </div>
 
@@ -556,6 +612,24 @@ export default function ResearchOverviewPage() {
               insiderAnalysis={detailData?.insiderAnalysis}
               embedded
             />
+          </div>
+        </div>
+      </div>
+
+      <div className="research-overview-kpi-row">
+        <div className="st-panel research-overview-margins-panel">
+          <div className="st-panel-header">
+            <StIcon icon={RESEARCH_ICONS.marginTrends} />
+            Margin Trends
+          </div>
+          <div className="st-panel-body research-margin-panel-body">
+            <MarginTrendChart periods={detailPeriods} compact deepDive />
+          </div>
+        </div>
+
+        <div className="st-panel research-overview-metrics-panel">
+          <div className="st-panel-body research-panel-body-tight research-overview-metrics-body">
+            <KeyMetricsStrip detailData={detailData} />
           </div>
         </div>
       </div>
@@ -579,26 +653,6 @@ export default function ResearchOverviewPage() {
           <div className="st-panel-body research-panel-body-tight">
             <NarrativePanel narrativeData={narrativeData} loading={false} deepDive />
           </div>
-        </div>
-      </div>
-
-      <div className="st-panel research-overview-metrics-panel">
-        <div className="st-panel-header">
-          <StIcon icon={RESEARCH_ICONS.financials} />
-          Key Metrics
-        </div>
-        <div className="st-panel-body research-panel-body-tight">
-          <KeyMetricsStrip detailData={detailData} />
-        </div>
-      </div>
-
-      <div className="st-panel research-overview-margins-panel">
-        <div className="st-panel-header">
-          <StIcon icon={RESEARCH_ICONS.marginTrends} />
-          Margin Trends
-        </div>
-        <div className="st-panel-body research-margin-panel-body">
-          <MarginTrendChart periods={detailPeriods} compact deepDive />
         </div>
       </div>
     </div>

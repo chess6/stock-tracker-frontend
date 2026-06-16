@@ -96,6 +96,22 @@ export default function ResearchDeepDive({
         </div>
       )}
 
+      {pillarThesisError && (
+        <div className="st-alert-warn research-pillar-thesis-error">{pillarThesisError}</div>
+      )}
+
+      <div className="research-thesis-row">
+        <div className="st-panel research-thesis-panel">
+          <div className="st-panel-header">
+            <StIcon icon={RESEARCH_ICONS.scores} />
+            Investment Thesis
+          </div>
+          <div className="st-panel-body research-panel-body-tight">
+            <ThesisPanel thesisData={thesisData} loading={thesisLoading} />
+          </div>
+        </div>
+      </div>
+
       <div className="research-analytics-row">
         <div className="research-analytics-col research-analytics-col-margin">
           <div className="st-panel research-analytics-panel research-margin-panel">
@@ -146,22 +162,6 @@ export default function ResearchDeepDive({
                 />
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {pillarThesisError && (
-        <div className="st-alert-warn research-pillar-thesis-error">{pillarThesisError}</div>
-      )}
-
-      <div className="research-thesis-row">
-        <div className="st-panel research-thesis-panel">
-          <div className="st-panel-header">
-            <StIcon icon={RESEARCH_ICONS.scores} />
-            Investment Thesis
-          </div>
-          <div className="st-panel-body research-panel-body-tight">
-            <ThesisPanel thesisData={thesisData} loading={thesisLoading} />
           </div>
         </div>
       </div>
