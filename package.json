@@ -32,6 +32,8 @@
     "start": "craco start",
     "build": "craco build",
     "build:check": "CI=true craco build",
+    "serve:build": "node scripts/preview-server.js",
+    "preview": "npm run build && npm run serve:build",
     "test": "craco test",
     "lint": "eslint \"src/**/*.{js,jsx}\" --max-warnings 15",
     "test:e2e": "playwright test",

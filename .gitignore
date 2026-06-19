@@ -18,3 +18,5 @@ agent_tasks/failed/*.json
 # Legacy vendor API documentation dumps (not shipped; local reference only)
 src/mock/SHARADAR_*.txt
 agent_tasks/health-scan-report.json
+*.out
+*.pid
