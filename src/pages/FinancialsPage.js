@@ -520,13 +520,13 @@ const FinancialsPage = () => {
         </div>
         <div className="financials-toolbar-filters">
           <div className="financials-filter-group">
-            <label className="form-label d-block">Report</label>
-            <div className="btn-group" role="group">
+            <span className="st-label">Report</span>
+            <div className="st-segment" role="group" aria-label="Financial report basis">
               {reportOptions.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
-                  className={`btn btn-sm ${report === opt.value ? 'btn-info' : 'btn-outline-info'}`}
+                  className={`st-segment-btn ${report === opt.value ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`}
                   onClick={() => setReport(opt.value)}
                 >
                   {opt.label}
@@ -535,13 +535,13 @@ const FinancialsPage = () => {
             </div>
           </div>
           <div className="financials-filter-group">
-            <label className="form-label d-block">Period</label>
-            <div className="btn-group" role="group">
+            <span className="st-label">Period</span>
+            <div className="st-segment" role="group" aria-label="Financial period">
               {periodOptions.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
-                  className={`btn btn-sm ${period === opt.value ? 'btn-primary' : 'btn-outline-primary'}`}
+                  className={`st-segment-btn ${period === opt.value ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`}
                   onClick={() => setPeriod(opt.value)}
                 >
                   {opt.label}

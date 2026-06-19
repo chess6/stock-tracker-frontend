@@ -1863,11 +1863,33 @@
   margin-top: 0.2rem;
 }
 
-.research-overview-grid {
+.research-overview-main {
   display: grid;
-  grid-template-columns: repeat(3, minmax(280px, 1fr));
+  grid-template-columns: minmax(220px, 17rem) minmax(0, 1fr);
   gap: 0.35rem;
   align-items: start;
+}
+
+.research-overview-main--no-rank {
+  grid-template-columns: 1fr;
+}
+
+.research-overview-content-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.research-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  align-items: start;
+}
+
+.research-overview-content-col .research-overview-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .research-overview-col {
@@ -1885,11 +1907,45 @@
 }
 
 .research-overview-composite-rank {
-  padding-top: 0.35rem;
+  padding-top: 0.2rem;
 }
 
 .research-overview-rank-panel {
   margin-bottom: 0;
+  min-width: 0;
+}
+
+.research-overview-rank-panel .composite-factor-panel {
+  gap: 0.45rem;
+}
+
+.research-overview-rank-panel .composite-factor-header {
+  gap: 0.35rem;
+}
+
+.research-overview-rank-panel .composite-factor-score {
+  font-size: 1.05rem;
+}
+
+.research-overview-rank-panel .composite-factor-bars {
+  gap: 0.32rem;
+}
+
+.research-overview-rank-panel .composite-factor-meta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  font-size: 0.72rem;
+}
+
+.research-overview-rank-panel .composite-factor-stats {
+  font-size: 0.68rem;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+.research-overview-rank-panel .composite-factor-bar-track {
+  height: 5px;
 }
 
 .rank-factor-unavailable {
@@ -1912,15 +1968,29 @@
 
 .research-overview-kpi-row {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   gap: 0.35rem;
-  align-items: start;
+  align-items: stretch;
 }
 
-@media (min-width: 768px) {
-  .research-overview-kpi-row {
-    grid-template-columns: 5fr 3fr;
-  }
+.research-overview-content-col .research-overview-kpi-row {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+}
+
+.research-overview-content-col .research-overview-signals {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+}
+
+.research-overview-content-col .st-panel-header {
+  padding-top: 0.22rem;
+  padding-bottom: 0.22rem;
+  font-size: 0.76rem;
+}
+
+.research-overview-content-col .research-panel-body-tight,
+.research-overview-content-col .research-margin-panel-body {
+  padding-top: 0.28rem;
+  padding-bottom: 0.32rem;
 }
 
 .research-overview-metrics-panel {
@@ -1975,14 +2045,8 @@
 
 .research-overview-signals {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
   gap: 0.35rem;
-}
-
-@media (min-width: 768px) {
-  .research-overview-signals {
-    grid-template-columns: 2fr 3fr;
-  }
 }
 
 .research-overview-signals-col {
@@ -2023,13 +2087,34 @@
   gap: 0.45rem;
 }
 
+@media (max-width: 1280px) {
+  .research-overview-content-col .research-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .research-overview-content-col .research-overview-grid .research-overview-col:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 1100px) {
   .research-overview-grid {
-    grid-template-columns: repeat(2, minmax(260px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .research-overview-grid .research-overview-col:last-child {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 992px) {
+  .research-overview-main {
+    grid-template-columns: 1fr;
+  }
+
+  .research-overview-content-col .research-overview-kpi-row,
+  .research-overview-content-col .research-overview-signals {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2039,7 +2124,16 @@
   }
 
   .research-overview-grid,
-  .research-overview-signals {
+  .research-overview-content-col .research-overview-grid,
+  .research-overview-signals,
+  .research-overview-content-col .research-overview-signals,
+  .research-overview-kpi-row,
+  .research-overview-content-col .research-overview-kpi-row {
     grid-template-columns: 1fr;
+  }
+
+  .research-overview-grid .research-overview-col:last-child,
+  .research-overview-content-col .research-overview-grid .research-overview-col:last-child {
+    grid-column: auto;
   }
 }

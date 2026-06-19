@@ -644,103 +644,107 @@ export default function ResearchOverviewPage() {
         compositeRankLoading={compositeRankLoading}
       />
 
-      {(compositeRank || compositeRankLoading) && (
-        <div className="st-panel research-overview-rank-panel">
-          <div className="st-panel-header">
-            <StIcon icon={RESEARCH_ICONS.scoreBreakdown} />
-            Rank Factor Breakdown
-          </div>
-          <div className="st-panel-body research-panel-body-tight research-overview-composite-rank">
-            <RankFactorChart
-              rankRow={compositeRank}
-              compositeId={DEFAULT_COMPOSITE_ID}
-              loading={compositeRankLoading}
-              embedded
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="research-overview-grid">
-        <div className="st-panel research-overview-col">
-          <div className="st-panel-header">
-            <StIcon icon={RESEARCH_ICONS.scores} />
-            Investment Signal
-          </div>
-          <div className="st-panel-body research-panel-body-tight">
-            <ThesisBriefing thesisData={thesisData} loading={thesisLoading} />
-          </div>
-        </div>
-
-        <div className="st-panel research-overview-col">
-          <div className="st-panel-header">
-            <StIcon icon={RESEARCH_ICONS.scoreBreakdown} />
-            Pillar Profile
-          </div>
-          <div className="st-panel-body research-panel-body-tight">
-            <PillarRadarPanel pillarData={pillarData} loading={pillarLoading} embedded />
-          </div>
-        </div>
-
-        <div className="st-panel research-overview-col">
-          <div className="st-panel-header">
-            <StIcon icon={RESEARCH_ICONS.insiderActivity} />
-            Insiders
-          </div>
-          <div className="st-panel-body research-panel-body-tight">
-            {detailLoading && !detailData ? (
-              <PanelLoading label="insider activity" />
-            ) : (
-              <InsiderPanel
-                mode="deep-dive"
-                insiderAnalysis={detailData?.insiderAnalysis}
+      <div className={`research-overview-main${compositeRank || compositeRankLoading ? '' : ' research-overview-main--no-rank'}`}>
+        {(compositeRank || compositeRankLoading) && (
+          <div className="st-panel research-overview-rank-panel">
+            <div className="st-panel-header">
+              <StIcon icon={RESEARCH_ICONS.scoreBreakdown} />
+              Rank Factor Breakdown
+            </div>
+            <div className="st-panel-body research-panel-body-tight research-overview-composite-rank">
+              <RankFactorChart
+                rankRow={compositeRank}
+                compositeId={DEFAULT_COMPOSITE_ID}
+                loading={compositeRankLoading}
                 embedded
               />
-            )}
+            </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      <div className="research-overview-kpi-row">
-        <div className="st-panel research-overview-margins-panel">
-          <div className="st-panel-header">
-            <StIcon icon={RESEARCH_ICONS.marginTrends} />
-            Margin Trends
-          </div>
-          <div className="st-panel-body research-margin-panel-body">
-            {detailLoading && !detailData ? (
-              <PanelLoading label="margin trends" />
-            ) : (
-              <MarginTrendChart periods={detailPeriods} compact deepDive />
-            )}
-          </div>
-        </div>
+        <div className="research-overview-content-col">
+          <div className="research-overview-grid">
+            <div className="st-panel research-overview-col">
+              <div className="st-panel-header">
+                <StIcon icon={RESEARCH_ICONS.scores} />
+                Investment Signal
+              </div>
+              <div className="st-panel-body research-panel-body-tight">
+                <ThesisBriefing thesisData={thesisData} loading={thesisLoading} />
+              </div>
+            </div>
 
-        <div className="st-panel research-overview-metrics-panel">
-          <div className="st-panel-body research-panel-body-tight research-overview-metrics-body">
-            <KeyMetricsStrip detailData={detailData} loading={detailLoading} />
-          </div>
-        </div>
-      </div>
+            <div className="st-panel research-overview-col">
+              <div className="st-panel-header">
+                <StIcon icon={RESEARCH_ICONS.scoreBreakdown} />
+                Pillar Profile
+              </div>
+              <div className="st-panel-body research-panel-body-tight">
+                <PillarRadarPanel pillarData={pillarData} loading={pillarLoading} embedded />
+              </div>
+            </div>
 
-      <div className="research-overview-signals">
-        <div className="st-panel research-overview-signals-col">
-          <div className="st-panel-header">
-            <StIcon icon={RESEARCH_ICONS.narrative} />
-            Catalysts &amp; Risks
+            <div className="st-panel research-overview-col">
+              <div className="st-panel-header">
+                <StIcon icon={RESEARCH_ICONS.insiderActivity} />
+                Insiders
+              </div>
+              <div className="st-panel-body research-panel-body-tight">
+                {detailLoading && !detailData ? (
+                  <PanelLoading label="insider activity" />
+                ) : (
+                  <InsiderPanel
+                    mode="deep-dive"
+                    insiderAnalysis={detailData?.insiderAnalysis}
+                    embedded
+                  />
+                )}
+              </div>
+            </div>
           </div>
-          <div className="st-panel-body research-panel-body-tight">
-            <CatalystsRisksPanel thesisData={thesisData} loading={thesisLoading} />
-          </div>
-        </div>
 
-        <div className="st-panel research-overview-signals-col">
-          <div className="st-panel-header">
-            <StIcon icon={RESEARCH_ICONS.marginTrends} />
-            Recent Changes
+          <div className="research-overview-kpi-row">
+            <div className="st-panel research-overview-margins-panel">
+              <div className="st-panel-header">
+                <StIcon icon={RESEARCH_ICONS.marginTrends} />
+                Margin Trends
+              </div>
+              <div className="st-panel-body research-margin-panel-body">
+                {detailLoading && !detailData ? (
+                  <PanelLoading label="margin trends" />
+                ) : (
+                  <MarginTrendChart periods={detailPeriods} compact deepDive />
+                )}
+              </div>
+            </div>
+
+            <div className="st-panel research-overview-metrics-panel">
+              <div className="st-panel-body research-panel-body-tight research-overview-metrics-body">
+                <KeyMetricsStrip detailData={detailData} loading={detailLoading} />
+              </div>
+            </div>
           </div>
-          <div className="st-panel-body research-panel-body-tight">
-            <NarrativePanel narrativeData={narrativeData} loading={narrativeLoading} deepDive />
+
+          <div className="research-overview-signals">
+            <div className="st-panel research-overview-signals-col">
+              <div className="st-panel-header">
+                <StIcon icon={RESEARCH_ICONS.narrative} />
+                Catalysts &amp; Risks
+              </div>
+              <div className="st-panel-body research-panel-body-tight">
+                <CatalystsRisksPanel thesisData={thesisData} loading={thesisLoading} />
+              </div>
+            </div>
+
+            <div className="st-panel research-overview-signals-col">
+              <div className="st-panel-header">
+                <StIcon icon={RESEARCH_ICONS.marginTrends} />
+                Recent Changes
+              </div>
+              <div className="st-panel-body research-panel-body-tight">
+                <NarrativePanel narrativeData={narrativeData} loading={narrativeLoading} deepDive />
+              </div>
+            </div>
           </div>
         </div>
       </div>
