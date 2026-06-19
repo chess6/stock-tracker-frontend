@@ -83,11 +83,16 @@ const incompleteCacheTitle = (row) => {
     return 'Incomplete cache — refresh in Admin';
 };
 
+let _rowsCache = { key: '', rows: [] };
+
 const PortfolioPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [initialResearchState] = useState(() => loadPortfolioResearchState(searchParams));
     const [portfolio, setPortfolio] = useState(() => getPortfolio());
-    const [rows, setRows] = useState([]);
+    const [rows, setRows] = useState(() => {
+        const key = getPortfolio().join(',');
+        return _rowsCache.key === key ? [..._rowsCache.rows] : [];
+    });
     const rowsRef = useRef(rows);
     rowsRef.current = rows;
     const [rowSelection, setRowSelection] = useState({});
@@ -96,6 +101,11 @@ const PortfolioPage = () => {
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const { showToast } = useToast();
     const portfolioKey = useMemo(() => portfolio.join(','), [portfolio]);
+
+    useEffect(() => {
+        _rowsCache = { key: portfolioKey, rows };
+    }, [portfolioKey, rows]);
+
     const [tagsByTicker, setTagsByTicker] = useState(() => getCompanyTagsMap());
     const [tagFilter, setTagFilter] = useState(() => initialResearchState.tagFilter);
     const [tagInput, setTagInput] = useState('');
@@ -821,19 +831,19 @@ const PortfolioPage = () => {
                 if (signal.aborted) return;
 
                 try {
-                    const screenerRes = await axios.get(API_ENDPOINTS.RESEARCH_SCREENER, {
+                    const narrativeRes = await axios.get(API_ENDPOINTS.RESEARCH_NARRATIVE_DIVERGENCE, {
                         params: { tickers: fetchTickers.join(',') },
                         signal,
                     });
                     if (signal.aborted) return;
-                    const results = screenerRes.data?.results || {};
+                    const results = narrativeRes.data?.results || {};
                     setRows((prev) => prev.map((row) => {
                         const data = results[row.ticker];
-                        if (!data?.narrativeDivergence) return row;
+                        if (!data) return row;
                         return {
                             ...row,
-                            divergenceSignal: data.narrativeDivergence.signal || null,
-                            divergenceScore: toNullableNumber(data.narrativeDivergence.divergenceScore),
+                            divergenceSignal: data.divergenceSignal || null,
+                            divergenceScore: toNullableNumber(data.divergenceScore),
                         };
                     }));
                 } catch { /* ignore */ }

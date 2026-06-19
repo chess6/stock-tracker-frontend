@@ -419,6 +419,17 @@ async function mockStockTrackerApi(page, options = {}) {
         },
       });
     }
+    if (path === '/api/research/narrative-divergence') {
+      const tickers = parseTickersParam(url.searchParams.get('tickers'));
+      const results = {};
+      tickers.forEach((ticker, index) => {
+        results[ticker] = {
+          divergenceSignal: index % 2 === 0 ? 'rerating_candidate' : null,
+          divergenceScore: index % 2 === 0 ? 0.75 : null,
+        };
+      });
+      return json({ results });
+    }
     if (path.startsWith('/api/research/ticker/')) {
       const symbol = path.split('/').pop()?.toUpperCase();
       if (symbol === 'AAPL') return json(RESEARCH_AAPL);

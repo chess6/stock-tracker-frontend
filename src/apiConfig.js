@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
   WATCHLIST_TICKERS: name => `${API_BASE}/watchlists/${encodeURIComponent(name)}/tickers`,
   WATCHLIST_TICKER: (name, ticker) => `${API_BASE}/watchlists/${encodeURIComponent(name)}/tickers/${encodeURIComponent(ticker)}`,
   RESEARCH_SCREENER: `${API_BASE}/research/screener`,
+  RESEARCH_NARRATIVE_DIVERGENCE: `${API_BASE}/research/narrative-divergence`,
   RESEARCH_SCREEN: `${API_BASE}/research/screen`,
   SCREENS: `${API_BASE}/screens`,
   SCREEN: id => `${API_BASE}/screens/${encodeURIComponent(id)}`,
