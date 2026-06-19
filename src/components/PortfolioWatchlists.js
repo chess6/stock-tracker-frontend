@@ -60,9 +60,17 @@ export default function PortfolioWatchlists({
     showToast?.(`Deleted watchlist "${wl.name}".`, 'success');
   };
 
+  const summaryMeta = watchlists.length
+    ? `${watchlists.length} saved · ${portfolio.length} tickers in list`
+    : 'None saved yet';
+
   return (
-    <div className="st-alert-secondary mb-3">
-      <div className="fw-semibold mb-1">Saved watchlists</div>
+    <details className="st-details portfolio-watchlists-panel">
+      <summary className="st-details-summary portfolio-watchlists-summary">
+        <span>Saved watchlists</span>
+        <span className="portfolio-watchlists-summary-meta">{summaryMeta}</span>
+      </summary>
+      <div className="st-panel-body">
       <p className="small mb-2 st-muted-note">
         Save the current ticker list to this browser. Reload it anytime if your portfolio gets wiped.
       </p>
@@ -134,6 +142,7 @@ export default function PortfolioWatchlists({
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </details>
   );
 }

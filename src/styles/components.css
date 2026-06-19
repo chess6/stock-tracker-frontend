@@ -361,6 +361,20 @@ a.st-link-muted:focus-visible {
   border-bottom: 1px solid var(--st-border);
 }
 
+.portfolio-watchlists-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+}
+
+.portfolio-watchlists-summary-meta {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--st-text-muted);
+}
+
 .st-ticker {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.78rem;

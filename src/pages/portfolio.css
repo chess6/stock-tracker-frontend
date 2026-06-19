@@ -1,0 +1,132 @@
+/* Portfolio page — maximize grid height; page itself does not scroll */
+
+.portfolio-page {
+  height: calc(100dvh - 2.75rem);
+  max-height: calc(100dvh - 2.75rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 0.1rem;
+  padding-bottom: 0.1rem;
+}
+
+.portfolio-page-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.portfolio-page-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 0.1rem;
+  padding-bottom: 0.1rem;
+}
+
+.portfolio-page .portfolio-watchlists-panel {
+  flex-shrink: 0;
+  margin-bottom: 0.12rem !important;
+}
+
+.portfolio-page .portfolio-watchlists-panel[open] .st-panel-body {
+  max-height: min(36vh, 13.5rem);
+  overflow-y: auto;
+}
+
+.portfolio-page-meta {
+  flex-shrink: 0;
+  margin-bottom: 0.08rem !important;
+  font-size: 0.62rem;
+  line-height: 1.25;
+}
+
+.portfolio-page-toolbar {
+  flex-shrink: 0;
+  gap: 0.2rem 0.3rem !important;
+  margin-bottom: 0.08rem !important;
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.portfolio-page-toolbar label {
+  gap: 0.25rem !important;
+}
+
+.portfolio-page-toolbar label > span {
+  font-size: 0.62rem !important;
+}
+
+.portfolio-page-toolbar .form-select-sm,
+.portfolio-page-toolbar .form-control-sm {
+  font-size: 0.66rem;
+  padding: 0.08rem 0.3rem;
+  min-height: 1.38rem;
+  line-height: 1.2;
+}
+
+.portfolio-page-toolbar .st-btn,
+.portfolio-page-toolbar .st-btn-ghost,
+.portfolio-page-toolbar .st-link-btn {
+  font-size: 0.66rem;
+  padding: 0.1rem 0.38rem;
+  line-height: 1.2;
+}
+
+.portfolio-page-alert {
+  flex-shrink: 0;
+  margin-bottom: 0.08rem !important;
+  padding: 0.22rem 0.38rem;
+  font-size: 0.68rem;
+}
+
+.portfolio-page-compare {
+  flex-shrink: 0;
+  max-height: min(38vh, 18rem);
+  overflow-y: auto;
+  margin-bottom: 0.08rem;
+}
+
+.portfolio-page-grid-host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.portfolio-page-grid {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.portfolio-page-grid > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.portfolio-page-grid .data-grid-toolbar {
+  flex-shrink: 0;
+  margin-bottom: 0.06rem !important;
+}
+
+.portfolio-page-grid .data-grid-filter {
+  max-width: 11rem;
+  min-height: 1.38rem;
+  font-size: 0.66rem;
+}
+
+.portfolio-page-grid > div > div:last-child {
+  flex: 1;
+  min-height: 0;
+  max-height: none !important;
+}

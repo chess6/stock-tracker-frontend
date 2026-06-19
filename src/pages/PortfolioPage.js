@@ -46,6 +46,7 @@ import {
 import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT, setPortfolioTickers } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
 import { formatFreshnessTimestamp } from '../utils/dataFreshness';
+import './portfolio.css';
 import {
     secEdgarUrl, instHoldingsUrl, analysisUrl, tickerFinancialsUrl, tickerNewsUrl,
     extChartUrl, insiderScreenerUrl,
@@ -428,13 +429,8 @@ const PortfolioPage = () => {
                 const score = row.original.divergenceScore;
                 if (!signal && score == null) return <span className="text-muted">—</span>;
                 return (
-                    <span
-                        className={`research-narrative-divergence-pill research-narrative-divergence-${signal || 'neutral'}`}
-                        title={score != null ? `Score ${Number(score).toFixed(2)}` : undefined}
-                    >
-                        <span className="research-narrative-divergence-label">
-                            {divergenceSignalLabel(signal)}
-                        </span>
+                    <span title={score != null ? `Score ${Number(score).toFixed(2)}` : undefined}>
+                        {divergenceSignalLabel(signal || 'neutral')}
                     </span>
                 );
             },
@@ -891,28 +887,27 @@ const PortfolioPage = () => {
     }
 
     return (
-        <div className="st-page st-page--full">
-            <div className="st-panel">
-                <div className="st-panel-header">Portfolio</div>
-                <div className="st-panel-body">
+        <div className="st-page st-page--full portfolio-page">
+            <div className="st-panel portfolio-page-panel">
+                <div className="st-panel-body portfolio-page-body">
                     <PortfolioWatchlists
                         portfolio={portfolio}
                         onLoaded={() => setPortfolio(getPortfolio())}
                         showToast={showToast}
                     />
                     {cacheFreshness && (
-                        <div className="st-muted-note mb-2">
+                        <div className="st-muted-note portfolio-page-meta">
                             Cache: prices {formatFreshnessTimestamp(cacheFreshness.pricesUpdatedAt)}
                             {' · '}fundamentals {formatFreshnessTimestamp(cacheFreshness.fundamentalsUpdatedAt)}
                             {' · '}insiders {formatFreshnessTimestamp(cacheFreshness.insidersUpdatedAt)}
                         </div>
                     )}
-                    <div className="mb-2 d-flex gap-2 align-items-center flex-wrap">
+                    <div className="portfolio-page-toolbar d-flex align-items-center flex-wrap">
                         <label className="d-flex align-items-center gap-2 mb-0">
                             <span className="small text-muted">View preset</span>
                             <select
                                 className="form-select form-select-sm"
-                                style={{ width: 'auto', minWidth: 160 }}
+                                style={{ width: 'auto', minWidth: 130 }}
                                 value={presetId}
                                 onChange={handlePresetChange}
                                 aria-label="Portfolio research view preset"
@@ -928,7 +923,7 @@ const PortfolioPage = () => {
                             <span className="small text-muted">Group by</span>
                             <select
                                 className="form-select form-select-sm"
-                                style={{ width: 'auto', minWidth: 140 }}
+                                style={{ width: 'auto', minWidth: 118 }}
                                 value={groupBy}
                                 onChange={handleGroupByChange}
                                 aria-label="Portfolio row grouping"
@@ -944,7 +939,7 @@ const PortfolioPage = () => {
                             <span className="small text-muted">Filter tag</span>
                             <select
                                 className="form-select form-select-sm"
-                                style={{ width: 'auto', minWidth: 140 }}
+                                style={{ width: 'auto', minWidth: 118 }}
                                 value={tagFilter}
                                 onChange={handleTagFilterChange}
                                 aria-label="Filter portfolio by tag"
@@ -963,7 +958,7 @@ const PortfolioPage = () => {
                                 <input
                                     type="text"
                                     className="form-control form-control-sm"
-                                    style={{ width: 120 }}
+                                    style={{ width: 108 }}
                                     value={tagInput}
                                     onChange={(event) => setTagInput(event.target.value)}
                                     onKeyDown={(event) => {
@@ -1041,50 +1036,55 @@ const PortfolioPage = () => {
                         }}
                     />
                     {tagFilter !== ALL_TAGS_FILTER && tagFilteredRows.length === 0 && (
-                        <div className="st-alert-info mb-2">
+                        <div className="st-alert-info portfolio-page-alert">
                             No portfolio rows match tag <strong>{tagFilter}</strong>.
                         </div>
                     )}
                     {compareOpen && compareTickers.length >= 2 && (
-                        <CompareMetricsPanel
-                            compareTickers={compareTickers}
-                            snapshotRows={tagFilteredRows}
-                            percentileUniverse={tagFilteredRows}
-                            showPercentileRanks={showPercentileRanks}
-                            onTogglePercentileRanks={() => setShowPercentileRanks((prev) => !prev)}
-                            onClose={handleClearCompare}
-                        />
+                        <div className="portfolio-page-compare">
+                            <CompareMetricsPanel
+                                compareTickers={compareTickers}
+                                snapshotRows={tagFilteredRows}
+                                percentileUniverse={tagFilteredRows}
+                                showPercentileRanks={showPercentileRanks}
+                                onTogglePercentileRanks={() => setShowPercentileRanks((prev) => !prev)}
+                                onClose={handleClearCompare}
+                            />
+                        </div>
                     )}
-                    <div style={{ position: 'relative' }}>
+                    <div className="portfolio-page-grid-host">
                         {isPageLoading && (
                             <div className="portfolio-loading-overlay" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
                                 <div className="spinner-border" role="status" aria-hidden="true" />
                             </div>
                         )}
-                        <DataGrid
-                            data={displayRows}
-                            columns={columns}
-                            getRowId={row => String(row.id ?? row.ticker)}
-                            enableRowSelection
-                            enableMultiRowSelection
-                            enableSorting
-                            enableGlobalFilter
-                            manualSorting={isGrouped}
-                            onGroupHeaderToggle={isGrouped ? handleGroupHeaderToggle : undefined}
-                            rowSelection={rowSelection}
-                            onRowSelectionChange={setRowSelection}
-                            stickyColumnIds={PORTFOLIO_STICKY_COLUMNS}
-                            columnGroups={columnGroups}
-                            useSharedColumnState
-                            columnVisibility={visibleColumns}
-                            onColumnVisibilityChange={setVisibleColumns}
-                            defaultVisibleColumns={presetVisibleColumns}
-                            resetColumnsTitle="Reset columns to the current view preset"
-                            sorting={sorting}
-                            onSortingChange={setSorting}
-                            tableExtraClassName="portfolio-grid-table"
-                            compact
-                        />
+                        <div className="portfolio-page-grid">
+                            <DataGrid
+                                data={displayRows}
+                                columns={columns}
+                                getRowId={row => String(row.id ?? row.ticker)}
+                                enableRowSelection
+                                enableMultiRowSelection
+                                enableSorting
+                                enableGlobalFilter
+                                manualSorting={isGrouped}
+                                onGroupHeaderToggle={isGrouped ? handleGroupHeaderToggle : undefined}
+                                rowSelection={rowSelection}
+                                onRowSelectionChange={setRowSelection}
+                                stickyColumnIds={PORTFOLIO_STICKY_COLUMNS}
+                                columnGroups={columnGroups}
+                                useSharedColumnState
+                                columnVisibility={visibleColumns}
+                                onColumnVisibilityChange={setVisibleColumns}
+                                defaultVisibleColumns={presetVisibleColumns}
+                                resetColumnsTitle="Reset columns to the current view preset"
+                                sorting={sorting}
+                                onSortingChange={setSorting}
+                                tableExtraClassName="portfolio-grid-table"
+                                style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
+                                compact
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
