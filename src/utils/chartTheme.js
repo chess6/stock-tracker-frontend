@@ -1,9 +1,5 @@
-export function isDarkTheme() {
-  if (typeof document === 'undefined') return false;
-  return document.documentElement.getAttribute('data-bs-theme') === 'dark';
-}
+import { isDarkTheme } from './themeState';
 
-/** Shared ApexCharts options for light/dark readability. */
 export function apexBaseOptions() {
   const dark = isDarkTheme();
   if (!dark) {

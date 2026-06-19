@@ -14,6 +14,7 @@ import CompareMetricsPanel, { MAX_COMPARE_TICKERS } from '../components/research
 import ResearchCompactScoreBadges from '../components/research/ResearchCompactScoreBadges';
 import ResearchPinnedStrip from '../components/research/ResearchPinnedStrip';
 import useResearchKeyboard from '../hooks/useResearchKeyboard';
+import { useHeatmapThemeKey } from '../hooks/useHeatmapThemeKey';
 import { clampTickerIndex } from '../utils/researchKeyboard';
 import {
   isPinnedTicker,
@@ -126,6 +127,7 @@ export default function ResearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const mountedRef = useRef(true);
   const { showToast } = useToast();
+  const heatmapThemeKey = useHeatmapThemeKey();
   const { exportScreener, copyScreener, exportDetail, copyDetail } = useResearchExport({ showToast });
   const isDeepDive = Boolean(routeTicker);
   const activeTicker = routeTicker?.toUpperCase();
@@ -625,7 +627,7 @@ export default function ResearchPage() {
       });
     });
     return rows;
-  }, [screenerTickers, screenerData, screenerExpandedGroups, colorMode, sectorStats, registryReady]);
+  }, [screenerTickers, screenerData, screenerExpandedGroups, colorMode, sectorStats, registryReady, heatmapThemeKey]);
 
   const screenerGridColumns = useMemo(() => {
     const cols = [
@@ -814,7 +816,7 @@ export default function ResearchPage() {
       });
     });
     return rows;
-  }, [columnPeriods, detailPeriods, scoreByPeriod, expandedGroups, hideEmptyRows, colorMode, detailData, sectorStats, registryReady]);
+  }, [columnPeriods, detailPeriods, scoreByPeriod, expandedGroups, hideEmptyRows, colorMode, detailData, sectorStats, registryReady, heatmapThemeKey]);
 
   const detailColumns = useMemo(() => {
     const fmt = (value, format) => formatCellValue(value, format, { compact: true });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import StSpinner from '../components/StSpinner';
@@ -90,7 +90,9 @@ export default function NewsPage() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const loadMoreSentinelRef = useRef(null);
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [sourceDomain, setSourceDomain] = useState('');
@@ -125,32 +127,44 @@ export default function NewsPage() {
     return () => window.removeEventListener(PORTFOLIO_UPDATED_EVENT, sync);
   }, []);
 
-  const loadClusters = useCallback(async (nextOffset) => {
-    setLoading(true);
+  const loadClusters = useCallback(async (nextOffset, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setError('');
     try {
       const res = await axios.get(API_ENDPOINTS.NEWS_CLUSTERS, {
         params: { limit: PAGE_SIZE, offset: nextOffset, hours: 72 },
       });
-      setClusters(res.data?.clusters || []);
+      const newClusters = res.data?.clusters || [];
+      setClusters((prev) => append ? [...prev, ...newClusters] : newClusters);
       setTotal(res.data?.total || 0);
       setOffset(nextOffset);
       setArticles([]);
     } catch (err) {
-      setClusters([]);
-      setTotal(0);
+      if (!append) {
+        setClusters([]);
+        setTotal(0);
+      }
       setError(err?.response?.data?.error || 'Failed to load news clusters');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, []);
 
-  const loadNews = useCallback(async (nextOffset, filters) => {
+  const loadNews = useCallback(async (nextOffset, filters, append = false) => {
     if (filters.clusterView) {
-      await loadClusters(nextOffset);
+      await loadClusters(nextOffset, append);
       return;
     }
-    setLoading(true);
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setError('');
     try {
       const params = { limit: PAGE_SIZE, offset: nextOffset };
@@ -165,23 +179,52 @@ export default function NewsPage() {
         params.tickers = filters.tickers;
       }
       const res = await axios.get(API_ENDPOINTS.NEWS_FEED, { params });
-      setArticles(res.data?.articles || []);
+      const newArticles = res.data?.articles || [];
+      setArticles((prev) => append ? [...prev, ...newArticles] : newArticles);
       setClusters([]);
       setTotal(res.data?.total || 0);
       setOffset(nextOffset);
     } catch (err) {
-      setArticles([]);
-      setClusters([]);
-      setTotal(0);
+      if (!append) {
+        setArticles([]);
+        setClusters([]);
+        setTotal(0);
+      }
       setError(err?.response?.data?.error || 'Failed to load news feed');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, [portfolioTickers, loadClusters]);
 
   useEffect(() => {
-    loadNews(0, appliedFilters);
+    loadNews(0, appliedFilters, false);
   }, [appliedFilters, loadNews]);
+
+  const loadedCount = appliedFilters.clusterView ? clusters.length : articles.length;
+  const hasMore = loadedCount < total;
+
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return;
+    loadNews(loadedCount, appliedFilters, true);
+  }, [loading, loadingMore, hasMore, loadedCount, appliedFilters, loadNews]);
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel || !hasMore || loading) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          loadMore();
+        }
+      },
+      { rootMargin: '200px', threshold: 0 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, loadMore, loadedCount]);
 
   const applyFilters = (e) => {
     e.preventDefault();
@@ -220,12 +263,8 @@ export default function NewsPage() {
     });
   };
 
-  const pageStart = total === 0 ? 0 : offset + 1;
-  const pageEnd = appliedFilters.clusterView
-    ? Math.min(offset + clusters.length, total)
-    : Math.min(offset + articles.length, total);
-  const hasPrev = offset > 0;
-  const hasNext = offset + PAGE_SIZE < total;
+  const pageStart = total === 0 ? 0 : 1;
+  const pageEnd = loadedCount;
 
   return (
     <div className="st-page st-page--constrained news-page">
@@ -429,24 +468,14 @@ export default function NewsPage() {
                 );
               })}
             </div>
-            <div className="d-flex justify-content-between">
-              <button
-                type="button"
-                className="st-btn-ghost"
-                disabled={!hasPrev}
-                onClick={() => loadNews(Math.max(0, offset - PAGE_SIZE), appliedFilters)}
+            {hasMore && (
+              <div
+                ref={loadMoreSentinelRef}
+                className="text-center text-muted small py-2"
               >
-                Previous
-              </button>
-              <button
-                type="button"
-                className="st-btn-ghost"
-                disabled={!hasNext}
-                onClick={() => loadNews(offset + PAGE_SIZE, appliedFilters)}
-              >
-                Next
-              </button>
-            </div>
+                {loadingMore ? 'Loading more…' : 'Scroll for more…'}
+              </div>
+            )}
           </>
         )
       ) : articles.length === 0 ? (
@@ -504,24 +533,14 @@ export default function NewsPage() {
               </div>
             ))}
           </div>
-          <div className="d-flex justify-content-between">
-            <button
-              type="button"
-              className="st-btn-ghost"
-              disabled={!hasPrev}
-              onClick={() => loadNews(Math.max(0, offset - PAGE_SIZE), appliedFilters)}
+          {hasMore && (
+            <div
+              ref={loadMoreSentinelRef}
+              className="text-center text-muted small py-2"
             >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="st-btn-ghost"
-              disabled={!hasNext}
-              onClick={() => loadNews(offset + PAGE_SIZE, appliedFilters)}
-            >
-              Next
-            </button>
-          </div>
+              {loadingMore ? 'Loading more…' : 'Scroll for more…'}
+            </div>
+          )}
         </>
       )}
         </div>

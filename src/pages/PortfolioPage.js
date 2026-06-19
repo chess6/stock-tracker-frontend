@@ -5,6 +5,7 @@ import API_ENDPOINTS from '../apiConfig';
 import { formatUsd, formatDecimal, formatPercent } from '../utils/formatters';
 import { attachPortfolioHeatStyles, PORTFOLIO_HEAT_METRIC_KEYS } from '../utils/portfolioHeat';
 import { getCachedColumnMinMaxMap, rowsDatasetKey } from '../utils/heatmapCache';
+import { useHeatmapThemeKey } from '../hooks/useHeatmapThemeKey';
 import {
     PORTFOLIO_COLUMN_META,
     PORTFOLIO_COLUMN_GROUPS,
@@ -101,6 +102,7 @@ const PortfolioPage = () => {
     const [cacheFreshness, setCacheFreshness] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const { showToast } = useToast();
+    const heatmapThemeKey = useHeatmapThemeKey();
     const portfolioKey = useMemo(() => portfolio.join(','), [portfolio]);
 
     useEffect(() => {
@@ -162,7 +164,7 @@ const PortfolioPage = () => {
     );
     const gridRows = useMemo(
         () => attachPortfolioHeatStyles(tagFilteredRows, heatRanges),
-        [tagFilteredRows, heatRanges],
+        [tagFilteredRows, heatRanges, heatmapThemeKey],
     );
 
     const columnHelper = useMemo(() => createColumnHelper(), []);
@@ -241,6 +243,8 @@ const PortfolioPage = () => {
             id: 'tags',
             meta: meta('tags'),
             header: 'Tags',
+            size: 200,
+            minSize: 160,
             cell: ({ row }) => {
                 if (row.original?._isGroupHeader) return null;
                 const ticker = row.original.ticker;
@@ -976,11 +980,11 @@ const PortfolioPage = () => {
                         onPresetChange={handlePresetChange}
                         toolbar={(
                             <div className="portfolio-page-toolbar">
-                                <div className="portfolio-page-toolbar-view-row d-flex align-items-center flex-wrap">
-                                    <label className="portfolio-page-toolbar-field d-flex align-items-center gap-2 mb-0">
+                                <div className="portfolio-page-toolbar-view-row d-flex align-items-end flex-wrap">
+                                    <label className="portfolio-page-toolbar-field portfolio-page-toolbar-field-stacked mb-0">
                                         <span className="portfolio-page-toolbar-label">View preset</span>
                                         <select
-                                            className="form-select form-select-sm portfolio-watchlists-preset-select"
+                                            className="form-select form-select-sm portfolio-page-toolbar-select"
                                             value={presetId}
                                             onChange={handlePresetChange}
                                             aria-label="Portfolio research view preset"
@@ -992,10 +996,10 @@ const PortfolioPage = () => {
                                             ))}
                                         </select>
                                     </label>
-                                    <label className="portfolio-page-toolbar-field d-flex align-items-center gap-2 mb-0">
+                                    <label className="portfolio-page-toolbar-field portfolio-page-toolbar-field-stacked mb-0">
                                         <span className="portfolio-page-toolbar-label">Group by</span>
                                         <select
-                                            className="form-select form-select-sm"
+                                            className="form-select form-select-sm portfolio-page-toolbar-select"
                                             value={groupBy}
                                             onChange={handleGroupByChange}
                                             aria-label="Portfolio row grouping"
@@ -1007,12 +1011,10 @@ const PortfolioPage = () => {
                                             ))}
                                         </select>
                                     </label>
-                                </div>
-                                <div className="portfolio-page-toolbar-filters d-flex align-items-center flex-wrap">
-                                    <label className="portfolio-page-toolbar-field d-flex align-items-center gap-2 mb-0">
+                                    <label className="portfolio-page-toolbar-field portfolio-page-toolbar-field-stacked mb-0">
                                         <span className="portfolio-page-toolbar-label">Filter tag</span>
                                         <select
-                                            className="form-select form-select-sm"
+                                            className="form-select form-select-sm portfolio-page-toolbar-select"
                                             value={tagFilter}
                                             onChange={handleTagFilterChange}
                                             aria-label="Filter portfolio by tag"
@@ -1025,41 +1027,43 @@ const PortfolioPage = () => {
                                             ))}
                                         </select>
                                     </label>
-                                    {selectedTickers.length > 0 && (
-                                        <label className="portfolio-page-toolbar-field d-flex align-items-center gap-2 mb-0">
-                                            <span className="portfolio-page-toolbar-label">Tag selected</span>
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                style={{ width: 108 }}
-                                                value={tagInput}
-                                                onChange={(event) => setTagInput(event.target.value)}
-                                                onKeyDown={(event) => {
-                                                    if (event.key === 'Enter') {
-                                                        event.preventDefault();
-                                                        handleAddTagToSelected();
-                                                    }
-                                                }}
-                                                placeholder="e.g. deep value"
-                                                list="portfolio-tag-suggestions"
-                                                aria-label="Tag name for selected tickers"
-                                            />
-                                            <datalist id="portfolio-tag-suggestions">
-                                                {allTags.map((tag) => (
-                                                    <option key={tag} value={tag} />
-                                                ))}
-                                            </datalist>
-                                            <button
-                                                type="button"
-                                                className="st-btn st-btn-muted"
-                                                disabled={!tagInput.trim()}
-                                                onClick={handleAddTagToSelected}
-                                            >
-                                                Add tag
-                                            </button>
-                                        </label>
-                                    )}
                                 </div>
+                                {selectedTickers.length > 0 && (
+                                <div className="portfolio-page-toolbar-filters d-flex align-items-center flex-wrap">
+                                    <label className="portfolio-page-toolbar-field d-flex align-items-center gap-2 mb-0">
+                                        <span className="portfolio-page-toolbar-label">Tag selected</span>
+                                        <input
+                                            type="text"
+                                            className="form-control form-control-sm"
+                                            style={{ width: 108 }}
+                                            value={tagInput}
+                                            onChange={(event) => setTagInput(event.target.value)}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                    event.preventDefault();
+                                                    handleAddTagToSelected();
+                                                }
+                                            }}
+                                            placeholder="e.g. deep value"
+                                            list="portfolio-tag-suggestions"
+                                            aria-label="Tag name for selected tickers"
+                                        />
+                                        <datalist id="portfolio-tag-suggestions">
+                                            {allTags.map((tag) => (
+                                                <option key={tag} value={tag} />
+                                            ))}
+                                        </datalist>
+                                        <button
+                                            type="button"
+                                            className="st-btn st-btn-muted"
+                                            disabled={!tagInput.trim()}
+                                            onClick={handleAddTagToSelected}
+                                        >
+                                            Add tag
+                                        </button>
+                                    </label>
+                                </div>
+                                )}
                                 <div className="portfolio-page-toolbar-actions d-flex align-items-center flex-wrap">
                                     <button
                                         type="button"

@@ -161,18 +161,17 @@ export default function PortfolioWatchlists({
                 {watchlists.map((wl) => (
                   <div
                     key={wl.id}
-                    className="d-flex gap-2 align-items-center flex-wrap justify-content-between"
+                    className="portfolio-watchlist-item"
                   >
-                    <div className="small">
-                      <strong>{wl.name}</strong>
-                      <span className="st-muted-note">
-                        {' '}
+                    <div className="portfolio-watchlist-item-text small">
+                      <strong className="portfolio-watchlist-item-name">{wl.name}</strong>
+                      <span className="st-muted-note portfolio-watchlist-item-meta">
                         · {wl.tickers.length} tickers
                         {wl.savedAt ? ` · saved ${new Date(wl.savedAt).toLocaleString()}` : ''}
+                        · {formatPreview(wl.tickers)}
                       </span>
-                      <div className="st-muted-note">{formatPreview(wl.tickers)}</div>
                     </div>
-                    <div className="d-flex gap-2">
+                    <div className="portfolio-watchlist-item-actions d-flex gap-2">
                       <button
                         type="button"
                         className="st-btn-ghost"

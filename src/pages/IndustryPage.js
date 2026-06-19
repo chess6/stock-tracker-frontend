@@ -16,6 +16,7 @@ import { signedHeatStyle, columnHeatStyle } from '../utils/heatMap';
 import { getCachedColumnMinMaxMap, rowsDatasetKey } from '../utils/heatmapCache';
 import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
+import { useHeatmapThemeKey } from '../hooks/useHeatmapThemeKey';
 import { tickerFinancialsUrl } from '../utils/tickerLinks';
 import './industry.css';
 
@@ -83,6 +84,7 @@ export default function IndustryPage() {
   const [loadingPeers, setLoadingPeers] = useState(false);
   const [error, setError] = useState('');
   const { showToast } = useToast();
+  const heatmapThemeKey = useHeatmapThemeKey();
 
   const handleAdd = useCallback((symbol) => {
     const notif = addToPortfolioWithNotification(symbol);
@@ -189,7 +191,7 @@ export default function IndustryPage() {
       ep: columnHeatStyle(row.ep, heatRanges.ep.min, heatRanges.ep.max),
       pctTo52wHi: signedHeatStyle(row.pctTo52wHi, 15),
     },
-  })), [rows, heatRanges]);
+  })), [rows, heatRanges, heatmapThemeKey]);
 
   const sectors = useMemo(() => {
     const map = {};
@@ -278,7 +280,7 @@ export default function IndustryPage() {
   ], [handleAdd]);
 
   return (
-    <div className="st-page st-page--full">
+    <div className="st-page st-page--full industry-page">
       <h1 className="st-page-heading">Industry Peers</h1>
       <p className="st-page-subtitle">Sub-industry peer view — companies grouped by SEC SIC industry (populated on fundamentals refresh).</p>
       {error && <div className="alert alert-danger py-2">{error}</div>}
@@ -369,6 +371,7 @@ export default function IndustryPage() {
                 getRowId={(row) => row.ticker}
                 enableRowSelection={false}
                 compact
+                maxHeight="calc(100dvh - 11rem)"
                 tableExtraClassName="portfolio-grid-table"
                 tableClassName="table table-sm table-bordered st-grid-table"
               />

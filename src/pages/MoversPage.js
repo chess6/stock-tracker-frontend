@@ -10,6 +10,7 @@ import { formatUsd, formatPercent } from '../utils/formatters';
 import { signedHeatStyle } from '../utils/heatMap';
 import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
+import { useHeatmapThemeKey } from '../hooks/useHeatmapThemeKey';
 import { tickerFinancialsUrl } from '../utils/tickerLinks';
 
 const MOVER_WINDOWS = [
@@ -40,7 +41,8 @@ function buildGridRows(movers) {
 }
 
 function MoversGrid({ label, changeHeader, movers, status, error, onAdd }) {
-  const gridRows = useMemo(() => buildGridRows(movers), [movers]);
+  const heatmapThemeKey = useHeatmapThemeKey();
+  const gridRows = useMemo(() => buildGridRows(movers), [movers, heatmapThemeKey]);
 
   const columns = useMemo(() => [
     {

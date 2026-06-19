@@ -7,6 +7,7 @@ import MacroTreemap from '../components/dashboard/MacroTreemap';
 import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
 import { tickerFinancialsUrl } from '../utils/tickerLinks';
 import { signedHeatStyle } from '../utils/heatMap';
+import { useHeatmapThemeKey } from '../hooks/useHeatmapThemeKey';
 import { formatPercent, formatUsd } from '../utils/formatters';
 import './dashboard.css';
 
@@ -20,6 +21,7 @@ const GROUP_LABELS = {
 };
 
 export default function DashboardPage() {
+  const heatmapThemeKey = useHeatmapThemeKey();
   const [items, setItems] = useState([]);
   const [meta, setMeta] = useState({});
   const [loading, setLoading] = useState(true);
@@ -92,7 +94,6 @@ export default function DashboardPage() {
             price,
             change,
             sector: q.sector || null,
-            _changeStyle: signedHeatStyle(change, 5),
           };
         });
         if (!cancelled) setPortfolioRows(built);
@@ -104,6 +105,14 @@ export default function DashboardPage() {
     })();
     return () => { cancelled = true; };
   }, [portfolioTickersKey]);
+
+  const portfolioRowsWithHeat = useMemo(
+    () => portfolioRows.map((row) => ({
+      ...row,
+      _changeStyle: signedHeatStyle(row.change, 5),
+    })),
+    [portfolioRows, heatmapThemeKey],
+  );
 
   const grouped = useMemo(() => {
     const map = {};
@@ -160,7 +169,7 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {portfolioRows.map((row) => (
+                  {portfolioRowsWithHeat.map((row) => (
                     <tr key={row.ticker}>
                       <td><Link to={tickerFinancialsUrl(row.ticker)} className="st-ticker fw-semibold">{row.ticker}</Link></td>
                       <td className="small text-muted">{row.name || '—'}</td>

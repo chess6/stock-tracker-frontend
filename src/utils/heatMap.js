@@ -3,13 +3,10 @@
  * Maps numeric values to graduated green/red (or blue) backgrounds by magnitude.
  */
 
+import { isDarkTheme } from './themeState';
+
 function clamp01(value) {
   return Math.max(0, Math.min(1, value));
-}
-
-function isDarkTheme() {
-  if (typeof document === 'undefined') return false;
-  return document.documentElement.getAttribute('data-bs-theme') === 'dark';
 }
 
 /** 5-step heat palette: faint → intense */

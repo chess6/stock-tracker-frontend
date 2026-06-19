@@ -1,42 +1,36 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import API_ENDPOINTS from '../apiConfig';
 import { loadUserPreferences } from '../utils/portfolio';
+import { clearHeatmapCache } from '../utils/heatmapCache';
+import { THEMES, applyTheme, getCurrentTheme } from '../utils/themeState';
 
-export const THEMES = {
-  DARK: 'dark',
-  LIGHT: 'light',
-};
-
-export function applyTheme(theme) {
-  document.documentElement.setAttribute('data-bs-theme', theme);
-}
+export { THEMES, applyTheme };
 
 export function getStoredTheme() {
-  return THEMES.DARK;
+  return getCurrentTheme();
 }
 
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState(THEMES.DARK);
+  const [theme, setThemeState] = useState(() => applyTheme(THEMES.DARK));
 
   useEffect(() => {
     let cancelled = false;
     loadUserPreferences().then((prefs) => {
       if (cancelled) return;
       if (prefs?.theme === THEMES.LIGHT || prefs?.theme === THEMES.DARK) {
+        applyTheme(prefs.theme);
+        clearHeatmapCache();
         setThemeState(prefs.theme);
       }
     });
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
-
   const setTheme = (next) => {
-    const resolved = next === THEMES.LIGHT ? THEMES.LIGHT : THEMES.DARK;
+    const resolved = applyTheme(next);
+    clearHeatmapCache();
     setThemeState(resolved);
     fetch(API_ENDPOINTS.PREFERENCES, {
       method: 'PUT',

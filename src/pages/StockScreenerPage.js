@@ -9,14 +9,17 @@ import { formatDecimal, formatUsd } from '../utils/formatters';
 import { insiderDollarStyle } from '../utils/heatMap';
 import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
+import { useHeatmapThemeKey } from '../hooks/useHeatmapThemeKey';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { formatFreshnessTimestamp } from '../utils/dataFreshness';
 import { insiderScreenerUrl, tickerFindersUrl, tickerFinancialsUrl } from '../utils/tickerLinks';
+import { isDarkTheme } from '../utils/themeState';
 
 const CLUSTER_MIN_BUY_VALUE = 100000;
 
 const StockScreenerPage = () => {
+  useHeatmapThemeKey();
   const rows = useSelector((state) => state.screener.rows);
   const loaded = useSelector((state) => state.screener.loaded);
   const error = useSelector((state) => state.screener.error);
@@ -208,8 +211,7 @@ const StockScreenerPage = () => {
         if (owners >= 3) {
           const capped = Math.min(owners, 12);
           const lightness = 25 + (capped - 3) * 7;
-          const dark = typeof document !== 'undefined'
-            && document.documentElement.getAttribute('data-bs-theme') === 'dark';
+          const dark = isDarkTheme();
           const color = dark
             ? (lightness < 45 ? '#f0fff4' : '#0a2e14')
             : (lightness < 40 ? '#fff' : '#222');

@@ -7,6 +7,7 @@ import {
 } from '../../utils/chartTheme';
 import { formatDecimal, formatPercent } from '../../utils/formatters';
 import { signedHeatStyle } from '../../utils/heatMap';
+import { useHeatmapThemeKey } from '../../hooks/useHeatmapThemeKey';
 import { divergenceSignalLabel, narrativeStateLabel } from '../../config/narrativeStates';
 
 function formatSentiment(value) {
@@ -22,6 +23,7 @@ export default function NarrativePanel({
   tablesOnly = false,
   deepDive = false,
 }) {
+  const heatmapThemeKey = useHeatmapThemeKey();
   const sentimentTrend = narrativeData?.sentimentTrend;
   const movingAverages = sentimentTrend?.movingAverages || {};
   const divergence = narrativeData?.divergence;
@@ -60,7 +62,7 @@ export default function NarrativePanel({
     ],
     tooltip: { shared: true },
     colors: ['#5b9cf5', '#f5a623'],
-  }), []);
+  }), [heatmapThemeKey]);
 
   const overlaySeries = useMemo(() => {
     const overlay = narrativeData?.priceOverlay || [];
@@ -106,7 +108,7 @@ export default function NarrativePanel({
     tooltip: {
       y: { formatter: (value) => formatSentiment(value) },
     },
-  }), []);
+  }), [heatmapThemeKey]);
 
   const sentimentSeries = useMemo(() => ([{
     name: 'Sentiment',

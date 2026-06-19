@@ -1,3 +1,5 @@
+import { isDarkTheme } from './themeState';
+
 // Format large share numbers with commas
 export function formatShares(value) {
     const num = Number(value);
@@ -85,11 +87,6 @@ export function formatCompactUsd(value, significantDigits = 3) {
     const compact = formatCompactNumber(absVal, significantDigits);
     if (compact === '-') return '-';
     return (num < 0 ? '-$' : '$') + compact;
-}
-
-function isDarkTheme() {
-    if (typeof document === 'undefined') return false;
-    return document.documentElement.getAttribute('data-bs-theme') === 'dark';
 }
 
 /** Green/red background intensity scaled by |percent change|. */

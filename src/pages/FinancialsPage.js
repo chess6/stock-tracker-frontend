@@ -9,6 +9,7 @@ import MetricTooltipLabel from '../components/research/MetricTooltipLabel';
 import MarginTrendChart from '../components/research/MarginTrendChart';
 import StTooltip, { StTooltipText } from '../components/StTooltip';
 import { useToast } from '../context/ToastContext';
+import { useHeatmapThemeKey } from '../hooks/useHeatmapThemeKey';
 import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
 import { isRegistryLoaded, loadMetricRegistry } from '../config/metricRegistry';
 import { formatMetricCellTooltip } from '../config/tooltipRegistry';
@@ -152,6 +153,7 @@ function toggleCollapsiblePanel(event, setOpen) {
 const FinancialsPage = () => {
   const { ticker } = useParams();
   const { showToast } = useToast();
+  const heatmapThemeKey = useHeatmapThemeKey();
   const [periodSeries, setPeriodSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('annual');
@@ -258,7 +260,7 @@ const FinancialsPage = () => {
       });
     });
     return rows;
-  }, [groupsToShow, columnPeriods, hideEmptyRows, activeType, registryReady]);
+  }, [groupsToShow, columnPeriods, hideEmptyRows, activeType, registryReady, heatmapThemeKey]);
 
   const columns = useMemo(() => {
     const fmt = (value, format) => formatCellValue(value, format, { compact: true });
@@ -472,7 +474,7 @@ const FinancialsPage = () => {
         y: { formatter: (val) => compactAxisLabel(val) || '-' },
       },
     });
-  }, [chartMode, chartCategories, chartYearLabels]);
+  }, [chartMode, chartCategories, chartYearLabels, heatmapThemeKey]);
 
   const toggleChartMetric = useCallback((key) => {
     if (!key) return;

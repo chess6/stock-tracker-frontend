@@ -6,6 +6,7 @@ import {
 } from '../../config/compositePresets';
 import { formatCompositeScore } from '../../utils/compositeRank';
 import { signedHeatBackground, signedHeatStyle } from '../../utils/heatMap';
+import { useHeatmapThemeKey } from '../../hooks/useHeatmapThemeKey';
 
 function percentileHeatValue(normalized) {
   if (normalized == null || Number.isNaN(Number(normalized))) return null;
@@ -98,6 +99,7 @@ export default function RankFactorChart({
   loading = false,
   embedded = false,
 }) {
+  useHeatmapThemeKey();
   const preset = useMemo(() => getCompositePreset(compositeId), [compositeId]);
   const factors = useMemo(
     () => mergeFactorsWithPreset(rankRow, compositeId),

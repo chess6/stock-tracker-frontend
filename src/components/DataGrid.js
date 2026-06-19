@@ -1,5 +1,6 @@
 import './DataGrid.css';
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback, memo } from 'react';
+import { useTheme } from '../context/ThemeContext';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { readResearchScroll, saveResearchScroll } from '../utils/researchScrollState';
 import ColumnHeader from './ColumnHeader';
@@ -172,6 +173,7 @@ export default function DataGrid({
   activeRowId,
   showToolbar = true,
 }) {
+  const { theme } = useTheme();
   const defaultColWidth = 150;
   const stickyColumnKey = stickyColumnIds.join(',');
   const stickyIds = useMemo(
@@ -192,6 +194,7 @@ export default function DataGrid({
     controlledColumnVisibility ?? defaultVisible.filter((id) => allColumnIds.includes(id)),
   );
   const scrollRef = useRef(null);
+  const loadMoreSentinelRef = useRef(null);
 
   const rowSelection = controlledRowSelection ?? internalRowSelection;
   const handleRowSelectionChange = onRowSelectionChange ?? setInternalRowSelection;
@@ -280,19 +283,55 @@ export default function DataGrid({
   const rowCountRef = useRef(0);
   rowCountRef.current = table.getRowModel().rows.length;
 
+  const loadMoreRows = useCallback(() => {
+    setVisibleCount((prev) => {
+      const total = rowCountRef.current;
+      if (prev >= total) return prev;
+      return Math.min(prev + pageChunkSize, total);
+    });
+  }, [pageChunkSize]);
+
   const onScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const threshold = Math.max(600, el.clientHeight);
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - threshold) {
-      setVisibleCount((prev) => Math.min(prev + pageChunkSize, rowCountRef.current));
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 48) {
+      loadMoreRows();
     }
-  }, [pageChunkSize]);
+  }, [loadMoreRows]);
 
   // Build the list of rows to render (filtered and sorted by table, then sliced)
   const allRows = table.getRowModel().rows;
   const totalCount = allRows.length;
   const rowsToRender = allRows.slice(0, visibleCount);
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel || totalCount <= visibleCount) return undefined;
+
+    const getScrollRoot = () => {
+      const el = scrollRef.current;
+      if (!el) return null;
+      if (maxHeight) return el;
+      if (el.scrollHeight > el.clientHeight + 1) return el;
+      return null;
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          loadMoreRows();
+        }
+      },
+      {
+        root: getScrollRoot(),
+        rootMargin: '120px',
+        threshold: 0,
+      },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [totalCount, visibleCount, maxHeight, loadMoreRows, data.length]);
 
   const visibleHeaders = table.getHeaderGroups()[0]?.headers ?? [];
   const visibleColumnsKey = effectiveVisibleColumns.join(',');
@@ -437,6 +476,7 @@ export default function DataGrid({
       >
         <div className="d-inline-block" style={{ minWidth: '100%' }}>
           <table
+            key={theme}
             className={`${tableClassName} data-grid-table ${tableExtraClassName}`.trim()}
             style={{
               tableLayout: compact ? 'auto' : 'fixed',
@@ -667,7 +707,11 @@ export default function DataGrid({
             </tbody>
           </table>
           {totalCount > rowsToRender.length && (
-            <div className="text-center text-muted py-2" style={{ fontSize: 12 }}>
+            <div
+              ref={loadMoreSentinelRef}
+              className="text-center text-muted py-2"
+              style={{ fontSize: 12 }}
+            >
               Showing {rowsToRender.length} of {totalCount} rows. Scroll to load more…
             </div>
           )}
