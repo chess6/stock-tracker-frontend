@@ -8,6 +8,7 @@ import CapitalStructureSummary from './CapitalStructureSummary';
 import NarrativePanel from './NarrativePanel';
 import CompositeFactorPanel from './CompositeFactorPanel';
 import CompositeRankHistory from './CompositeRankHistory';
+import ThesisDriftChart from './ThesisDriftChart';
 import PillarRadarPanel from './PillarRadarPanel';
 import PillarFactorPanel from './PillarFactorPanel';
 import ThesisPanel from './ThesisPanel';
@@ -34,6 +35,8 @@ export default function ResearchDeepDive({
   compositeRank,
   compositeRankHistory,
   compositeRankLoading,
+  thesisDriftHistory,
+  thesisDriftLoading,
   compositeId,
   pillarData,
   pillarLoading,
@@ -175,6 +178,22 @@ export default function ResearchDeepDive({
           <div className="st-panel-body research-pillar-split">
             <PillarRadarPanel pillarData={pillarData} loading={pillarLoading} embedded />
             <PillarFactorPanel pillars={pillarData?.pillars || []} loading={pillarLoading} />
+          </div>
+        </div>
+      </div>
+
+      <div className="research-thesis-drift-row">
+        <div className="st-panel research-thesis-drift-panel">
+          <div className="st-panel-header">
+            <StIcon icon={RESEARCH_ICONS.scores} />
+            Thesis Drift
+          </div>
+          <div className="st-panel-body research-panel-body-tight">
+            <ThesisDriftChart
+              history={thesisDriftHistory}
+              loading={thesisDriftLoading}
+              compact
+            />
           </div>
         </div>
       </div>

@@ -114,18 +114,25 @@ export default function BootstrapPipeline({
   const [focusedStepId, setFocusedStepId] = useState(BOOTSTRAP_STEPS[0]?.id);
   const [running, setRunning] = useState(false);
   const [fullSlowRun, setFullSlowRun] = useState(false);
+  const [extractArticles, setExtractArticles] = useState(false);
   const [fullRunConfirmOpen, setFullRunConfirmOpen] = useState(false);
 
+  const pipelineIngestOptions = useMemo(
+    () => ({ extractArticles: fullSlowRun && extractArticles }),
+    [fullSlowRun, extractArticles],
+  );
   const selectedCount = selected.size;
   const pipelineMode = fullSlowRun ? PIPELINE_MODES.FULL : PIPELINE_MODES.FAST;
   const selectedStepIds = useMemo(() => [...selected], [selected]);
   const durationEstimate = useMemo(
-    () => estimatePipelineDuration(selectedStepIds, pipelineMode, tickersCsv),
-    [selectedStepIds, pipelineMode, tickersCsv],
+    () => estimatePipelineDuration(selectedStepIds, pipelineMode, tickersCsv, pipelineIngestOptions),
+    [selectedStepIds, pipelineMode, tickersCsv, pipelineIngestOptions],
   );
   const fullRunConfirmContent = useMemo(
-    () => (fullSlowRun ? buildFullRunConfirmationContent(selectedStepIds, tickersCsv) : null),
-    [fullSlowRun, selectedStepIds, tickersCsv],
+    () => (fullSlowRun
+      ? buildFullRunConfirmationContent(selectedStepIds, tickersCsv, pipelineIngestOptions)
+      : null),
+    [fullSlowRun, selectedStepIds, tickersCsv, pipelineIngestOptions],
   );
   const tickersMissing = !tickersCsv.trim();
   const tickerStepsSelected = BOOTSTRAP_STEPS.some(
@@ -149,8 +156,8 @@ export default function BootstrapPipeline({
   const focusedResult = stepResults[focusedStep.id];
   const focusedResultText = formatPipelineStepResult(focusedStep.id, focusedResult);
   const focusedModeDescription = useMemo(
-    () => stepDescriptionForMode(focusedStep.id, pipelineMode),
-    [focusedStep.id, pipelineMode],
+    () => stepDescriptionForMode(focusedStep.id, pipelineMode, pipelineIngestOptions),
+    [focusedStep.id, pipelineMode, pipelineIngestOptions],
   );
 
   const toggleStep = (stepId) => {
@@ -190,6 +197,7 @@ export default function BootstrapPipeline({
         selectedStepIds,
         tickersCsv,
         mode: pipelineMode,
+        extractArticles: pipelineIngestOptions.extractArticles,
         onStepStatus: (stepId, status) => {
           setStepStatus((prev) => ({ ...prev, [stepId]: status }));
         },
@@ -221,7 +229,7 @@ export default function BootstrapPipeline({
     } finally {
       setRunning(false);
     }
-  }, [onComplete, pipelineMode, selected, selectedStepIds, showToast, tickersCsv]);
+  }, [onComplete, pipelineIngestOptions.extractArticles, pipelineMode, selected, selectedStepIds, showToast, tickersCsv]);
 
   const handleRun = () => {
     if (selectedCount === 0) {
@@ -381,14 +389,33 @@ export default function BootstrapPipeline({
             id="bootstrap-full-slow-run"
             checked={fullSlowRun}
             disabled={disabled || running}
-            onChange={(event) => setFullSlowRun(event.target.checked)}
+            onChange={(event) => {
+              const enabled = event.target.checked;
+              setFullSlowRun(enabled);
+              if (!enabled) setExtractArticles(false);
+            }}
           />
           <label className="form-check-label small" htmlFor="bootstrap-full-slow-run">
-            {`Full slow run (${FULL_LIMITS.ingest_feeds.maxArticlesPerFeed} articles/feed, full article extraction, longer history)`}
+            {`Full slow run (${FULL_LIMITS.ingest_feeds.maxArticlesPerFeed} articles/feed, longer history, more filings)`}
           </label>
         </div>
+        {fullSlowRun && (
+          <div className="form-check ms-4 mt-1">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id="bootstrap-extract-articles"
+              checked={extractArticles}
+              disabled={disabled || running}
+              onChange={(event) => setExtractArticles(event.target.checked)}
+            />
+            <label className="form-check-label small" htmlFor="bootstrap-extract-articles">
+              Full HTML article extraction (much slower feed ingest)
+            </label>
+          </div>
+        )}
         <div className="text-muted small mt-1">
-          {modeSummary(pipelineMode)}
+          {modeSummary(pipelineMode, pipelineIngestOptions)}
           {selectedCount > 0 && (
             <span className="ms-1">
               Estimated total:
@@ -434,7 +461,7 @@ export default function BootstrapPipeline({
               Estimated total: <strong>{fullRunConfirmContent.totalRange}</strong>
             </p>
             <p className="bootstrap-pipeline-confirm-copy">
-              Full article HTML extraction, up to {fullRunConfirmContent.maxArticlesPerFeed} articles
+              {fullRunConfirmContent.extractionLabel}, up to {fullRunConfirmContent.maxArticlesPerFeed} articles
               per feed, longer price history, and more insider filings.
               {fullRunConfirmContent.ingestRange && (
                 <>

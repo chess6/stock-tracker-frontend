@@ -107,4 +107,19 @@ describe('bootstrapPipelineRunner', () => {
     });
     expect(text).toContain('AAPL: 2 articles updated');
   });
+
+  test('full ingest passes extractArticles query flag', async () => {
+    axios.post.mockResolvedValue({ data: { feeds: [] } });
+
+    await runBootstrapPipeline({
+      selectedStepIds: ['ingest_feeds'],
+      tickersCsv: '',
+      mode: 'full',
+      extractArticles: true,
+    });
+
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    expect(axios.post.mock.calls[0][0]).toContain('extractArticles=true');
+    expect(axios.post.mock.calls[0][0]).toContain('maxArticlesPerFeed=30');
+  });
 });

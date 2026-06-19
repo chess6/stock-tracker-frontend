@@ -8,6 +8,7 @@ import PillarRadarPanel from '../components/research/PillarRadarPanel';
 import InsiderPanel from '../components/research/InsiderPanel';
 import NarrativePanel from '../components/research/NarrativePanel';
 import MarginTrendChart from '../components/research/MarginTrendChart';
+import RankFactorChart from '../components/research/RankFactorChart';
 import CapitalStructureSummary from '../components/research/CapitalStructureSummary';
 import MetricSparkline from '../components/research/MetricSparkline';
 import StIcon from '../components/StIcon';
@@ -579,6 +580,23 @@ export default function ResearchOverviewPage() {
         compositeRank={compositeRank}
         compositeRankLoading={compositeRankLoading}
       />
+
+      {(compositeRank || compositeRankLoading) && (
+        <div className="st-panel research-overview-rank-panel">
+          <div className="st-panel-header">
+            <StIcon icon={RESEARCH_ICONS.scoreBreakdown} />
+            Rank Factor Breakdown
+          </div>
+          <div className="st-panel-body research-panel-body-tight research-overview-composite-rank">
+            <RankFactorChart
+              rankRow={compositeRank}
+              compositeId={DEFAULT_COMPOSITE_ID}
+              loading={compositeRankLoading}
+              embedded
+            />
+          </div>
+        </div>
+      )}
 
       <div className="research-overview-grid">
         <div className="st-panel research-overview-col">

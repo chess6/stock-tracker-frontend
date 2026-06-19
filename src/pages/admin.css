@@ -109,3 +109,41 @@
 .admin-stat-list li {
   margin-bottom: 0.1rem;
 }
+
+.admin-feature-flags-panel {
+  margin-bottom: 0.25rem;
+}
+
+.admin-feature-flags-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.74rem;
+  color: var(--st-accent-amber);
+}
+
+.admin-feature-flags-summary-meta {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--st-text-muted);
+}
+
+.article-enrichment-panel {
+  background: var(--st-pipeline-bg, #f8f9fa);
+  border-color: var(--st-pipeline-border, #dee2e6) !important;
+}
+
+.article-enrichment-progress-bar {
+  height: 0.55rem;
+  background: var(--st-pipeline-border, #dee2e6);
+}
+
+.article-enrichment-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}

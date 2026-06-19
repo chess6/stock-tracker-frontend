@@ -31,6 +31,7 @@ import {
   clonePreset,
   deleteSavedScreen,
   getSavedScreens,
+  hydrateSavedScreensFromApi,
   saveScreen,
 } from '../utils/savedScreens';
 import { COMPOSITE_PRESETS, DEFAULT_COMPOSITE_ID, RANK_DELTA_LABEL } from '../config/compositePresets';
@@ -129,6 +130,15 @@ export default function ScreenPage() {
     hydratePinnedTickersFromApi(() => !pinsLocallyModifiedRef.current).then((tickers) => {
       if (cancelled || pinsLocallyModifiedRef.current) return;
       setPinnedTickers(tickers);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    hydrateSavedScreensFromApi().then((screens) => {
+      if (cancelled) return;
+      setSavedScreens(screens);
     }).catch(() => {});
     return () => { cancelled = true; };
   }, []);

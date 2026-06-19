@@ -22,6 +22,33 @@ export const FEATURE_FLAG_META = [
   {
     key: 'embedding_heavy_retag',
     label: 'Embedding-heavy retag',
-    description: 'Use heavier embedding models for article retagging and enrichment workers.',
+    description:
+      'Default ON for embedding-heavy paths: worker enrich jobs, admin retag/enrich when not overridden in the request body.',
+  },
+  {
+    key: 'experimental_research_queue',
+    label: 'Research queue',
+    description:
+      'Enables GET /api/research/queue, dismiss endpoint, and nightly build_research_queue worker job.',
+  },
+  {
+    key: 'experimental_thesis_versioning',
+    label: 'Thesis versioning',
+    description: 'Reserved for thesis snapshot skip logic and future pipeline gating.',
+  },
+  {
+    key: 'experimental_backtest_route',
+    label: 'Backtest HTTP route',
+    description: 'Reserved for a future HTTP backtest endpoint (CLI backtest available via scripts/backtest.py).',
+  },
+  {
+    key: 'experimental_insider_alerts',
+    label: 'Insider alerts API',
+    description: 'Enables GET /api/research/insider-alerts for insider cluster signal alerts.',
+  },
+  {
+    key: 'experimental_narrative_alerts',
+    label: 'Narrative alerts API',
+    description: 'Enables GET /api/research/narrative-alerts for narrative divergence alerts.',
   },
 ];

@@ -8,6 +8,7 @@ import {
   buildStepRequestUrl,
   chunkCountForTickers,
   estimateFullIngestFeedsDuration,
+  estimateIngestFeedsDuration,
   estimatePipelineDuration,
   formatSecondsRange,
   modeSummary,
@@ -18,22 +19,27 @@ import { defaultSelectedStepIds } from './bootstrapPipeline';
 describe('bootstrapPipelineModes', () => {
   test('fast limits use bounded ingest and price history', () => {
     expect(FAST_LIMITS.ingest_feeds.extractArticles).toBe(false);
-    expect(FAST_LIMITS.ingest_feeds.maxArticlesPerFeed).toBe(25);
+    expect(FAST_LIMITS.ingest_feeds.maxArticlesPerFeed).toBe(10);
     expect(FAST_LIMITS.prices.days).toBe(90);
     expect(FAST_LIMITS.insiders.maxFilingsPerCompany).toBe(10);
   });
 
-  test('full limits enable extraction and longer history', () => {
-    expect(FULL_LIMITS.ingest_feeds.extractArticles).toBe(true);
-    expect(FULL_LIMITS.ingest_feeds.maxArticlesPerFeed).toBe(100);
+  test('full limits default to RSS summaries with longer history', () => {
+    expect(FULL_LIMITS.ingest_feeds.extractArticles).toBe(false);
+    expect(FULL_LIMITS.ingest_feeds.maxArticlesPerFeed).toBe(30);
     expect(FULL_LIMITS.prices.days).toBe(400);
     expect(FULL_LIMITS.insiders.maxFilingsPerCompany).toBe(40);
   });
 
-  test('full ingest estimate scales with 100-article cap', () => {
+  test('summary ingest estimate matches fast observed range', () => {
+    const estimate = estimateIngestFeedsDuration(FULL_LIMITS);
+    expect(estimate).toEqual({ min: 90, max: 150 });
+  });
+
+  test('html ingest estimate scales with 30-article cap', () => {
     const estimate = estimateFullIngestFeedsDuration();
     expect(estimate.min).toBe(DEFAULT_FEED_COUNT * 20);
-    expect(estimate.max).toBe(DEFAULT_FEED_COUNT * 50);
+    expect(estimate.max).toBe(DEFAULT_FEED_COUNT * 26);
     expect(estimate.max).toBeLessThan(45 * 60);
     expect(estimate.max).toBeLessThan(90 * 60);
   });
@@ -41,14 +47,22 @@ describe('bootstrapPipelineModes', () => {
   test('buildStepRequestUrl encodes fast ingest params', () => {
     const suffix = buildStepRequestUrl('ingest_feeds', { tickersCsv: '', mode: PIPELINE_MODES.FAST });
     expect(suffix).toContain('extractArticles=false');
-    expect(suffix).toContain('maxArticlesPerFeed=25');
+    expect(suffix).toContain('maxArticlesPerFeed=10');
     expect(suffix).toContain('forceRefresh=false');
   });
 
   test('buildStepRequestUrl encodes full price and insider params', () => {
     const ingest = buildStepRequestUrl('ingest_feeds', { tickersCsv: '', mode: PIPELINE_MODES.FULL });
-    expect(ingest).toContain('extractArticles=true');
-    expect(ingest).toContain('maxArticlesPerFeed=100');
+    expect(ingest).toContain('extractArticles=false');
+    expect(ingest).toContain('maxArticlesPerFeed=30');
+
+    const ingestHtml = buildStepRequestUrl('ingest_feeds', {
+      tickersCsv: '',
+      mode: PIPELINE_MODES.FULL,
+      extractArticles: true,
+    });
+    expect(ingestHtml).toContain('extractArticles=true');
+    expect(ingestHtml).toContain('maxArticlesPerFeed=30');
 
     const prices = buildStepRequestUrl('prices', { tickersCsv: 'AAPL,MSFT', mode: PIPELINE_MODES.FULL });
     expect(prices).toContain('tickers=AAPL%2CMSFT');
@@ -96,8 +110,31 @@ describe('bootstrapPipelineModes', () => {
     expect(full.maxSeconds).toBeGreaterThan(fast.maxSeconds);
     expect(full.steps.some((step) => step.stepId === 'ingest_feeds')).toBe(true);
     const fullIngest = full.steps.find((step) => step.stepId === 'ingest_feeds');
-    expect(fullIngest.maxSeconds).toBe(estimateFullIngestFeedsDuration().max);
+    expect(fullIngest.maxSeconds).toBe(150);
     expect(fullIngest.maxSeconds).toBeLessThan(90 * 60);
+
+    const fullHtml = estimatePipelineDuration(
+      defaultSelectedStepIds(),
+      PIPELINE_MODES.FULL,
+      tickers,
+      { extractArticles: true },
+    );
+    const fullHtmlIngest = fullHtml.steps.find((step) => step.stepId === 'ingest_feeds');
+    expect(fullHtmlIngest.maxSeconds).toBe(estimateFullIngestFeedsDuration().max);
+    expect(fullHtml.maxSeconds).toBeGreaterThan(full.maxSeconds);
+  });
+
+  test('confirmation message reflects extraction toggle', () => {
+    const summaryMessage = buildFullRunConfirmationMessage(['ingest_feeds', 'prices'], 'AAPL');
+    expect(summaryMessage).toContain('RSS summaries only');
+    expect(summaryMessage).not.toContain('HTML extraction');
+
+    const htmlMessage = buildFullRunConfirmationMessage(
+      ['ingest_feeds', 'prices'],
+      'AAPL',
+      { extractArticles: true },
+    );
+    expect(htmlMessage).toContain('full article HTML extraction');
   });
 
   test('confirmation message includes total estimate and step breakdown', () => {
@@ -119,7 +156,15 @@ describe('bootstrapPipelineModes', () => {
   test('modeSummary describes fast and full defaults', () => {
     expect(modeSummary(PIPELINE_MODES.FAST)).toContain('Fast run');
     expect(modeSummary(PIPELINE_MODES.FULL)).toContain('Full run');
-    expect(modeSummary(PIPELINE_MODES.FULL)).toContain('100 articles/feed');
+    expect(modeSummary(PIPELINE_MODES.FULL)).toContain('RSS summaries only');
+    expect(modeSummary(PIPELINE_MODES.FULL)).toContain('30 articles/feed');
+    expect(modeSummary(PIPELINE_MODES.FULL, { extractArticles: true })).toContain('HTML article extraction');
+  });
+
+  test('stepDescriptionForMode reflects extraction toggle on ingest', () => {
+    expect(stepDescriptionForMode('ingest_feeds', PIPELINE_MODES.FULL)).toContain('summaries only');
+    expect(stepDescriptionForMode('ingest_feeds', PIPELINE_MODES.FULL, { extractArticles: true }))
+      .toContain('full HTML extraction');
   });
 
   test('stepDescriptionForMode omits duplicate text for sync_companies', () => {

@@ -1405,8 +1405,77 @@
 }
 
 .research-thesis-row,
-.research-pillar-row {
+.research-pillar-row,
+.research-thesis-drift-row {
   margin-bottom: 0;
+}
+
+.research-thesis-drift-panel {
+  margin-bottom: 0.35rem;
+}
+
+.thesis-drift-chart-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.thesis-drift-single-score {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.thesis-drift-gate-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+}
+
+.thesis-drift-gate-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+}
+
+.thesis-drift-gate-date {
+  min-width: 4.5rem;
+  color: var(--st-text-muted);
+}
+
+.thesis-drift-gate-dots {
+  display: inline-flex;
+  gap: 0.2rem;
+}
+
+.thesis-drift-gate {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.thesis-drift-gate--pass {
+  background: #2f8f4e;
+}
+
+.thesis-drift-gate--fail {
+  background: #9b2226;
+}
+
+.thesis-drift-gate--unknown {
+  background: #6c757d;
+}
+
+.thesis-drift-disqualified {
+  margin-left: auto;
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  background: rgba(155, 34, 38, 0.15);
+  font-weight: 600;
+  font-size: 0.62rem;
 }
 
 .research-pillar-split {
@@ -1572,7 +1641,28 @@
 
 .research-overview-composite-rank {
   padding-top: 0.35rem;
-  border-top: 1px solid var(--st-border);
+}
+
+.research-overview-rank-panel {
+  margin-bottom: 0;
+}
+
+.rank-factor-unavailable {
+  color: var(--st-muted, #9aa0a6);
+  font-style: italic;
+}
+
+.rank-factor-bar-missing {
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.04) 4px,
+    rgba(255, 255, 255, 0.08) 4px,
+    rgba(255, 255, 255, 0.08) 8px
+  );
 }
 
 .research-overview-kpi-row {

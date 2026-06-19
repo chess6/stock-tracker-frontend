@@ -3,16 +3,38 @@ export const COMPOSITE_PRESETS = [
     id: 'deep_value',
     label: 'Deep Value Opportunity',
     description: 'Valuation dislocation, survivability, insider conviction, margins, FCF quality.',
+    factors: [
+      { key: 'valuation_dislocation', weight: 0.25 },
+      { key: 'survivability', weight: 0.20 },
+      { key: 'insider_conviction', weight: 0.15 },
+      { key: 'sentiment_divergence', weight: 0.15 },
+      { key: 'margin_stabilization', weight: 0.15 },
+      { key: 'fcf_quality', weight: 0.10 },
+    ],
   },
   {
     id: 'turnaround',
     label: 'Turnaround Strength',
     description: 'Margin recovery, Altman improvement, insider buying, FCF stabilization.',
+    factors: [
+      { key: 'gross_margin_recovery', weight: 0.25 },
+      { key: 'altman_improvement', weight: 0.20 },
+      { key: 'insider_buying', weight: 0.20 },
+      { key: 'fcf_stabilization', weight: 0.20 },
+      { key: 'survivability', weight: 0.15 },
+    ],
   },
   {
     id: 'rerating_candidate',
     label: 'Rerating Candidate',
     description: 'Improving fundamentals, negative sentiment divergence, insider accumulation.',
+    factors: [
+      { key: 'sentiment_divergence', weight: 0.30 },
+      { key: 'insider_conviction', weight: 0.25 },
+      { key: 'gross_margin_recovery', weight: 0.20 },
+      { key: 'survivability', weight: 0.15 },
+      { key: 'altman_improvement', weight: 0.10 },
+    ],
   },
 ];
 
@@ -35,6 +57,10 @@ export const FACTOR_LABELS = {
 
 export function getCompositePreset(id) {
   return COMPOSITE_PRESETS.find((item) => item.id === id) || COMPOSITE_PRESETS[0];
+}
+
+export function getCompositeFactorDefs(id) {
+  return getCompositePreset(id).factors || [];
 }
 
 export function factorLabel(key) {

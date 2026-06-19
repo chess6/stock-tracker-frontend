@@ -65,16 +65,19 @@ function stripTickersFromQuery(querySuffix) {
   return next ? `?${next}` : '';
 }
 
-function buildStepPostConfig(step, tickers, mode) {
+function buildStepPostConfig(step, tickers, mode, extractArticles = false) {
   const endpoint = STEP_ENDPOINTS[step.id];
   if (step.id === 'ingest_feeds') {
     const querySuffix = buildStepRequestUrl(step.id, {
       tickersCsv: tickers.join(','),
       mode,
+      extractArticles,
     }) || '';
     return { url: `${endpoint}${querySuffix}`, body: undefined };
   }
-  const querySuffix = stripTickersFromQuery(buildStepRequestUrl(step.id, { tickersCsv: '', mode }) || '');
+  const querySuffix = stripTickersFromQuery(
+    buildStepRequestUrl(step.id, { tickersCsv: '', mode, extractArticles }) || '',
+  );
   const url = `${endpoint}${querySuffix}`;
   const body = tickers.length ? { tickers } : undefined;
   return { url, body };
@@ -107,20 +110,20 @@ function mergeTickerStepResults(stepId, chunks) {
   return chunks[chunks.length - 1] || {};
 }
 
-async function postStepRequest(step, tickers, mode) {
-  const { url, body } = buildStepPostConfig(step, tickers, mode);
+async function postStepRequest(step, tickers, mode, extractArticles = false) {
+  const { url, body } = buildStepPostConfig(step, tickers, mode, extractArticles);
   const response = await axios.post(url, body);
   return response.data;
 }
 
-async function runTickerChunkedStep(step, tickers, mode) {
+async function runTickerChunkedStep(step, tickers, mode, extractArticles = false) {
   const chunks = chunkTickers(tickers);
   const results = [];
   const chunkErrors = [];
 
   for (const chunk of chunks) {
     try {
-      results.push(await postStepRequest(step, chunk, mode));
+      results.push(await postStepRequest(step, chunk, mode, extractArticles));
     } catch (error) {
       chunkErrors.push(formatStepError(error));
     }
@@ -136,13 +139,17 @@ async function runTickerChunkedStep(step, tickers, mode) {
   return { data };
 }
 
-async function runMarketReactionsStep(endpoint, tickersCsv, mode) {
+async function runMarketReactionsStep(endpoint, tickersCsv, mode, extractArticles = false) {
   const tickers = parseTickersCsv(tickersCsv);
   if (!tickers.length) {
     throw new Error('No tickers to backfill — enter symbols in the tickers field');
   }
 
-  const querySuffix = buildStepRequestUrl('market_reactions', { tickersCsv, mode }) || '';
+  const querySuffix = buildStepRequestUrl('market_reactions', {
+    tickersCsv,
+    mode,
+    extractArticles,
+  }) || '';
   const queryParams = querySuffix.startsWith('?') ? querySuffix.slice(1) : querySuffix;
 
   const successes = [];
@@ -169,21 +176,21 @@ async function runMarketReactionsStep(endpoint, tickersCsv, mode) {
   return { data };
 }
 
-async function runStep(step, tickersCsv, mode) {
+async function runStep(step, tickersCsv, mode, extractArticles = false) {
   const endpoint = STEP_ENDPOINTS[step.id];
   if (!endpoint) {
     throw new Error(`Unknown pipeline step: ${step.id}`);
   }
   if (step.id === 'market_reactions') {
-    return runMarketReactionsStep(endpoint, tickersCsv, mode);
+    return runMarketReactionsStep(endpoint, tickersCsv, mode, extractArticles);
   }
 
   const tickers = parseTickersCsv(tickersCsv);
   if (TICKER_CHUNK_STEPS.has(step.id) && tickers.length > TICKER_CHUNK_SIZE) {
-    return runTickerChunkedStep(step, tickers, mode);
+    return runTickerChunkedStep(step, tickers, mode, extractArticles);
   }
 
-  const data = await postStepRequest(step, tickers, mode);
+  const data = await postStepRequest(step, tickers, mode, extractArticles);
   return { data };
 }
 
@@ -196,6 +203,7 @@ export async function runBootstrapPipeline({
   tickersCsv,
   onStepStatus,
   mode = PIPELINE_MODES.FAST,
+  extractArticles = false,
 }) {
   const waves = buildExecutionWaves(selectedStepIds);
   const stepResults = {};
@@ -221,7 +229,7 @@ export async function runBootstrapPipeline({
     for (const step of runnable) {
       setStatus(step.id, 'running');
       try {
-        const result = await runStep(step, tickersCsv, mode);
+        const result = await runStep(step, tickersCsv, mode, extractArticles);
         if (result.error) {
           failedCount += 1;
           stepResults[step.id] = { status: 'error', error: result.error, data: result.data };

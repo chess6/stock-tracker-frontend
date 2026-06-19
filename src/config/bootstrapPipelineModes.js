@@ -6,7 +6,8 @@ export const PIPELINE_MODES = {
 };
 
 /** Default feed count — keep in sync with backend DEFAULT_FEEDS length. */
-export const DEFAULT_FEED_COUNT = 53;
+export const DEFAULT_FEED_COUNT = 49;
+export const DEFAULT_ACTIVE_FEED_COUNT = 44;
 
 /** Keep in sync with bootstrapPipelineRunner TICKER_CHUNK_SIZE. */
 export const TICKER_CHUNK_SIZE = 40;
@@ -31,7 +32,7 @@ const FULL_CHUNK_SECONDS = {
 export const FAST_LIMITS = {
   ingest_feeds: {
     extractArticles: false,
-    maxArticlesPerFeed: 25,
+    maxArticlesPerFeed: 10,
     forceRefresh: false,
     feedTimeoutSeconds: 180,
   },
@@ -43,8 +44,8 @@ export const FAST_LIMITS = {
 
 export const FULL_LIMITS = {
   ingest_feeds: {
-    extractArticles: true,
-    maxArticlesPerFeed: 100,
+    extractArticles: false,
+    maxArticlesPerFeed: 30,
     forceRefresh: true,
     feedTimeoutSeconds: 600,
   },
@@ -54,8 +55,25 @@ export const FULL_LIMITS = {
   market_reactions: { limit: 500 },
 };
 
-function limitsForMode(mode) {
-  return mode === PIPELINE_MODES.FULL ? FULL_LIMITS : FAST_LIMITS;
+function normalizePipelineOptions(mode, options = {}) {
+  if (mode !== PIPELINE_MODES.FULL) {
+    return { extractArticles: false };
+  }
+  return { extractArticles: Boolean(options.extractArticles) };
+}
+
+export function limitsForMode(mode, options = {}) {
+  const ingestOptions = normalizePipelineOptions(mode, options);
+  if (mode === PIPELINE_MODES.FULL) {
+    return {
+      ...FULL_LIMITS,
+      ingest_feeds: {
+        ...FULL_LIMITS.ingest_feeds,
+        extractArticles: ingestOptions.extractArticles,
+      },
+    };
+  }
+  return FAST_LIMITS;
 }
 
 function buildQuery(params) {
@@ -83,14 +101,17 @@ function chunkedStepEstimate(stepId, mode, tickerCount) {
 }
 
 /**
- * Full ingest duration scales with per-feed article cap and HTML extraction.
- * Calibrated for DEFAULT_FEED_COUNT feeds; was 45–90 min when uncapped.
+ * Ingest duration: RSS summaries use parallel feed prefetch (~90–150s observed).
+ * HTML extraction scales with per-feed article cap (was 45–90 min when uncapped).
  */
-export function estimateFullIngestFeedsDuration(
-  limits = FULL_LIMITS,
+export function estimateIngestFeedsDuration(
+  limits,
   feedCount = DEFAULT_FEED_COUNT,
 ) {
-  const { maxArticlesPerFeed, feedTimeoutSeconds } = limits.ingest_feeds;
+  const { extractArticles, maxArticlesPerFeed, feedTimeoutSeconds } = limits.ingest_feeds;
+  if (!extractArticles) {
+    return { min: 90, max: 150 };
+  }
   const secPerFeedMin = 20;
   const secPerFeedMax = Math.min(
     feedTimeoutSeconds,
@@ -102,18 +123,33 @@ export function estimateFullIngestFeedsDuration(
   };
 }
 
-function stepEstimate(stepId, mode, tickerCount) {
+/** HTML-extraction ingest estimate (full slow run with extractArticles enabled). */
+export function estimateFullIngestFeedsDuration(
+  limits = FULL_LIMITS,
+  feedCount = DEFAULT_FEED_COUNT,
+) {
+  return estimateIngestFeedsDuration(
+    {
+      ...limits,
+      ingest_feeds: { ...limits.ingest_feeds, extractArticles: true },
+    },
+    feedCount,
+  );
+}
+
+function stepEstimate(stepId, mode, tickerCount, options = {}) {
   const tickerTotal = Math.max(tickerCount, 1);
   if (stepId === 'fundamentals' || stepId === 'prices' || stepId === 'insiders') {
     return chunkedStepEstimate(stepId, mode, tickerCount);
   }
 
   if (mode === PIPELINE_MODES.FULL) {
+    const limits = limitsForMode(mode, options);
     switch (stepId) {
       case 'sync_companies':
         return { min: 1, max: 10 };
       case 'ingest_feeds':
-        return estimateFullIngestFeedsDuration();
+        return estimateIngestFeedsDuration(limits);
       case 'dedup_articles':
         return { min: 120, max: 600 };
       case 'macro':
@@ -153,7 +189,7 @@ export function formatSecondsRange(minSeconds, maxSeconds) {
   return `${formatOne(minSeconds)}–${formatOne(maxSeconds)}`;
 }
 
-export function estimatePipelineDuration(selectedStepIds, mode, tickersCsv = '') {
+export function estimatePipelineDuration(selectedStepIds, mode, tickersCsv = '', options = {}) {
   const tickerCount = countTickers(tickersCsv);
   const waves = buildExecutionWaves(selectedStepIds);
   const steps = [];
@@ -164,7 +200,7 @@ export function estimatePipelineDuration(selectedStepIds, mode, tickersCsv = '')
     let waveMin = 0;
     let waveMax = 0;
     for (const step of wave) {
-      const { min, max } = stepEstimate(step.id, mode, tickerCount);
+      const { min, max } = stepEstimate(step.id, mode, tickerCount, options);
       const stepMin = min;
       const stepMax = max;
       steps.push({
@@ -188,16 +224,24 @@ export function estimatePipelineDuration(selectedStepIds, mode, tickersCsv = '')
   };
 }
 
-export function buildFullRunConfirmationContent(selectedStepIds, tickersCsv) {
+export function buildFullRunConfirmationContent(selectedStepIds, tickersCsv, options = {}) {
+  const pipelineOptions = normalizePipelineOptions(PIPELINE_MODES.FULL, options);
+  const limits = limitsForMode(PIPELINE_MODES.FULL, pipelineOptions);
   const { minSeconds, maxSeconds, steps } = estimatePipelineDuration(
     selectedStepIds,
     PIPELINE_MODES.FULL,
     tickersCsv,
+    pipelineOptions,
   );
-  const ingestEstimate = estimateFullIngestFeedsDuration();
+  const ingestEstimate = estimateIngestFeedsDuration(limits);
+  const extractionLabel = pipelineOptions.extractArticles
+    ? 'full article HTML extraction'
+    : 'RSS summaries only';
   return {
     totalRange: formatSecondsRange(minSeconds, maxSeconds),
-    maxArticlesPerFeed: FULL_LIMITS.ingest_feeds.maxArticlesPerFeed,
+    extractArticles: pipelineOptions.extractArticles,
+    extractionLabel,
+    maxArticlesPerFeed: limits.ingest_feeds.maxArticlesPerFeed,
     ingestRange: selectedStepIds.includes('ingest_feeds')
       ? formatSecondsRange(ingestEstimate.min, ingestEstimate.max)
       : null,
@@ -208,8 +252,8 @@ export function buildFullRunConfirmationContent(selectedStepIds, tickersCsv) {
   };
 }
 
-export function buildFullRunConfirmationMessage(selectedStepIds, tickersCsv) {
-  const content = buildFullRunConfirmationContent(selectedStepIds, tickersCsv);
+export function buildFullRunConfirmationMessage(selectedStepIds, tickersCsv, options = {}) {
+  const content = buildFullRunConfirmationContent(selectedStepIds, tickersCsv, options);
   const ingestNote = content.ingestRange
     ? ` Feed ingest alone is estimated at ${content.ingestRange}.`
     : '';
@@ -217,7 +261,7 @@ export function buildFullRunConfirmationMessage(selectedStepIds, tickersCsv) {
   return [
     `Full slow pipeline — estimated total time: ${content.totalRange}.`,
     '',
-    `This run uses full article HTML extraction, up to ${content.maxArticlesPerFeed} articles per feed,`,
+    `This run uses ${content.extractionLabel}, up to ${content.maxArticlesPerFeed} articles per feed,`,
     `longer price history, and more insider filings.${ingestNote}`,
     '',
     'Selected steps:',
@@ -227,8 +271,8 @@ export function buildFullRunConfirmationMessage(selectedStepIds, tickersCsv) {
   ].join('\n');
 }
 
-export function buildStepRequestUrl(stepId, { tickersCsv, mode }) {
-  const limits = limitsForMode(mode);
+export function buildStepRequestUrl(stepId, { tickersCsv, mode, extractArticles }) {
+  const limits = limitsForMode(mode, { extractArticles });
   const tickersParam = encodeURIComponent(tickersCsv);
 
   switch (stepId) {
@@ -255,21 +299,24 @@ export function buildStepRequestUrl(stepId, { tickersCsv, mode }) {
   }
 }
 
-export function modeSummary(mode) {
-  const limits = limitsForMode(mode);
+export function modeSummary(mode, options = {}) {
+  const limits = limitsForMode(mode, options);
   if (mode === PIPELINE_MODES.FULL) {
-    return `Full run: HTML article extraction, ${limits.ingest_feeds.maxArticlesPerFeed} articles/feed, 400-day prices, 40 Form 4 filings per ticker.`;
+    const extraction = limits.ingest_feeds.extractArticles
+      ? 'HTML article extraction'
+      : 'RSS summaries only';
+    return `Full run: ${extraction}, ${limits.ingest_feeds.maxArticlesPerFeed} articles/feed, 400-day prices, 40 Form 4 filings per ticker.`;
   }
   return `Fast run (default): RSS summaries only, ${limits.ingest_feeds.maxArticlesPerFeed} articles/feed, ${limits.prices.days}-day prices, ${limits.insiders.maxFilingsPerCompany} Form 4 filings/ticker.`;
 }
 
-export function stepDescriptionForMode(stepId, mode) {
+export function stepDescriptionForMode(stepId, mode, options = {}) {
   const step = BOOTSTRAP_STEPS.find((item) => item.id === stepId);
   if (!step) return '';
-  const limits = limitsForMode(mode);
+  const limits = limitsForMode(mode, options);
   switch (stepId) {
     case 'ingest_feeds':
-      if (mode === PIPELINE_MODES.FULL) {
+      if (limits.ingest_feeds.extractArticles) {
         return `Poll all ${DEFAULT_FEED_COUNT} default RSS sources with full HTML extraction (max ${limits.ingest_feeds.maxArticlesPerFeed} articles per feed, up to ${limits.ingest_feeds.feedTimeoutSeconds}s per feed).`;
       }
       return `Poll all ${DEFAULT_FEED_COUNT} default RSS sources using summaries only (max ${limits.ingest_feeds.maxArticlesPerFeed} articles per feed).`;

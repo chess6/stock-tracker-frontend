@@ -19,6 +19,11 @@ describe('AdminFeatureFlags', () => {
           experimental_composite_rank: false,
           experimental_signal_ranking: false,
           embedding_heavy_retag: false,
+          experimental_research_queue: false,
+          experimental_thesis_versioning: false,
+          experimental_backtest_route: false,
+          experimental_insider_alerts: false,
+          experimental_narrative_alerts: false,
         },
       },
     });
@@ -32,6 +37,14 @@ describe('AdminFeatureFlags', () => {
         },
       },
     });
+  });
+
+  it('renders collapsed by default with enabled count in summary', async () => {
+    render(<AdminFeatureFlags showToast={jest.fn()} />);
+
+    const summary = await screen.findByText('Experimental feature flags');
+    expect(summary.closest('details')).not.toHaveAttribute('open');
+    expect(await screen.findByText('0 of 8 enabled')).toBeInTheDocument();
   });
 
   it('shows research composite ranking as inactive without a toggle', async () => {
@@ -56,5 +69,16 @@ describe('AdminFeatureFlags', () => {
       });
     });
     expect(showToast).toHaveBeenCalledWith('Article composite rank enabled', 'success', 4000);
+  });
+
+  it('shows all active feature flag toggles when expanded', async () => {
+    render(<AdminFeatureFlags showToast={jest.fn()} />);
+
+    await userEvent.click(await screen.findByText('Experimental feature flags'));
+
+    expect(await screen.findByLabelText(/Research queue/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Insider alerts API/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Narrative alerts API/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Article composite rank/i)).toBeInTheDocument();
   });
 });

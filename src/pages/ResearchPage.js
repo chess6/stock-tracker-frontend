@@ -61,7 +61,7 @@ import { addToPortfolioWithNotification, getPortfolio, isInPortfolio, loadUserPr
 import { useToast } from '../context/ToastContext';
 import TickerSubnav from '../components/TickerSubnav';
 import { DEFAULT_COMPOSITE_ID } from '../config/compositePresets';
-import { fetchCompositeRank, fetchCompositeRankHistory } from '../utils/compositeRankApi';
+import { fetchCompositeRank, fetchCompositeRankHistory, fetchThesisDriftHistory } from '../utils/compositeRankApi';
 import { fetchPillarProfile, fetchThesis } from '../utils/researchThesisApi';
 import { isRegistryLoaded, loadMetricRegistry } from '../config/metricRegistry';
 import './research.css';
@@ -145,7 +145,9 @@ export default function ResearchPage() {
   const [narrativeData, setNarrativeData] = useState(null);
   const [compositeRank, setCompositeRank] = useState(null);
   const [compositeRankHistory, setCompositeRankHistory] = useState([]);
+  const [thesisDriftHistory, setThesisDriftHistory] = useState([]);
   const [compositeRankLoading, setCompositeRankLoading] = useState(false);
+  const [thesisDriftLoading, setThesisDriftLoading] = useState(false);
   const [pillarData, setPillarData] = useState(null);
   const [pillarLoading, setPillarLoading] = useState(false);
   const [thesisData, setThesisData] = useState(null);
@@ -377,18 +379,23 @@ export default function ResearchPage() {
   const loadCompositeRank = useCallback(async (symbol) => {
     if (!symbol) return;
     setCompositeRankLoading(true);
+    setThesisDriftLoading(true);
     try {
-      const [rankPayload, historyPayload] = await Promise.all([
+      const [rankPayload, historyPayload, driftPayload] = await Promise.all([
         fetchCompositeRank({ composite: DEFAULT_COMPOSITE_ID, tickers: [symbol], limit: 1 }),
         fetchCompositeRankHistory(symbol, { composite: DEFAULT_COMPOSITE_ID, limit: 90 }),
+        fetchThesisDriftHistory(symbol, { composite: DEFAULT_COMPOSITE_ID, limit: 90 }),
       ]);
       setCompositeRank(rankPayload?.results?.[0] || null);
       setCompositeRankHistory(historyPayload?.history || []);
+      setThesisDriftHistory(driftPayload?.history || []);
     } catch {
       setCompositeRank(null);
       setCompositeRankHistory([]);
+      setThesisDriftHistory([]);
     } finally {
       setCompositeRankLoading(false);
+      setThesisDriftLoading(false);
     }
   }, []);
 
@@ -403,6 +410,7 @@ export default function ResearchPage() {
     setNarrativeData(null);
     setCompositeRank(null);
     setCompositeRankHistory([]);
+    setThesisDriftHistory([]);
     setPillarData(null);
     setThesisData(null);
     setPillarThesisError(null);
@@ -1029,6 +1037,8 @@ export default function ResearchPage() {
           compositeRank={compositeRank}
           compositeRankHistory={compositeRankHistory}
           compositeRankLoading={compositeRankLoading}
+          thesisDriftHistory={thesisDriftHistory}
+          thesisDriftLoading={thesisDriftLoading}
           compositeId={DEFAULT_COMPOSITE_ID}
           pillarData={pillarData}
           pillarLoading={pillarLoading}

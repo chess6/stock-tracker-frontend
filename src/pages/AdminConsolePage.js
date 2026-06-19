@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import AdminFeatureFlags from '../components/AdminFeatureFlags';
+import ArticleEnrichmentPanel from '../components/ArticleEnrichmentPanel';
 import BootstrapPipeline from '../components/BootstrapPipeline';
+import FeedPackSettings from '../components/FeedPackSettings';
 import { getPortfolio, getPortfolioTickersCsv, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
 import { formatFreshnessTimestamp, FRESHNESS_THRESHOLDS, isStale, summarizeFreshness } from '../utils/dataFreshness';
 import { useToast } from '../context/ToastContext';
@@ -167,6 +169,7 @@ export default function AdminConsolePage() {
       </div>
 
       <AdminFeatureFlags showToast={showToast} disabled={busyAction !== null} />
+      <FeedPackSettings />
 
       <div className="st-panel">
         <div className="st-panel-header">Data refresh</div>
@@ -222,6 +225,13 @@ export default function AdminConsolePage() {
             onComplete={async () => {
               await loadStatus();
               dispatch(clearScreener());
+            }}
+          />
+          <ArticleEnrichmentPanel
+            disabled={busyAction !== null}
+            showToast={showToast}
+            onStatusChange={() => {
+              loadStatus().catch(() => {});
             }}
           />
         </div>

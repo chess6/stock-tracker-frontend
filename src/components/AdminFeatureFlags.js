@@ -36,9 +36,19 @@ export default function AdminFeatureFlags({ showToast, disabled = false }) {
     }
   };
 
+  const activeFlags = FEATURE_FLAG_META.filter((item) => !item.inactive);
+  const enabledCount = activeFlags.filter((item) => Boolean(flags[item.key])).length;
+
   return (
-    <div className="st-panel">
-      <div className="st-panel-header">Experimental feature flags</div>
+    <details className="st-details admin-feature-flags-panel">
+      <summary className="st-details-summary admin-feature-flags-summary">
+        <span>Experimental feature flags</span>
+        {!loading && (
+          <span className="admin-feature-flags-summary-meta">
+            {enabledCount} of {activeFlags.length} enabled
+          </span>
+        )}
+      </summary>
       <div className="st-panel-body">
         <p className="st-muted-note mb-2">
           Toggles persist in SQLite and survive restarts. Environment variables
@@ -91,6 +101,6 @@ export default function AdminFeatureFlags({ showToast, disabled = false }) {
           </ul>
         )}
       </div>
-    </div>
+    </details>
   );
 }

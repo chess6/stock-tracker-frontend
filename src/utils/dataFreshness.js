@@ -10,11 +10,31 @@ export const FRESHNESS_THRESHOLDS = {
   latestArticleFetchedAt: 12,
 };
 
+/** Parse API/SQLite timestamps as UTC, then display in the viewer's local timezone. */
+export function parseUtcTimestamp(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  const text = String(value).trim();
+  if (!text) return null;
+
+  if (/[zZ]$/.test(text) || /[+-]\d{2}:\d{2}$/.test(text)) {
+    const parsed = new Date(text);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  // SQLite CURRENT_TIMESTAMP and other naive UTC strings: "YYYY-MM-DD HH:MM:SS"
+  const normalized = text.includes('T') ? text : text.replace(' ', 'T');
+  const parsed = new Date(`${normalized}Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 /** True when timestamp is missing or older than maxAgeHours. */
 export function isStale(isoDate, maxAgeHours) {
   if (!isoDate) return true;
-  const parsed = new Date(isoDate);
-  if (Number.isNaN(parsed.getTime())) return true;
+  const parsed = parseUtcTimestamp(isoDate);
+  if (!parsed) return true;
   const ageMs = Date.now() - parsed.getTime();
   return ageMs > maxAgeHours * 60 * 60 * 1000;
 }
@@ -42,10 +62,18 @@ export function summarizeFreshness(freshness = {}, coverage = {}) {
   };
 }
 
-/** Human-readable cache timestamp for UI labels. */
+/** Human-readable cache timestamp in the viewer's local timezone. */
 export function formatFreshnessTimestamp(isoDate) {
   if (!isoDate) return 'not loaded';
-  const parsed = new Date(isoDate);
-  if (Number.isNaN(parsed.getTime())) return String(isoDate);
-  return parsed.toLocaleString();
+  const parsed = parseUtcTimestamp(isoDate);
+  if (!parsed) return String(isoDate);
+  return parsed.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZoneName: 'short',
+  });
 }
