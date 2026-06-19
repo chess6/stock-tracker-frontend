@@ -25,8 +25,13 @@ export function tickerFindersUrl(ticker) {
 }
 
 export function tickerFinancialsUrl(ticker, search = '') {
-  const base = `/research/${encodeURIComponent(ticker)}`;
+  const base = `/financials/${encodeURIComponent(ticker)}`;
   return search ? `${base}?${search}` : base;
+}
+
+/** Default in-app destination when clicking a ticker symbol. */
+export function tickerDefaultUrl(ticker) {
+  return tickerFinancialsUrl(ticker);
 }
 
 /** External charting site (third-party). */

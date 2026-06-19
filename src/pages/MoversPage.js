@@ -10,7 +10,7 @@ import { formatUsd, formatPercent } from '../utils/formatters';
 import { signedHeatStyle } from '../utils/heatMap';
 import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
-import { tickerOverviewUrl } from '../utils/tickerLinks';
+import { tickerFinancialsUrl } from '../utils/tickerLinks';
 
 const MOVER_WINDOWS = [
   { id: 'd', label: 'Daily', changeHeader: 'D% Ch' },
@@ -66,7 +66,7 @@ function MoversGrid({ label, changeHeader, movers, status, error, onAdd }) {
       header: 'Ticker',
       accessorKey: 'ticker',
       cell: info => (
-        <Link to={tickerOverviewUrl(info.getValue())} className="st-ticker">
+        <Link to={tickerFinancialsUrl(info.getValue())} className="st-ticker">
           {info.getValue()}
         </Link>
       ),

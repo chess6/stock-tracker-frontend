@@ -3,9 +3,9 @@ import { tickerFindersUrl, tickerOverviewUrl } from '../utils/tickerLinks';
 
 const TABS = [
   { id: 'overview', label: 'Overview', overview: true },
-  { id: 'research', label: 'Research', research: true },
   { id: 'financials', label: 'Financials', financials: true },
   { id: 'insiders', label: 'Insider Transactions', finders: true },
+  { id: 'research', label: 'Research', research: true },
 ];
 
 function tabPath(ticker, tab) {

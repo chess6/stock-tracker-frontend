@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { tickerFinancialsUrl } from '../../utils/tickerLinks';
 import StTooltip, { StTooltipMetricHelp } from '../StTooltip';
 import { getMetricTooltipMeta } from '../../config/tooltipRegistry';
 import { formatDecimal } from '../../utils/formatters';
@@ -64,7 +65,7 @@ export default function ScoreSummaryBar({ tickers, screenerData, onBeforeDeepDiv
               <th key={ticker} scope="col" className="research-score-summary-th-ticker">
                 {scores ? (
                   <Link
-                    to={`/research/${ticker}`}
+                    to={tickerFinancialsUrl(ticker)}
                     className="st-ticker research-score-summary-ticker-name"
                     onClick={() => onBeforeDeepDive?.()}
                   >

@@ -24,11 +24,11 @@ import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { loadMetricRegistry } from './config/metricRegistry';
 import { loadUserPreferences } from './utils/portfolio';
-import { tickerFindersUrl, tickerOverviewUrl } from './utils/tickerLinks';
+import { tickerFindersUrl, tickerFinancialsUrl } from './utils/tickerLinks';
 
 function LegacyOverviewRedirect() {
   const { ticker } = useParams();
-  return <Navigate to={tickerOverviewUrl(ticker)} replace />;
+  return <Navigate to={tickerFinancialsUrl(ticker)} replace />;
 }
 
 function LegacyFindersRedirect() {

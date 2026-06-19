@@ -1,19 +1,18 @@
 import { Link } from 'react-router-dom';
+import { tickerFinancialsUrl } from '../../utils/tickerLinks';
 import {
-  buildResearchTickerPath,
   saveScreenerScrollBeforeLeave,
 } from '../../utils/researchNavigation';
 
 export default function ResearchTickerLink({
   ticker,
-  dimension = 'MRY',
   className,
   children,
   onBeforeNavigate = saveScreenerScrollBeforeLeave,
 }) {
   return (
     <Link
-      to={buildResearchTickerPath(ticker, dimension)}
+      to={tickerFinancialsUrl(ticker)}
       className={className}
       onClick={() => onBeforeNavigate?.()}
     >

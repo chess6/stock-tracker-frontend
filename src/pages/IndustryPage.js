@@ -16,12 +16,23 @@ import { signedHeatStyle, columnHeatStyle } from '../utils/heatMap';
 import { getCachedColumnMinMaxMap, rowsDatasetKey } from '../utils/heatmapCache';
 import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
-import { tickerOverviewUrl } from '../utils/tickerLinks';
+import { tickerFinancialsUrl } from '../utils/tickerLinks';
 import './industry.css';
 
 const PEER_LIMIT = 80;
+const OTHER_SECTOR_LABEL = 'Other';
 
 const toNum = (v) => (v == null || Number.isNaN(Number(v)) ? null : Number(v));
+
+function normalizeSector(sector) {
+  return sector || OTHER_SECTOR_LABEL;
+}
+
+/** DB stores null sector for filer-type rows; omit sector filter when querying peers. */
+function sectorApiParam(sector) {
+  if (!sector || sector === OTHER_SECTOR_LABEL) return undefined;
+  return sector;
+}
 
 function displayIndustryName(name) {
   if (!name) return '';
@@ -29,19 +40,29 @@ function displayIndustryName(name) {
 }
 
 async function fetchPeersForSelection(selected, groups) {
-  if (!selected?.sector) return [];
+  if (!selected) return [];
+  if (!selected.industry && !selected.sector) return [];
 
   if (selected.industry) {
     const peerRes = await axios.get(API_ENDPOINTS.INDUSTRY_PEERS, {
-      params: { industry: selected.industry, sector: selected.sector, limit: PEER_LIMIT },
+      params: {
+        industry: selected.industry,
+        sector: sectorApiParam(selected.sector),
+        limit: PEER_LIMIT,
+      },
     });
     return peerRes.data?.peers || [];
   }
 
-  const subindustries = groups.filter((g) => g.sector === selected.sector);
+  const normalized = normalizeSector(selected.sector);
+  const subindustries = groups.filter((g) => normalizeSector(g.sector) === normalized);
   const responses = await Promise.all(
     subindustries.map((item) => axios.get(API_ENDPOINTS.INDUSTRY_PEERS, {
-      params: { industry: item.industry, sector: item.sector, limit: PEER_LIMIT },
+      params: {
+        industry: item.industry,
+        sector: sectorApiParam(item.sector),
+        limit: PEER_LIMIT,
+      },
     })),
   );
   const byTicker = new Map();
@@ -78,12 +99,15 @@ export default function IndustryPage() {
         if (!cancelled) {
           setGroups(industries);
           if (industries.length) {
+            const defaultPick =
+              industries.find((g) => g.sector && g.industry) ||
+              industries.find((g) => g.industry) ||
+              industries[0];
             setSelected((prev) => prev || {
-              sector: industries[0].sector,
-              industry: industries[0].industry,
+              sector: normalizeSector(defaultPick.sector),
+              industry: defaultPick.industry,
             });
-            const firstSector = industries[0].sector || 'Other';
-            setExpandedSectors(new Set([firstSector]));
+            setExpandedSectors(new Set([normalizeSector(defaultPick.sector)]));
           }
         }
       } catch (err) {
@@ -96,7 +120,7 @@ export default function IndustryPage() {
   }, []);
 
   useEffect(() => {
-    if (!selected?.sector) return undefined;
+    if (!selected || (!selected.industry && !selected.sector)) return undefined;
     let cancelled = false;
     (async () => {
       setLoadingPeers(true);
@@ -170,7 +194,7 @@ export default function IndustryPage() {
   const sectors = useMemo(() => {
     const map = {};
     groups.forEach((g) => {
-      const sector = g.sector || 'Other';
+      const sector = normalizeSector(g.sector);
       map[sector] = map[sector] || [];
       map[sector].push(g);
     });
@@ -195,9 +219,10 @@ export default function IndustryPage() {
   }, [allExpanded, sectorNames]);
 
   const selectionLabel = useMemo(() => {
-    if (!selected?.sector) return 'Select an industry';
+    if (!selected) return 'Select an industry';
     if (selected.industry) return displayIndustryName(selected.industry);
-    return `${selected.sector} (all sub-industries)`;
+    if (selected.sector) return `${selected.sector} (all sub-industries)`;
+    return 'Select an industry';
   }, [selected]);
 
   const columns = useMemo(() => [
@@ -223,7 +248,7 @@ export default function IndustryPage() {
     {
       header: 'Ticker',
       accessorKey: 'ticker',
-      cell: (info) => <Link to={tickerOverviewUrl(info.getValue())} className="st-ticker">{info.getValue()}</Link>,
+      cell: (info) => <Link to={tickerFinancialsUrl(info.getValue())} className="st-ticker">{info.getValue()}</Link>,
       size: 90,
     },
     { header: 'Name', accessorKey: 'name', size: 180 },
@@ -277,7 +302,7 @@ export default function IndustryPage() {
             {loadingGroups ? <div className="text-muted small">Loading industries…</div> : sectors.map(([sector, items]) => {
               const expanded = expandedSectors.has(sector);
               const sectorCount = items.reduce((sum, item) => sum + (item.company_count || 0), 0);
-              const sectorActive = selected?.sector === sector && !selected?.industry;
+              const sectorActive = normalizeSector(selected?.sector) === sector && !selected?.industry;
               return (
                 <div key={sector} className="industry-sector-group">
                   <div className="industry-sector-header">
@@ -302,13 +327,18 @@ export default function IndustryPage() {
                   {expanded && (
                     <div className="industry-subindustry-list">
                       {items.map((item) => {
-                        const active = selected?.industry === item.industry && selected?.sector === item.sector;
+                        const active =
+                          selected?.industry === item.industry
+                          && normalizeSector(selected?.sector) === normalizeSector(item.sector);
                         return (
                           <button
                             key={`${item.sector}-${item.industry}`}
                             type="button"
                             className={`industry-pick-btn industry-subindustry-btn${active ? ' industry-pick-btn-active' : ''}`}
-                            onClick={() => setSelected({ sector: item.sector, industry: item.industry })}
+                            onClick={() => setSelected({
+                              sector: normalizeSector(item.sector),
+                              industry: item.industry,
+                            })}
                           >
                             <span className="industry-pick-label">{displayIndustryName(item.industry)}</span>
                             <span className="industry-pick-count">{item.company_count}</span>

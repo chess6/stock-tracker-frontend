@@ -17,6 +17,10 @@ import {
   YEAR_OPTIONS,
   buildGteDate,
 } from '../config/researchMetrics';
+import {
+  CORE_ALWAYS_SHOW_METRIC_KEYS,
+  sliceColumnPeriods,
+} from '../utils/financialsPeriods';
 import { formatDecimal, formatPercent, formatUsd, formatCompactUsd, formatSharesCell } from '../utils/formatters';
 import { analyticsChartOptions, scrollChartLayout } from '../utils/chartTheme';
 import { computeTrendPair } from '../utils/researchCalculations';
@@ -29,7 +33,6 @@ import {
 import './research.css';
 
 const FINANCIALS_GROUPS = RESEARCH_METRIC_GROUPS.filter((group) => group.id !== 'scores');
-const CORE_ALWAYS_SHOW_KEYS = new Set(['revenue', 'netinc', 'ncfo', 'assets']);
 const COLOR_MODE = 'historical';
 const GRID_HEAT_TOOLTIP_PROPS = { placement: 'top-start', floating: true };
 
@@ -197,20 +200,10 @@ const FinancialsPage = () => {
     return () => { cancelled = true; };
   }, [ticker, period, years, report]);
 
-  const columnPeriods = useMemo(() => {
-    if (years === 'all') return periodSeries;
-    const count = Number(years) || 5;
-    if (period === 'annual') {
-      const seenYears = new Set();
-      return periodSeries.filter((periodRow) => {
-        const yr = (periodRow.periodEnd || '').slice(0, 4);
-        if (!yr || seenYears.has(yr)) return false;
-        seenYears.add(yr);
-        return true;
-      }).slice(0, count);
-    }
-    return periodSeries.slice(0, count);
-  }, [periodSeries, years, period]);
+  const columnPeriods = useMemo(
+    () => sliceColumnPeriods(periodSeries, { years, period }),
+    [periodSeries, years, period],
+  );
 
   const chartPeriods = useMemo(
     () => [...columnPeriods].reverse(),
@@ -255,7 +248,7 @@ const FinancialsPage = () => {
         if (columnPeriods.length >= 3) {
           row._heatStyles.cagr = getMetricBackground('cagr', cagr, { mode: COLOR_MODE, format: 'percent' });
         }
-        if (CORE_ALWAYS_SHOW_KEYS.has(metric.key)) {
+        if (CORE_ALWAYS_SHOW_METRIC_KEYS.has(metric.key)) {
           rows.push(row);
           return;
         }

@@ -26,6 +26,7 @@ import {
   readScreenerTickersContext,
   saveScreenerContextBeforeLeave,
 } from '../utils/researchNavigation';
+import { tickerFinancialsUrl } from '../utils/tickerLinks';
 import { hydratePinnedTickersFromApi } from '../utils/researchPinned';
 import StTooltip, { StTooltipText } from '../components/StTooltip';
 import {
@@ -34,6 +35,10 @@ import {
   buildGteDate,
   getScreenerMetricValue,
 } from '../config/researchMetrics';
+import {
+  CORE_ALWAYS_SHOW_METRIC_KEYS,
+  sliceColumnPeriods,
+} from '../utils/financialsPeriods';
 import { divergenceSignalLabel } from '../config/narrativeStates';
 import { formatMetricCellTooltip } from '../config/tooltipRegistry';
 import { formatDecimal, formatPercent, formatUsd, formatCompactUsd, formatSharesCell } from '../utils/formatters';
@@ -295,35 +300,10 @@ export default function ResearchPage() {
     setError(null);
     try {
       const params = { dimension: dim };
-      const fetchYears = yrs === 'all' ? 'all' : Math.max(Number(yrs) || 5, 10);
-      const gte = buildGteDate(fetchYears);
+      const gte = buildGteDate(yrs);
       if (gte) params.gte = gte;
       const res = await axios.get(API_ENDPOINTS.RESEARCH_TICKER(symbol), { params });
-      let payload = res.data || {};
-
-      const requestedHistory = yrs === 'all' || (Number(yrs) || 5) > 1;
-      const periodCount = Array.isArray(payload.periods) ? payload.periods.length : 0;
-      if (dim === 'MRY' && requestedHistory && periodCount < 2) {
-        try {
-          const fallback = await axios.get(API_ENDPOINTS.RESEARCH_TICKER(symbol), {
-            params: { ...(gte ? { gte } : {}), dimension: 'ARY' },
-          });
-          if (Array.isArray(fallback.data?.periods) && fallback.data.periods.length > periodCount) {
-            payload = {
-              ...payload,
-              periods: fallback.data.periods,
-              // ARY score history aligns to annual periods for historical grid columns.
-              scoreHistory: Array.isArray(fallback.data?.scoreHistory)
-                ? fallback.data.scoreHistory
-                : payload.scoreHistory,
-            };
-          }
-        } catch {
-          // Keep MRY payload if ARY fallback fails.
-        }
-      }
-
-      setDetailData(payload);
+      setDetailData(res.data || {});
     } catch {
       setError(`Failed to load research data for ${symbol}.`);
       setDetailData(null);
@@ -521,8 +501,8 @@ export default function ResearchPage() {
 
   const handleOpenTicker = useCallback((ticker) => {
     saveScreenerContextBeforeLeave(tickersText);
-    safeNavigate(`/research/${ticker}?dim=${encodeURIComponent(dimension)}`);
-  }, [safeNavigate, dimension, tickersText]);
+    safeNavigate(tickerFinancialsUrl(ticker));
+  }, [safeNavigate, tickersText]);
 
   const handleEscapeToScreener = useCallback(() => {
     if (!window.location.pathname.startsWith('/research/')) return;
@@ -577,7 +557,7 @@ export default function ResearchPage() {
     onCompareFocusIndexChange: (nextIndex) => {
       setCompareFocusIndex(nextIndex);
       const ticker = compareTickers[nextIndex];
-      if (ticker) safeNavigate(`/research/${ticker}?dim=${encodeURIComponent(dimension)}`);
+      if (ticker) safeNavigate(tickerFinancialsUrl(ticker));
     },
     onOpenTicker: handleOpenTicker,
     onTogglePin: handleTogglePin,
@@ -759,11 +739,10 @@ export default function ResearchPage() {
     );
   }, [detailData]);
 
-  const columnPeriods = useMemo(() => {
-    if (years === 'all') return detailPeriods;
-    const count = Number(years) || 5;
-    return detailPeriods.slice(0, count);
-  }, [detailPeriods, years]);
+  const columnPeriods = useMemo(
+    () => sliceColumnPeriods(detailPeriods, { years, dimension }),
+    [detailPeriods, years, dimension],
+  );
 
   const scoreByPeriod = useMemo(() => {
     const map = {};
@@ -829,7 +808,7 @@ export default function ResearchPage() {
         if (columnPeriods.length >= 3) {
           row._heatStyles.cagr = getMetricBackground('cagr', cagr, { mode: colorMode, format: 'percent' });
         }
-        const alwaysShowRow = group.id === 'scores';
+        const alwaysShowRow = group.id === 'scores' || CORE_ALWAYS_SHOW_METRIC_KEYS.has(metric.key);
         if (hideEmptyRows && !alwaysShowRow && !metricRowHasValues(row, columnPeriods.length)) return;
         rows.push(row);
       });

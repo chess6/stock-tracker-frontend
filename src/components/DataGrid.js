@@ -597,11 +597,15 @@ export default function DataGrid({
                       onClick={() => onGroupHeaderToggle?.(row.original._groupKey)}
                     >
                       <td colSpan={colSpan} className="st-grid-group-cell">
-                        <span className="st-grid-group-toggle" aria-hidden="true">
-                          {row.original._collapsed ? '▶' : '▼'}
-                        </span>
+                        {onGroupHeaderToggle && (
+                          <span className="st-grid-group-toggle" aria-hidden="true">
+                            {row.original._collapsed ? '▶' : '▼'}
+                          </span>
+                        )}
                         <strong>{row.original._groupLabel}</strong>
-                        <span className="text-muted ms-2">({row.original._groupCount})</span>
+                        {row.original._groupCount != null && (
+                          <span className="text-muted ms-2">({row.original._groupCount})</span>
+                        )}
                       </td>
                     </tr>
                   );

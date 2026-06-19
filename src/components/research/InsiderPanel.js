@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { tickerFinancialsUrl } from '../../utils/tickerLinks';
 import API_ENDPOINTS from '../../apiConfig';
 import ColumnHeader from '../ColumnHeader';
 import StTooltip, { StTooltipMetricHelp } from '../StTooltip';
@@ -76,7 +77,7 @@ function ScreenerClusterTableBody({ rows }) {
       {rows.map((row) => (
         <tr key={`${row.ticker}-${row.windowStart}`}>
           <td>
-            <Link to={`/research/${row.ticker}`} className="st-ticker">
+            <Link to={tickerFinancialsUrl(row.ticker)} className="st-ticker">
               {row.ticker}
             </Link>
             <div className="text-muted research-insider-subtitle">
