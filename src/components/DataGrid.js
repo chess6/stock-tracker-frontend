@@ -11,16 +11,13 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 
-const DataGridToolbar = memo(function DataGridToolbar({
+export const DataGridColumnMenu = memo(function DataGridColumnMenu({
   columns,
   effectiveVisibleColumns,
   onToggleColumn,
   onResetColumns,
   onShowAllColumns,
   resetColumnsTitle,
-  enableGlobalFilter,
-  globalFilter,
-  onGlobalFilterChange,
 }) {
   const [columnMenuOpen, setColumnMenuOpen] = useState(false);
 
@@ -35,71 +32,95 @@ const DataGridToolbar = memo(function DataGridToolbar({
   };
 
   return (
-    <div className="data-grid-toolbar d-flex justify-content-end align-items-center mb-1">
-      <DropdownMenu.Root open={columnMenuOpen} onOpenChange={setColumnMenuOpen} modal={false}>
-        <DropdownMenu.Trigger asChild>
-          <button
-            type="button"
-            className="st-btn-ghost data-grid-columns-btn"
-            title="Show/hide columns"
-            aria-label="Show/hide columns"
-          >
-            Cols
-          </button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Content
-            className="data-grid-column-menu"
-            side="bottom"
-            align="end"
-            sideOffset={4}
-            collisionPadding={12}
-            avoidCollisions
-          >
-            <div className="data-grid-column-menu-header">
-              <div className="fw-bold">Columns</div>
-              <div className="data-grid-column-menu-actions">
-                <button
-                  type="button"
-                  className="st-link-muted"
-                  onClick={handleResetColumns}
-                  title={resetColumnsTitle}
-                >
-                  Reset
-                </button>
-                <button
-                  type="button"
-                  className="st-link-muted"
-                  onClick={handleShowAllColumns}
-                  title="Show all columns"
-                >
-                  All
-                </button>
-              </div>
+    <DropdownMenu.Root open={columnMenuOpen} onOpenChange={setColumnMenuOpen} modal={false}>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          className="st-btn-ghost data-grid-columns-btn"
+          title="Show/hide columns"
+          aria-label="Show/hide columns"
+        >
+          Cols
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          className="data-grid-column-menu"
+          side="bottom"
+          align="end"
+          sideOffset={4}
+          collisionPadding={12}
+          avoidCollisions
+        >
+          <div className="data-grid-column-menu-header">
+            <div className="fw-bold">Columns</div>
+            <div className="data-grid-column-menu-actions">
+              <button
+                type="button"
+                className="st-link-muted"
+                onClick={handleResetColumns}
+                title={resetColumnsTitle}
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className="st-link-muted"
+                onClick={handleShowAllColumns}
+                title="Show all columns"
+              >
+                All
+              </button>
             </div>
-            {columns.map((col) => {
-              const colKey = col.accessorKey ?? col.id;
-              if (!colKey || colKey === 'select') return null;
-              const groupLabel = col.meta?.group;
-              return (
-                <div key={colKey} className="st-check-row">
-                  <input
-                    className="st-check"
-                    type="checkbox"
-                    id={`col-toggle-${colKey}`}
-                    checked={effectiveVisibleColumns.includes(colKey)}
-                    onChange={() => onToggleColumn(colKey)}
-                  />
-                  <label className="st-check-label" htmlFor={`col-toggle-${colKey}`}>
-                    {col.meta?.label ?? (typeof col.header === 'string' ? col.header : colKey)}
-                    {groupLabel && <span className="st-muted-note ms-1">({groupLabel})</span>}
-                  </label>
-                </div>
-              );
-            })}
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
+          </div>
+          {columns.map((col) => {
+            const colKey = col.accessorKey ?? col.id;
+            if (!colKey || colKey === 'select') return null;
+            const groupLabel = col.meta?.group;
+            return (
+              <div key={colKey} className="st-check-row">
+                <input
+                  className="st-check"
+                  type="checkbox"
+                  id={`col-toggle-${colKey}`}
+                  checked={effectiveVisibleColumns.includes(colKey)}
+                  onChange={() => onToggleColumn(colKey)}
+                />
+                <label className="st-check-label" htmlFor={`col-toggle-${colKey}`}>
+                  {col.meta?.label ?? (typeof col.header === 'string' ? col.header : colKey)}
+                  {groupLabel && <span className="st-muted-note ms-1">({groupLabel})</span>}
+                </label>
+              </div>
+            );
+          })}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+});
+
+const DataGridToolbar = memo(function DataGridToolbar({
+  columns,
+  effectiveVisibleColumns,
+  onToggleColumn,
+  onResetColumns,
+  onShowAllColumns,
+  resetColumnsTitle,
+  enableGlobalFilter,
+  globalFilter,
+  onGlobalFilterChange,
+  toolbarClassName = 'data-grid-toolbar d-flex justify-content-end align-items-center mb-1',
+}) {
+  return (
+    <div className={toolbarClassName}>
+      <DataGridColumnMenu
+        columns={columns}
+        effectiveVisibleColumns={effectiveVisibleColumns}
+        onToggleColumn={onToggleColumn}
+        onResetColumns={onResetColumns}
+        onShowAllColumns={onShowAllColumns}
+        resetColumnsTitle={resetColumnsTitle}
+      />
       {enableGlobalFilter && (
         <input
           className="st-input data-grid-filter"
@@ -149,6 +170,7 @@ export default function DataGrid({
   onGroupHeaderToggle,
   scrollPersistenceKey,
   activeRowId,
+  showToolbar = true,
 }) {
   const defaultColWidth = 150;
   const stickyColumnKey = stickyColumnIds.join(',');
@@ -388,17 +410,19 @@ export default function DataGrid({
 
   return (
     <div style={{ position: 'relative', maxWidth: '100%', ...style }}>
-      <DataGridToolbar
-        columns={columns}
-        effectiveVisibleColumns={effectiveVisibleColumns}
-        onToggleColumn={handleToggleColumn}
-        onResetColumns={resetVisibleColumns}
-        onShowAllColumns={showAllColumns}
-        resetColumnsTitle={resetColumnsTitle}
-        enableGlobalFilter={enableGlobalFilter}
-        globalFilter={globalFilter}
-        onGlobalFilterChange={setGlobalFilter}
-      />
+      {showToolbar && (
+        <DataGridToolbar
+          columns={columns}
+          effectiveVisibleColumns={effectiveVisibleColumns}
+          onToggleColumn={handleToggleColumn}
+          onResetColumns={resetVisibleColumns}
+          onShowAllColumns={showAllColumns}
+          resetColumnsTitle={resetColumnsTitle}
+          enableGlobalFilter={enableGlobalFilter}
+          globalFilter={globalFilter}
+          onGlobalFilterChange={setGlobalFilter}
+        />
+      )}
 
       {/* Grid scroll container with sticky header */}
       <div

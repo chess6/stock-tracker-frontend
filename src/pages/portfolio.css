@@ -33,9 +33,65 @@
   margin-bottom: 0.12rem !important;
 }
 
-.portfolio-page .portfolio-watchlists-panel[open] .st-panel-body {
+.portfolio-page .portfolio-watchlists-panel[open] .st-panel-body,
+.portfolio-page .portfolio-watchlists-panel[open] .portfolio-watchlists-body {
   max-height: min(36vh, 13.5rem);
   overflow-y: auto;
+}
+
+.portfolio-watchlists-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, min(28rem, 46vw));
+  gap: 0.75rem 1rem;
+  align-items: start;
+}
+
+@media (max-width: 767px) {
+  .portfolio-watchlists-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.portfolio-watchlists-view-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.portfolio-watchlists-lists-col {
+  min-width: 0;
+  max-width: 100%;
+  border-left: 1px solid var(--st-border-strong, var(--st-border));
+  padding-left: 1rem;
+  font-size: 0.74rem;
+}
+
+.portfolio-watchlists-lists-col .form-label,
+.portfolio-watchlists-lists-col .small {
+  font-size: 0.72rem;
+}
+
+.portfolio-watchlists-lists-col .form-control-sm {
+  font-size: 0.72rem;
+  min-height: 1.45rem;
+}
+
+.portfolio-watchlists-lists-col .d-flex.gap-2.flex-wrap.align-items-end {
+  gap: 0.55rem !important;
+}
+
+.portfolio-watchlists-lists-col .flex-grow-1 {
+  min-width: 12rem !important;
+}
+
+@media (max-width: 767px) {
+  .portfolio-watchlists-lists-col {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--st-border);
+    padding-top: 0.65rem;
+  }
 }
 
 .portfolio-watchlists-settings {
@@ -51,7 +107,8 @@
 
 .portfolio-watchlists-settings-label {
   font-size: 0.78rem;
-  color: var(--st-text-muted);
+  color: var(--st-text-subtle);
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -62,43 +119,129 @@
   min-height: 1.65rem;
 }
 
-.portfolio-page-meta {
-  flex-shrink: 0;
-  margin-bottom: 0.08rem !important;
-  font-size: 0.62rem;
-  line-height: 1.25;
+.portfolio-watchlists-toolbar .portfolio-page-toolbar {
+  margin-bottom: 0 !important;
 }
 
 .portfolio-page-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
   flex-shrink: 0;
-  gap: 0.2rem 0.3rem !important;
   margin-bottom: 0.08rem !important;
   font-size: 0.68rem;
   line-height: 1.2;
 }
 
-.portfolio-page-toolbar label {
-  gap: 0.25rem !important;
+.portfolio-page-toolbar-view-row,
+.portfolio-page-toolbar-filters,
+.portfolio-page-toolbar-actions {
+  gap: 0.45rem 0.75rem !important;
 }
 
-.portfolio-page-toolbar label > span {
-  font-size: 0.62rem !important;
+.portfolio-page-toolbar-field {
+  flex: 1 1 auto;
+  min-width: min(100%, 11.5rem);
+}
+
+.portfolio-page-toolbar-view-row .portfolio-page-toolbar-field {
+  flex: 1 1 12rem;
+  max-width: 16rem;
 }
 
 .portfolio-page-toolbar .form-select-sm,
 .portfolio-page-toolbar .form-control-sm {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 7.5rem;
   font-size: 0.66rem;
   padding: 0.08rem 0.3rem;
   min-height: 1.38rem;
   line-height: 1.2;
+  border-color: var(--st-border-strong, var(--st-border));
+  background-color: var(--st-surface-muted);
+  color: var(--st-text-primary, inherit);
+}
+
+.portfolio-page-toolbar-view-row .portfolio-watchlists-preset-select {
+  min-width: 8.5rem;
+  font-size: 0.72rem;
+  min-height: 1.45rem;
+}
+
+.portfolio-page-toolbar-label {
+  font-size: 0.64rem !important;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--st-text-subtle);
+  white-space: nowrap;
+}
+
+.portfolio-page-toolbar .form-select-sm:focus,
+.portfolio-page-toolbar .form-control-sm:focus {
+  border-color: var(--st-accent-blue);
+  box-shadow: 0 0 0 1px rgba(91, 156, 245, 0.35);
+}
+
+.portfolio-page-toolbar-filters {
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--st-border-strong, var(--st-border));
+}
+
+.portfolio-page-toolbar-actions {
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--st-border-strong, var(--st-border));
 }
 
 .portfolio-page-toolbar .st-btn,
+.portfolio-page-toolbar .st-btn-primary,
+.portfolio-page-toolbar .st-btn-danger,
+.portfolio-page-toolbar .st-btn-muted,
 .portfolio-page-toolbar .st-btn-ghost,
 .portfolio-page-toolbar .st-link-btn {
-  font-size: 0.66rem;
-  padding: 0.1rem 0.38rem;
+  font-size: 0.68rem;
+  padding: 0.14rem 0.5rem;
+  min-height: 1.45rem;
   line-height: 1.2;
+  font-weight: 600;
+}
+
+.portfolio-page-toolbar .st-btn:disabled,
+.portfolio-page-toolbar .st-btn-primary:disabled,
+.portfolio-page-toolbar .st-btn-danger:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.portfolio-page-toolbar .portfolio-toolbar-btn-compare.st-btn-primary {
+  border-color: #4d90df;
+  background: linear-gradient(180deg, #7eb8ff 0%, #4d90df 100%);
+  color: #061018;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.portfolio-page-toolbar .portfolio-toolbar-btn-compare.st-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #92c4ff 0%, #5b9cf5 100%);
+}
+
+.portfolio-page-toolbar .portfolio-toolbar-btn-delete.st-btn-danger {
+  border-color: #a52834;
+  background: linear-gradient(180deg, #e55360 0%, #c82333 100%);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.portfolio-page-toolbar .portfolio-toolbar-btn-delete.st-btn-danger:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ef6a75 0%, #d63343 100%);
+  border-color: #dc3545;
+}
+
+.portfolio-page-meta {
+  flex-shrink: 0;
+  margin-bottom: 0.08rem !important;
+  font-size: 0.62rem;
+  line-height: 1.25;
 }
 
 .portfolio-page-alert {

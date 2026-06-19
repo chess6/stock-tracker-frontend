@@ -4,6 +4,7 @@ import axios from 'axios';
 import StSpinner from '../components/StSpinner';
 import API_ENDPOINTS from '../apiConfig';
 import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
+import { tickerOverviewUrl } from '../utils/tickerLinks';
 
 const PAGE_SIZE = 50;
 
@@ -53,7 +54,7 @@ function tickerMatchBadge(match) {
   const title = `${match.ticker}: ${strategy}${confidence ? ` (${confidence})` : ''}`;
   const cls = strategy === 'cashtag' || strategy === 'headline_ticker' ? 'st-badge-blue' : 'st-badge-muted';
   return (
-    <Link key={`${match.ticker}-${strategy}`} to={`/${match.ticker}`} title={title}>
+    <Link key={`${match.ticker}-${strategy}`} to={tickerOverviewUrl(match.ticker)} title={title}>
       <span className={`st-badge ${cls} me-1`}>
         {match.ticker}
         <span className="opacity-75 ms-1">{matchStrategyLabel(strategy)}</span>
@@ -493,7 +494,7 @@ export default function NewsPage() {
                       item.tickerMatches?.length
                         ? tickerMatchBadge(match)
                         : (
-                          <Link key={match.ticker} to={`/${match.ticker}`}>
+                          <Link key={match.ticker} to={tickerOverviewUrl(match.ticker)}>
                             <span className="st-badge st-badge-muted me-1">{match.ticker}</span>
                           </Link>
                         )

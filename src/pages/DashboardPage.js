@@ -5,6 +5,7 @@ import API_ENDPOINTS from '../apiConfig';
 import StSpinner from '../components/StSpinner';
 import MacroTreemap from '../components/dashboard/MacroTreemap';
 import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
+import { tickerOverviewUrl } from '../utils/tickerLinks';
 import { signedHeatStyle } from '../utils/heatMap';
 import { formatPercent, formatUsd } from '../utils/formatters';
 import './dashboard.css';
@@ -161,7 +162,7 @@ export default function DashboardPage() {
                 <tbody>
                   {portfolioRows.map((row) => (
                     <tr key={row.ticker}>
-                      <td><Link to={`/${row.ticker}`} className="st-ticker fw-semibold">{row.ticker}</Link></td>
+                      <td><Link to={tickerOverviewUrl(row.ticker)} className="st-ticker fw-semibold">{row.ticker}</Link></td>
                       <td className="small text-muted">{row.name || '—'}</td>
                       <td className="text-end st-num">{row.price != null ? formatUsd(row.price) : '—'}</td>
                       <td className="text-end st-num" style={row._changeStyle}>

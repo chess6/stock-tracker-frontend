@@ -1,4 +1,4 @@
-import { formatDecimal, formatUsd, formatPercent, changePercentStyle, formatCompactNumber, formatCompactUsd } from './formatters';
+import { formatDecimal, formatUsd, formatPercent, changePercentStyle, formatCompactNumber, formatCompactUsd, formatSharesCell } from './formatters';
 
 describe('formatters', () => {
     test('formatDecimal treats null as missing', () => {
@@ -23,6 +23,12 @@ describe('formatters', () => {
         expect(formatCompactNumber(852525000)).toBe('853M');
         expect(formatCompactUsd(416161000000)).toBe('$416B');
         expect(formatCompactUsd(198.5)).toBe('$198.50');
+    });
+
+    test('formatSharesCell formats share counts for grids', () => {
+        expect(formatSharesCell(14776353000, { compact: true })).toBe('14.8B');
+        expect(formatSharesCell(14776353000, { compact: false })).toBe('14,776,353,000');
+        expect(formatSharesCell(null)).toBe('-');
     });
 
     test('changePercentStyle scales by magnitude', () => {

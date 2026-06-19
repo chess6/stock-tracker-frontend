@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import API_ENDPOINTS from '../../apiConfig';
 import ColumnHeader from '../ColumnHeader';
 import StTooltip, { StTooltipMetricHelp } from '../StTooltip';
-import { getMetricTooltipMeta } from '../../config/tooltipRegistry';
+import { getMetricTooltip, getMetricTooltipMeta } from '../../config/tooltipRegistry';
 import { formatCompactUsd, formatDecimal } from '../../utils/formatters';
 import { insiderDollarStyle } from '../../utils/heatMap';
 import { computeClusterColumns, splitEvenly } from '../../utils/clusterGrid';
@@ -109,11 +109,11 @@ function ScreenerClusterColumn({ rows }) {
 }
 
 function ScreenerClusterTable({ clusters, loading }) {
-  const gridRef = useRef(null);
+  const containerRef = useRef(null);
   const [columnCount, setColumnCount] = useState(1);
 
   useEffect(() => {
-    const node = gridRef.current;
+    const node = containerRef.current;
     if (!node) return undefined;
 
     const updateColumns = (width) => {
@@ -145,14 +145,15 @@ function ScreenerClusterTable({ clusters, loading }) {
   }
 
   return (
-    <div
-      ref={gridRef}
-      className="research-insider-cluster-grid"
-      style={{ '--cluster-cols': columnGroups.length }}
-    >
-      {columnGroups.map((rows, index) => (
-        <ScreenerClusterColumn key={`cluster-col-${index}`} rows={rows} />
-      ))}
+    <div ref={containerRef} className="research-insider-cluster-grid-wrap">
+      <div
+        className="research-insider-cluster-grid"
+        style={{ '--cluster-cols': columnGroups.length }}
+      >
+        {columnGroups.map((rows, index) => (
+          <ScreenerClusterColumn key={`cluster-col-${index}`} rows={rows} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -169,15 +170,15 @@ function DeepDiveInsiderPanel({ insiderAnalysis }) {
   return (
     <>
       <div className="research-stat-strip research-insider-summary-strip">
-        <span className="research-stat-strip-item">
+        <span className="research-stat-strip-item" title={getMetricTooltip('buyCount90d')?.tooltip || 'Insider buy transactions in trailing 90 days'}>
           <span className="research-stat-strip-label">Buys 90d</span>
           <span className="research-stat-strip-value st-num">{summary.buyCount90d ?? 0}</span>
         </span>
-        <span className="research-stat-strip-item">
+        <span className="research-stat-strip-item" title="Open-market insider sell transactions in trailing 90 days. Compare against buy count and dollar values for net activity.">
           <span className="research-stat-strip-label">Sells 90d</span>
           <span className="research-stat-strip-value st-num">{summary.sellCount90d ?? 0}</span>
         </span>
-        <span className="research-stat-strip-item">
+        <span className="research-stat-strip-item" title={getMetricTooltip('uniqueBuyers')?.tooltip || 'Distinct insiders with purchases in the window'}>
           <span className="research-stat-strip-label">Buyers</span>
           <span className="research-stat-strip-value st-num">{summary.uniqueBuyers90d ?? 0}</span>
         </span>

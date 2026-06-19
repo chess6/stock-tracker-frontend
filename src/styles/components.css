@@ -357,7 +357,8 @@ a.st-link-muted:focus-visible {
   display: none;
 }
 
-.st-details[open] > .st-details-summary {
+.st-details[open] > .st-details-summary,
+.st-details.is-open > .st-details-summary {
   border-bottom: 1px solid var(--st-border);
 }
 

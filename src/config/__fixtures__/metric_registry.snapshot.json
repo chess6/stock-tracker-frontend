@@ -16,6 +16,21 @@
       "trend_capable": false
     },
     {
+      "key": "asset_turnover",
+      "category": "profitability",
+      "label": "Asset Turnover",
+      "format": "decimal",
+      "api_key": "assetTurnover",
+      "higher_is_better": true,
+      "heatmap_mode": "percentile",
+      "danger_threshold": 0.3,
+      "excellent_threshold": 1.0,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": true
+    },
+    {
       "key": "beneish_m",
       "category": "score",
       "label": "Beneish M",
@@ -28,6 +43,21 @@
       "score_type": "beneish",
       "screener_supported": true,
       "time_series": true,
+      "trend_capable": false
+    },
+    {
+      "key": "capital_allocation_score",
+      "category": "thesis",
+      "label": "Capital Allocation Score",
+      "format": "integer",
+      "api_key": "capitalAllocationScore",
+      "higher_is_better": true,
+      "heatmap_mode": "score_tier",
+      "danger_threshold": null,
+      "excellent_threshold": null,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": false,
       "trend_capable": false
     },
     {
@@ -59,6 +89,21 @@
       "screener_supported": false,
       "time_series": true,
       "trend_capable": true
+    },
+    {
+      "key": "conservative_nav_per_share",
+      "category": "thesis",
+      "label": "Conservative NAV/Share",
+      "format": "decimal",
+      "api_key": "conservativeNavPerShare",
+      "higher_is_better": true,
+      "heatmap_mode": "percentile",
+      "danger_threshold": null,
+      "excellent_threshold": null,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": false,
+      "trend_capable": false
     },
     {
       "key": "current_ratio",
@@ -106,6 +151,21 @@
       "trend_capable": true
     },
     {
+      "key": "div_yield",
+      "category": "valuation",
+      "label": "Dividend Yield",
+      "format": "percent",
+      "api_key": "divYield",
+      "higher_is_better": true,
+      "heatmap_mode": "percentile",
+      "danger_threshold": 0.0,
+      "excellent_threshold": 0.04,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": false
+    },
+    {
       "key": "earnings_yield",
       "category": "valuation",
       "label": "Earnings Yield",
@@ -113,8 +173,8 @@
       "api_key": "earningsYield",
       "higher_is_better": true,
       "heatmap_mode": "percentile",
-      "danger_threshold": null,
-      "excellent_threshold": null,
+      "danger_threshold": 0.02,
+      "excellent_threshold": 0.08,
       "score_type": null,
       "screener_supported": false,
       "time_series": true,
@@ -151,6 +211,36 @@
       "trend_capable": true
     },
     {
+      "key": "ev_ebitda",
+      "category": "valuation",
+      "label": "EV/EBITDA",
+      "format": "decimal",
+      "api_key": "evEbitda",
+      "higher_is_better": false,
+      "heatmap_mode": "percentile",
+      "danger_threshold": null,
+      "excellent_threshold": null,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": true
+    },
+    {
+      "key": "ev_sales",
+      "category": "valuation",
+      "label": "EV/Sales",
+      "format": "decimal",
+      "api_key": "evSales",
+      "higher_is_better": false,
+      "heatmap_mode": "percentile",
+      "danger_threshold": null,
+      "excellent_threshold": null,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": true
+    },
+    {
       "key": "fcf_margin",
       "category": "profitability",
       "label": "FCF Margin",
@@ -160,6 +250,21 @@
       "heatmap_mode": "percentile",
       "danger_threshold": 0.0,
       "excellent_threshold": 0.15,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": true
+    },
+    {
+      "key": "fcf_yield",
+      "category": "valuation",
+      "label": "FCF Yield",
+      "format": "percent",
+      "api_key": "fcfYield",
+      "higher_is_better": true,
+      "heatmap_mode": "percentile",
+      "danger_threshold": null,
+      "excellent_threshold": null,
       "score_type": null,
       "screener_supported": false,
       "time_series": true,
@@ -196,6 +301,36 @@
       "trend_capable": false
     },
     {
+      "key": "inventory_turnover",
+      "category": "profitability",
+      "label": "Inventory Turnover",
+      "format": "decimal",
+      "api_key": "inventoryTurnover",
+      "higher_is_better": true,
+      "heatmap_mode": "percentile",
+      "danger_threshold": null,
+      "excellent_threshold": null,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": true
+    },
+    {
+      "key": "net_debt",
+      "category": "liquidity",
+      "label": "Net Debt",
+      "format": "decimal",
+      "api_key": "netDebt",
+      "higher_is_better": false,
+      "heatmap_mode": "percentile",
+      "danger_threshold": null,
+      "excellent_threshold": null,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": false
+    },
+    {
       "key": "net_margin",
       "category": "profitability",
       "label": "Net Margin",
@@ -224,6 +359,36 @@
       "screener_supported": false,
       "time_series": true,
       "trend_capable": true
+    },
+    {
+      "key": "payables_days",
+      "category": "profitability",
+      "label": "Payables Days",
+      "format": "decimal",
+      "api_key": "payablesDays",
+      "higher_is_better": false,
+      "heatmap_mode": "percentile",
+      "danger_threshold": null,
+      "excellent_threshold": null,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": true
+    },
+    {
+      "key": "payout_ratio",
+      "category": "profitability",
+      "label": "Payout Ratio",
+      "format": "percent",
+      "api_key": "payoutRatio",
+      "higher_is_better": false,
+      "heatmap_mode": "percentile",
+      "danger_threshold": null,
+      "excellent_threshold": null,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": false
     },
     {
       "key": "pb",
@@ -256,6 +421,21 @@
       "trend_capable": false
     },
     {
+      "key": "peer_industry_revenue_cagr_3yr",
+      "category": "thesis",
+      "label": "Peer Industry Rev CAGR (3yr)",
+      "format": "percent",
+      "api_key": "peerIndustryRevenueCagr3yr",
+      "higher_is_better": true,
+      "heatmap_mode": "fixed_threshold",
+      "danger_threshold": -0.05,
+      "excellent_threshold": 0.05,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": false,
+      "trend_capable": false
+    },
+    {
       "key": "piotroski_f",
       "category": "score",
       "label": "Piotroski F",
@@ -268,6 +448,21 @@
       "score_type": "piotroski",
       "screener_supported": true,
       "time_series": true,
+      "trend_capable": false
+    },
+    {
+      "key": "price_to_conservative_nav",
+      "category": "thesis",
+      "label": "Price / Conservative NAV",
+      "format": "decimal",
+      "api_key": "priceToConservativeNav",
+      "higher_is_better": false,
+      "heatmap_mode": "fixed_threshold",
+      "danger_threshold": 1.5,
+      "excellent_threshold": 0.7,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": false,
       "trend_capable": false
     },
     {
@@ -284,6 +479,21 @@
       "screener_supported": false,
       "time_series": true,
       "trend_capable": false
+    },
+    {
+      "key": "receivables_days",
+      "category": "profitability",
+      "label": "Receivables Days",
+      "format": "decimal",
+      "api_key": "receivablesDays",
+      "higher_is_better": false,
+      "heatmap_mode": "percentile",
+      "danger_threshold": null,
+      "excellent_threshold": null,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": true
     },
     {
       "key": "roa",
@@ -316,6 +526,51 @@
       "trend_capable": true
     },
     {
+      "key": "roic",
+      "category": "profitability",
+      "label": "ROIC",
+      "format": "percent",
+      "api_key": "roic",
+      "higher_is_better": true,
+      "heatmap_mode": "percentile",
+      "danger_threshold": null,
+      "excellent_threshold": null,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": true
+    },
+    {
+      "key": "runway_months",
+      "category": "thesis",
+      "label": "Cash Runway (Months)",
+      "format": "decimal",
+      "api_key": "runwayMonths",
+      "higher_is_better": true,
+      "heatmap_mode": "fixed_threshold",
+      "danger_threshold": 12.0,
+      "excellent_threshold": 24.0,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": false,
+      "trend_capable": false
+    },
+    {
+      "key": "sloan_accruals",
+      "category": "thesis",
+      "label": "Sloan Accruals",
+      "format": "decimal",
+      "api_key": "sloanAccruals",
+      "higher_is_better": false,
+      "heatmap_mode": "fixed_threshold",
+      "danger_threshold": 0.1,
+      "excellent_threshold": 0.02,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": true
+    },
+    {
       "key": "survivability",
       "category": "score",
       "label": "Survivability",
@@ -328,6 +583,36 @@
       "score_type": "survivability",
       "screener_supported": true,
       "time_series": true,
+      "trend_capable": false
+    },
+    {
+      "key": "tangible_book_per_share",
+      "category": "valuation",
+      "label": "Tangible Book/Share",
+      "format": "decimal",
+      "api_key": "tangibleBookPerShare",
+      "higher_is_better": true,
+      "heatmap_mode": "percentile",
+      "danger_threshold": null,
+      "excellent_threshold": null,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": true,
+      "trend_capable": false
+    },
+    {
+      "key": "time_cheap_periods",
+      "category": "thesis",
+      "label": "Time-Cheap Periods",
+      "format": "integer",
+      "api_key": "timeCheapPeriods",
+      "higher_is_better": false,
+      "heatmap_mode": "fixed_threshold",
+      "danger_threshold": 5,
+      "excellent_threshold": 1,
+      "score_type": null,
+      "screener_supported": false,
+      "time_series": false,
       "trend_capable": false
     }
   ]

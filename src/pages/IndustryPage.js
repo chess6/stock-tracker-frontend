@@ -16,6 +16,7 @@ import { signedHeatStyle, columnHeatStyle } from '../utils/heatMap';
 import { getCachedColumnMinMaxMap, rowsDatasetKey } from '../utils/heatmapCache';
 import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
+import { tickerOverviewUrl } from '../utils/tickerLinks';
 import './industry.css';
 
 const PEER_LIMIT = 80;
@@ -222,7 +223,7 @@ export default function IndustryPage() {
     {
       header: 'Ticker',
       accessorKey: 'ticker',
-      cell: (info) => <Link to={`/${info.getValue()}`} className="st-ticker">{info.getValue()}</Link>,
+      cell: (info) => <Link to={tickerOverviewUrl(info.getValue())} className="st-ticker">{info.getValue()}</Link>,
       size: 90,
     },
     { header: 'Name', accessorKey: 'name', size: 180 },

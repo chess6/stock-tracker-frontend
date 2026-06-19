@@ -27,6 +27,7 @@ import {
 } from '../utils/formatters';
 import { computeYoY } from '../utils/researchCalculations';
 import { getMetricBackground } from '../utils/scoringColors';
+import { getMetricTooltip } from '../config/tooltipRegistry';
 import './research.css';
 
 const KEY_METRICS = [
@@ -54,7 +55,19 @@ function formatMetricValue(value, format) {
   }
 }
 
-function ThesisBriefing({ thesisData }) {
+function PanelLoading({ label }) {
+  return (
+    <div className="research-chart-empty d-flex align-items-center gap-2">
+      <StSpinner size="sm" />
+      <span>Loading {label}…</span>
+    </div>
+  );
+}
+
+function ThesisBriefing({ thesisData, loading }) {
+  if (loading) {
+    return <PanelLoading label="investment signal" />;
+  }
   if (!thesisData) {
     return <div className="research-chart-empty">No thesis available.</div>;
   }
@@ -123,7 +136,7 @@ function ThesisBriefing({ thesisData }) {
   );
 }
 
-function KeyMetricsStrip({ detailData }) {
+function KeyMetricsStrip({ detailData, loading }) {
   const badges = useMemo(() => {
     const periods = [...(detailData?.periods || [])].sort(
       (a, b) => (b.periodEnd || '').localeCompare(a.periodEnd || ''),
@@ -161,6 +174,10 @@ function KeyMetricsStrip({ detailData }) {
     }).filter((item) => item.value != null);
   }, [detailData]);
 
+  if (loading) {
+    return <PanelLoading label="key metrics" />;
+  }
+
   if (!badges.length) {
     return <div className="small text-muted">No key metrics available.</div>;
   }
@@ -172,6 +189,7 @@ function KeyMetricsStrip({ detailData }) {
           key={badge.key}
           className="research-overview-metric-badge"
           style={badge.heatStyle}
+          title={getMetricTooltip(badge.heatKey)?.tooltip || badge.label}
         >
           <span className="research-overview-metric-label">{badge.label}</span>
           <span className="research-overview-metric-value st-num">{badge.formatted}</span>
@@ -181,7 +199,7 @@ function KeyMetricsStrip({ detailData }) {
   );
 }
 
-function WhyThisStockMatters({ thesisData, compositeRank, compositeRankLoading }) {
+function WhyThisStockMatters({ thesisData, thesisLoading, compositeRank, compositeRankLoading }) {
   const sections = thesisData?.sections || {};
   const preMortem = sections.preMortem || {};
   const headline = preMortem.headline || null;
@@ -191,8 +209,9 @@ function WhyThisStockMatters({ thesisData, compositeRank, compositeRankLoading }
   const failedGates = thesisData?.disqualificationNotice?.failedGates || [];
   const hasRank = compositeRank != null;
   const hasContent = hasRank || headline || topBull || topBear || disqualified;
+  const stillLoading = (thesisLoading && !thesisData) || (compositeRankLoading && !hasRank);
 
-  if (!hasContent && !compositeRankLoading) {
+  if (!hasContent && !stillLoading) {
     return null;
   }
 
@@ -203,7 +222,10 @@ function WhyThisStockMatters({ thesisData, compositeRank, compositeRankLoading }
         Why This Stock Matters
       </div>
       <div className="st-panel-body research-panel-body-tight research-overview-why-matters-body">
-        {compositeRankLoading && !hasRank && (
+        {stillLoading && !hasContent && (
+          <PanelLoading label="summary" />
+        )}
+        {compositeRankLoading && !hasRank && hasContent && (
           <span className="small text-muted">Loading rank…</span>
         )}
         {hasRank && (
@@ -245,7 +267,10 @@ function WhyThisStockMatters({ thesisData, compositeRank, compositeRankLoading }
   );
 }
 
-function CatalystsRisksPanel({ thesisData }) {
+function CatalystsRisksPanel({ thesisData, loading }) {
+  if (loading) {
+    return <PanelLoading label="catalysts and risks" />;
+  }
   if (!thesisData) {
     return <div className="research-chart-empty">No catalyst or risk data.</div>;
   }
@@ -307,8 +332,13 @@ export default function ResearchOverviewPage() {
   const ticker = routeTicker?.toUpperCase();
   const { showToast } = useToast();
 
-  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [metaLoading, setMetaLoading] = useState(true);
+  const [changeLoading, setChangeLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(true);
+  const [narrativeLoading, setNarrativeLoading] = useState(true);
+  const [pillarLoading, setPillarLoading] = useState(true);
+  const [thesisLoading, setThesisLoading] = useState(true);
   const [tickerMeta, setTickerMeta] = useState(null);
   const [latestClose, setLatestClose] = useState(null);
   const [changeInfo, setChangeInfo] = useState(null);
@@ -322,107 +352,130 @@ export default function ResearchOverviewPage() {
   useEffect(() => {
     if (!ticker) return undefined;
     let cancelled = false;
+    const failures = [];
 
-    async function fetchAll() {
-      setLoading(true);
-      setLoadError('');
-      setDetailData(null);
-      setNarrativeData(null);
-      setPillarData(null);
-      setThesisData(null);
-      setCompositeRank(null);
+    setLoadError('');
+    setMetaLoading(true);
+    setChangeLoading(true);
+    setDetailLoading(true);
+    setNarrativeLoading(true);
+    setPillarLoading(true);
+    setThesisLoading(true);
+    setTickerMeta(null);
+    setLatestClose(null);
+    setChangeInfo(null);
+    setDetailData(null);
+    setNarrativeData(null);
+    setPillarData(null);
+    setThesisData(null);
+    setCompositeRank(null);
 
-      try {
-        const [
-          intradayRes,
-          changeRes,
-          detailRes,
-          narrativeRes,
-          pillarRes,
-          thesisRes,
-        ] = await Promise.allSettled([
-          axios.get(API_ENDPOINTS.INTRADAY(ticker)),
-          axios.get(API_ENDPOINTS.DAILY_CHANGE, { params: { tickers: ticker } }),
-          axios.get(API_ENDPOINTS.RESEARCH_TICKER(ticker), { params: { dimension: 'MRY' } }),
-          axios.get(API_ENDPOINTS.RESEARCH_NARRATIVE(ticker)),
-          fetchPillarProfile(ticker),
-          fetchThesis(ticker),
-        ]);
+    const finish = () => {
+      if (!cancelled && failures.length) {
+        setLoadError(`Some data could not be loaded (${[...new Set(failures)].join(', ')}).`);
+      }
+    };
 
-        if (cancelled) return;
-
-        const failures = [];
-
-        if (intradayRes.status === 'fulfilled') {
-          setTickerMeta(intradayRes.value.data?.tickerMeta || null);
-        } else {
+    axios.get(API_ENDPOINTS.INTRADAY(ticker))
+      .then((res) => {
+        if (!cancelled) setTickerMeta(res.data?.tickerMeta || null);
+      })
+      .catch(() => {
+        if (!cancelled) {
           setTickerMeta(null);
           failures.push('company meta');
         }
+      })
+      .finally(() => {
+        if (!cancelled) setMetaLoading(false);
+        finish();
+      });
 
-        if (changeRes.status === 'fulfilled') {
-          const changes = changeRes.value.data?.changes || {};
-          const info = changes[ticker] || {};
-          const prev = info.prevClose;
-          const today = info.todayClose;
-          const prevNum = prev != null && !Number.isNaN(Number(prev)) ? Number(prev) : null;
-          const todayNum = today != null && !Number.isNaN(Number(today)) ? Number(today) : null;
-          setLatestClose(todayNum);
-          if (todayNum != null && prevNum != null && prevNum !== 0) {
-            const diff = todayNum - prevNum;
-            setChangeInfo({
-              diff,
-              pct: (diff / prevNum) * 100,
-              up: diff >= 0,
-            });
-          } else {
-            setChangeInfo(null);
-          }
+    axios.get(API_ENDPOINTS.DAILY_CHANGE, { params: { tickers: ticker } })
+      .then((res) => {
+        if (cancelled) return;
+        const changes = res.data?.changes || {};
+        const info = changes[ticker] || {};
+        const prev = info.prevClose;
+        const today = info.todayClose;
+        const prevNum = prev != null && !Number.isNaN(Number(prev)) ? Number(prev) : null;
+        const todayNum = today != null && !Number.isNaN(Number(today)) ? Number(today) : null;
+        setLatestClose(todayNum);
+        if (todayNum != null && prevNum != null && prevNum !== 0) {
+          const diff = todayNum - prevNum;
+          setChangeInfo({
+            diff,
+            pct: (diff / prevNum) * 100,
+            up: diff >= 0,
+          });
         } else {
+          setChangeInfo(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
           setLatestClose(null);
           setChangeInfo(null);
           failures.push('daily change');
         }
+      })
+      .finally(() => {
+        if (!cancelled) setChangeLoading(false);
+        finish();
+      });
 
-        if (detailRes.status === 'fulfilled') {
-          setDetailData(detailRes.value.data || null);
-        } else {
+    axios.get(API_ENDPOINTS.RESEARCH_TICKER(ticker), { params: { dimension: 'MRY' } })
+      .then((res) => {
+        if (!cancelled) setDetailData(res.data || null);
+      })
+      .catch(() => {
+        if (!cancelled) {
           setDetailData(null);
           failures.push('research detail');
         }
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+        finish();
+      });
 
-        if (narrativeRes.status === 'fulfilled') {
-          setNarrativeData(narrativeRes.value.data || null);
-        } else {
-          setNarrativeData(null);
-        }
+    axios.get(API_ENDPOINTS.RESEARCH_NARRATIVE(ticker))
+      .then((res) => {
+        if (!cancelled) setNarrativeData(res.data || null);
+      })
+      .catch(() => {
+        if (!cancelled) setNarrativeData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setNarrativeLoading(false);
+      });
 
-        if (pillarRes.status === 'fulfilled') {
-          setPillarData(pillarRes.value || null);
-        } else {
-          setPillarData(null);
-        }
+    fetchPillarProfile(ticker)
+      .then((data) => {
+        if (!cancelled) setPillarData(data || null);
+      })
+      .catch(() => {
+        if (!cancelled) setPillarData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setPillarLoading(false);
+      });
 
-        if (thesisRes.status === 'fulfilled') {
-          setThesisData(thesisRes.value || null);
-        } else {
+    fetchThesis(ticker)
+      .then((data) => {
+        if (!cancelled) setThesisData(data || null);
+      })
+      .catch(() => {
+        if (!cancelled) {
           setThesisData(null);
           failures.push('thesis');
         }
+      })
+      .finally(() => {
+        if (!cancelled) setThesisLoading(false);
+        finish();
+      });
 
-        if (failures.length) {
-          setLoadError(`Some data could not be loaded (${failures.join(', ')}).`);
-        }
-      } catch {
-        if (!cancelled) {
-          setLoadError('Failed to load research overview. Check that the backend is running.');
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    fetchAll();
     return () => { cancelled = true; };
   }, [ticker]);
 
@@ -454,10 +507,10 @@ export default function ResearchOverviewPage() {
     if (!detailData?.scoreHistory?.length) return null;
     const latest = detailData.scoreHistory[0];
     return [
-      ['Piotroski', latest.piotroskiF],
-      ['Altman Z', latest.altmanZ != null ? formatDecimal(latest.altmanZ, 2) : '—'],
-      ['Beneish M', latest.beneishM != null ? formatDecimal(latest.beneishM, 2) : '—'],
-      ['Survivability', latest.survivability != null ? Math.round(latest.survivability) : '—'],
+      ['Piotroski', latest.piotroskiF, 'piotroskiF'],
+      ['Altman Z', latest.altmanZ != null ? formatDecimal(latest.altmanZ, 2) : '—', 'altmanZ'],
+      ['Beneish M', latest.beneishM != null ? formatDecimal(latest.beneishM, 2) : '—', 'beneishM'],
+      ['Survivability', latest.survivability != null ? Math.round(latest.survivability) : '—', 'survivability'],
     ];
   }, [detailData]);
 
@@ -485,13 +538,8 @@ export default function ResearchOverviewPage() {
     showToast(notif.message, notif.type);
   };
 
-  if (loading) {
-    return (
-      <div className="st-page st-spinner-wrap">
-        <StSpinner size="sm" /> Loading {ticker}…
-      </div>
-    );
-  }
+  const headerPriceLoading = changeLoading && latestClose == null && detailData?.price?.latest == null;
+  const hasHeaderPrice = displayPrice != null || priceSparkline.length > 0;
 
   return (
     <div className="st-page st-page--full research-page research-overview-page">
@@ -504,7 +552,9 @@ export default function ResearchOverviewPage() {
             <div className="research-overview-identity">
               <div className="research-deep-dive-title-row">
                 <h1 className="st-ticker research-deep-dive-ticker">{ticker}</h1>
-                <span className="research-deep-dive-company">{companyName}</span>
+                {companyName !== ticker && (
+                  <span className="research-deep-dive-company">{companyName}</span>
+                )}
                 {sectorIndustry && (
                   <span className="research-deep-dive-sector">{sectorIndustry}</span>
                 )}
@@ -532,8 +582,14 @@ export default function ResearchOverviewPage() {
               )}
               {scoreBadges && (
                 <div className="research-score-badges research-deep-dive-badges">
-                  {scoreBadges.map(([label, value]) => (
-                    <span key={label} className="st-badge-amber">{label}: {value}</span>
+                  {scoreBadges.map(([label, value, registryKey]) => (
+                    <span
+                      key={label}
+                      className="st-badge-amber"
+                      title={getMetricTooltip(registryKey)?.tooltip || label}
+                    >
+                      {label}: {value}
+                    </span>
                   ))}
                 </div>
               )}
@@ -542,20 +598,26 @@ export default function ResearchOverviewPage() {
             <CapitalStructureSummary periods={detailPeriods} />
 
             <div className="research-header-price-block">
-              {priceSparkline.length > 0 && (
-                <MetricSparkline series={priceSparkline} format="usd" height={22} width={72} />
-              )}
-              {displayPrice != null && (
-                <div className="research-header-price st-num">
-                  {formatCompactUsd(displayPrice)}
-                </div>
-              )}
-              {changeInfo && (
-                <div className={changeInfo.up ? 'st-change-up' : 'st-change-down'}>
-                  {changeInfo.up ? '+' : ''}{changeInfo.diff.toFixed(2)}
-                  {' '}
-                  ({changeInfo.up ? '+' : ''}{changeInfo.pct.toFixed(2)}%)
-                </div>
+              {headerPriceLoading && !hasHeaderPrice ? (
+                <PanelLoading label="price" />
+              ) : (
+                <>
+                  {priceSparkline.length > 0 && (
+                    <MetricSparkline series={priceSparkline} format="usd" height={22} width={72} />
+                  )}
+                  {displayPrice != null && (
+                    <div className="research-header-price st-num">
+                      {formatCompactUsd(displayPrice)}
+                    </div>
+                  )}
+                  {changeInfo && (
+                    <div className={changeInfo.up ? 'st-change-up' : 'st-change-down'}>
+                      {changeInfo.up ? '+' : ''}{changeInfo.diff.toFixed(2)}
+                      {' '}
+                      ({changeInfo.up ? '+' : ''}{changeInfo.pct.toFixed(2)}%)
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -577,6 +639,7 @@ export default function ResearchOverviewPage() {
 
       <WhyThisStockMatters
         thesisData={thesisData}
+        thesisLoading={thesisLoading}
         compositeRank={compositeRank}
         compositeRankLoading={compositeRankLoading}
       />
@@ -605,7 +668,7 @@ export default function ResearchOverviewPage() {
             Investment Signal
           </div>
           <div className="st-panel-body research-panel-body-tight">
-            <ThesisBriefing thesisData={thesisData} />
+            <ThesisBriefing thesisData={thesisData} loading={thesisLoading} />
           </div>
         </div>
 
@@ -615,7 +678,7 @@ export default function ResearchOverviewPage() {
             Pillar Profile
           </div>
           <div className="st-panel-body research-panel-body-tight">
-            <PillarRadarPanel pillarData={pillarData} loading={false} embedded />
+            <PillarRadarPanel pillarData={pillarData} loading={pillarLoading} embedded />
           </div>
         </div>
 
@@ -625,11 +688,15 @@ export default function ResearchOverviewPage() {
             Insiders
           </div>
           <div className="st-panel-body research-panel-body-tight">
-            <InsiderPanel
-              mode="deep-dive"
-              insiderAnalysis={detailData?.insiderAnalysis}
-              embedded
-            />
+            {detailLoading && !detailData ? (
+              <PanelLoading label="insider activity" />
+            ) : (
+              <InsiderPanel
+                mode="deep-dive"
+                insiderAnalysis={detailData?.insiderAnalysis}
+                embedded
+              />
+            )}
           </div>
         </div>
       </div>
@@ -641,13 +708,17 @@ export default function ResearchOverviewPage() {
             Margin Trends
           </div>
           <div className="st-panel-body research-margin-panel-body">
-            <MarginTrendChart periods={detailPeriods} compact deepDive />
+            {detailLoading && !detailData ? (
+              <PanelLoading label="margin trends" />
+            ) : (
+              <MarginTrendChart periods={detailPeriods} compact deepDive />
+            )}
           </div>
         </div>
 
         <div className="st-panel research-overview-metrics-panel">
           <div className="st-panel-body research-panel-body-tight research-overview-metrics-body">
-            <KeyMetricsStrip detailData={detailData} />
+            <KeyMetricsStrip detailData={detailData} loading={detailLoading} />
           </div>
         </div>
       </div>
@@ -659,7 +730,7 @@ export default function ResearchOverviewPage() {
             Catalysts &amp; Risks
           </div>
           <div className="st-panel-body research-panel-body-tight">
-            <CatalystsRisksPanel thesisData={thesisData} />
+            <CatalystsRisksPanel thesisData={thesisData} loading={thesisLoading} />
           </div>
         </div>
 
@@ -669,7 +740,7 @@ export default function ResearchOverviewPage() {
             Recent Changes
           </div>
           <div className="st-panel-body research-panel-body-tight">
-            <NarrativePanel narrativeData={narrativeData} loading={false} deepDive />
+            <NarrativePanel narrativeData={narrativeData} loading={narrativeLoading} deepDive />
           </div>
         </div>
       </div>

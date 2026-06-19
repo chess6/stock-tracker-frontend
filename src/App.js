@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import PortfolioPage from './pages/PortfolioPage';
 import SummaryPage from './pages/SummaryPage';
 import ResearchOverviewPage from './pages/ResearchOverviewPage';
@@ -18,22 +18,32 @@ import DashboardPage from './pages/DashboardPage';
 import IndustryPage from './pages/IndustryPage';
 import MoversPage from './pages/MoversPage';
 import ResearchPage from './pages/ResearchPage';
+import FinancialsPage from './pages/FinancialsPage';
 import ScreenPage from './pages/ScreenPage';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { loadMetricRegistry } from './config/metricRegistry';
 import { loadUserPreferences } from './utils/portfolio';
+import { tickerFindersUrl, tickerOverviewUrl } from './utils/tickerLinks';
+
+function LegacyOverviewRedirect() {
+  const { ticker } = useParams();
+  return <Navigate to={tickerOverviewUrl(ticker)} replace />;
+}
+
+function LegacyFindersRedirect() {
+  const { ticker } = useParams();
+  return <Navigate to={tickerFindersUrl(ticker)} replace />;
+}
 
 function LegacyInsiderRedirect() {
   const { ticker } = useParams();
-  return <Navigate to={`/${ticker}/insiders`} replace />;
+  return <Navigate to={tickerFindersUrl(ticker)} replace />;
 }
 
 function LegacyFinancialsRedirect() {
   const { ticker } = useParams();
-  const [searchParams] = useSearchParams();
-  const qs = searchParams.toString();
-  return <Navigate to={`/research/${ticker}${qs ? `?${qs}` : ''}`} replace />;
+  return <Navigate to={`/financials/${ticker}`} replace />;
 }
 
 function App() {
@@ -63,13 +73,16 @@ function App() {
           <Route path="industry" element={<IndustryPage />} />
           <Route path="movers" element={<MoversPage />} />
           <Route path="admin" element={<AdminConsolePage />} />
+          <Route path="overview/:ticker" element={<ResearchOverviewPage />} />
+          <Route path="finders/:ticker" element={<TickerDetailsPage />} />
+          <Route path="financials/:ticker" element={<FinancialsPage />} />
           <Route path=":ticker/financials" element={<LegacyFinancialsRedirect />} />
-          <Route path=":ticker/insiders" element={<TickerDetailsPage />} />
-          {/* legacy: screener linked here before /:ticker/insiders */}
+          <Route path=":ticker/insiders" element={<LegacyFindersRedirect />} />
+          {/* legacy: screener linked here before /finders/:ticker */}
           <Route path="ticker/:ticker" element={<LegacyInsiderRedirect />} />
           {/* legacy: <Route path="ticker/:ticker" element={<TickerDetailsPage />} /> */}
           <Route path=":ticker/summary" element={<SummaryPage />} />
-          <Route path=":ticker" element={<ResearchOverviewPage />} />
+          <Route path=":ticker" element={<LegacyOverviewRedirect />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>

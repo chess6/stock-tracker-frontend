@@ -379,6 +379,66 @@ const PortfolioPage = () => {
             cellStyle: portfolioHeatCell('divYield'),
             cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
         }),
+        columnHelper.accessor('operatingMargin', {
+            meta: meta('operatingMargin'),
+            header: 'Op%',
+            cellStyle: portfolioHeatCell('operatingMargin'),
+            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+        }),
+        columnHelper.accessor('fcfMargin', {
+            meta: meta('fcfMargin'),
+            header: 'FCF%',
+            cellStyle: portfolioHeatCell('fcfMargin'),
+            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+        }),
+        columnHelper.accessor('quickRatio', {
+            meta: meta('quickRatio'),
+            header: 'Quick',
+            cellStyle: portfolioHeatCell('quickRatio'),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('interestCoverage', {
+            meta: meta('interestCoverage'),
+            header: 'IntCov',
+            cellStyle: portfolioHeatCell('interestCoverage'),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('roic', {
+            meta: meta('roic'),
+            header: 'ROIC',
+            cellStyle: portfolioHeatCell('roic'),
+            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+        }),
+        columnHelper.accessor('evEbitda', {
+            meta: meta('evEbitda'),
+            header: 'EV/Eb',
+            cellStyle: portfolioHeatCell('evEbitda'),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 1)}</span>,
+        }),
+        columnHelper.accessor('fcfYield', {
+            meta: meta('fcfYield'),
+            header: 'FCF Yld',
+            cellStyle: portfolioHeatCell('fcfYield'),
+            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+        }),
+        columnHelper.accessor('netDebt', {
+            meta: meta('netDebt'),
+            header: 'Net D',
+            cellStyle: portfolioHeatCell('netDebt'),
+            cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
+        }),
+        columnHelper.accessor('earningsYield', {
+            meta: meta('earningsYield'),
+            header: 'E/P',
+            cellStyle: portfolioHeatCell('earningsYield'),
+            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+        }),
+        columnHelper.accessor('assetTurnover', {
+            meta: meta('assetTurnover'),
+            header: 'AT',
+            cellStyle: portfolioHeatCell('assetTurnover'),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
         columnHelper.accessor('cfop', {
             meta: meta('cfop'),
             header: 'CFOP',
@@ -736,6 +796,16 @@ const PortfolioPage = () => {
                             roe: toNullableNumber(m.roe),
                             roa: toNullableNumber(m.roa),
                             divYield: toNullableNumber(m.divYield),
+                            operatingMargin: toNullableNumber(m.operatingMargin),
+                            fcfMargin: toNullableNumber(m.fcfMargin),
+                            quickRatio: toNullableNumber(m.quickRatio),
+                            interestCoverage: toNullableNumber(m.interestCoverage),
+                            roic: toNullableNumber(m.roic),
+                            evEbitda: toNullableNumber(m.evEbitda),
+                            fcfYield: toNullableNumber(m.fcfYield),
+                            netDebt: toNullableNumber(m.netDebt),
+                            earningsYield: toNullableNumber(m.earningsYield),
+                            assetTurnover: toNullableNumber(m.assetTurnover),
                             divergenceSignal: null,
                             divergenceScore: null,
                             insiderBuy6m: null,
@@ -904,104 +974,124 @@ const PortfolioPage = () => {
                         presetId={presetId}
                         presets={PORTFOLIO_RESEARCH_PRESETS}
                         onPresetChange={handlePresetChange}
+                        toolbar={(
+                            <div className="portfolio-page-toolbar">
+                                <div className="portfolio-page-toolbar-view-row d-flex align-items-center flex-wrap">
+                                    <label className="portfolio-page-toolbar-field d-flex align-items-center gap-2 mb-0">
+                                        <span className="portfolio-page-toolbar-label">View preset</span>
+                                        <select
+                                            className="form-select form-select-sm portfolio-watchlists-preset-select"
+                                            value={presetId}
+                                            onChange={handlePresetChange}
+                                            aria-label="Portfolio research view preset"
+                                        >
+                                            {PORTFOLIO_RESEARCH_PRESETS.map((preset) => (
+                                                <option key={preset.id} value={preset.id}>
+                                                    {preset.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label className="portfolio-page-toolbar-field d-flex align-items-center gap-2 mb-0">
+                                        <span className="portfolio-page-toolbar-label">Group by</span>
+                                        <select
+                                            className="form-select form-select-sm"
+                                            value={groupBy}
+                                            onChange={handleGroupByChange}
+                                            aria-label="Portfolio row grouping"
+                                        >
+                                            {PORTFOLIO_GROUP_BY_OPTIONS.map((option) => (
+                                                <option key={option.id} value={option.id}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+                                <div className="portfolio-page-toolbar-filters d-flex align-items-center flex-wrap">
+                                    <label className="portfolio-page-toolbar-field d-flex align-items-center gap-2 mb-0">
+                                        <span className="portfolio-page-toolbar-label">Filter tag</span>
+                                        <select
+                                            className="form-select form-select-sm"
+                                            value={tagFilter}
+                                            onChange={handleTagFilterChange}
+                                            aria-label="Filter portfolio by tag"
+                                        >
+                                            <option value={ALL_TAGS_FILTER}>All tags</option>
+                                            {allTags.map((tag) => (
+                                                <option key={tag} value={tag}>
+                                                    {tag}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    {selectedTickers.length > 0 && (
+                                        <label className="portfolio-page-toolbar-field d-flex align-items-center gap-2 mb-0">
+                                            <span className="portfolio-page-toolbar-label">Tag selected</span>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                style={{ width: 108 }}
+                                                value={tagInput}
+                                                onChange={(event) => setTagInput(event.target.value)}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Enter') {
+                                                        event.preventDefault();
+                                                        handleAddTagToSelected();
+                                                    }
+                                                }}
+                                                placeholder="e.g. deep value"
+                                                list="portfolio-tag-suggestions"
+                                                aria-label="Tag name for selected tickers"
+                                            />
+                                            <datalist id="portfolio-tag-suggestions">
+                                                {allTags.map((tag) => (
+                                                    <option key={tag} value={tag} />
+                                                ))}
+                                            </datalist>
+                                            <button
+                                                type="button"
+                                                className="st-btn st-btn-muted"
+                                                disabled={!tagInput.trim()}
+                                                onClick={handleAddTagToSelected}
+                                            >
+                                                Add tag
+                                            </button>
+                                        </label>
+                                    )}
+                                </div>
+                                <div className="portfolio-page-toolbar-actions d-flex align-items-center flex-wrap">
+                                    <button
+                                        type="button"
+                                        className="st-btn st-btn-primary portfolio-toolbar-btn-compare"
+                                        disabled={selectedTickers.length < 2 || selectedTickers.length > MAX_COMPARE_TICKERS}
+                                        onClick={handleCompareSelected}
+                                        title="Compare 2–5 selected tickers"
+                                    >
+                                        Compare selected
+                                    </button>
+                                    {compareOpen && compareTickers.length >= 2 && (
+                                        <button
+                                            type="button"
+                                            className="st-btn-ghost"
+                                            onClick={handleClearCompare}
+                                        >
+                                            Close compare
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        className="st-btn st-btn-danger portfolio-toolbar-btn-delete"
+                                        disabled={Object.keys(rowSelection).length === 0}
+                                        onClick={() => setDeleteConfirm(Object.keys(rowSelection))}
+                                    >
+                                        Delete selected
+                                    </button>
+                                    <Link to="/admin" className="st-btn-ghost st-link-btn">Refresh data</Link>
+                                </div>
+                            </div>
+                        )}
                     />
-                    <div className="portfolio-page-toolbar d-flex align-items-center flex-wrap">
-                        <label className="d-flex align-items-center gap-2 mb-0">
-                            <span className="small text-muted">Group by</span>
-                            <select
-                                className="form-select form-select-sm"
-                                style={{ width: 'auto', minWidth: 118 }}
-                                value={groupBy}
-                                onChange={handleGroupByChange}
-                                aria-label="Portfolio row grouping"
-                            >
-                                {PORTFOLIO_GROUP_BY_OPTIONS.map((option) => (
-                                    <option key={option.id} value={option.id}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <label className="d-flex align-items-center gap-2 mb-0">
-                            <span className="small text-muted">Filter tag</span>
-                            <select
-                                className="form-select form-select-sm"
-                                style={{ width: 'auto', minWidth: 118 }}
-                                value={tagFilter}
-                                onChange={handleTagFilterChange}
-                                aria-label="Filter portfolio by tag"
-                            >
-                                <option value={ALL_TAGS_FILTER}>All tags</option>
-                                {allTags.map((tag) => (
-                                    <option key={tag} value={tag}>
-                                        {tag}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        {selectedTickers.length > 0 && (
-                            <label className="d-flex align-items-center gap-2 mb-0">
-                                <span className="small text-muted">Tag selected</span>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    style={{ width: 108 }}
-                                    value={tagInput}
-                                    onChange={(event) => setTagInput(event.target.value)}
-                                    onKeyDown={(event) => {
-                                        if (event.key === 'Enter') {
-                                            event.preventDefault();
-                                            handleAddTagToSelected();
-                                        }
-                                    }}
-                                    placeholder="e.g. deep value"
-                                    list="portfolio-tag-suggestions"
-                                    aria-label="Tag name for selected tickers"
-                                />
-                                <datalist id="portfolio-tag-suggestions">
-                                    {allTags.map((tag) => (
-                                        <option key={tag} value={tag} />
-                                    ))}
-                                </datalist>
-                                <button
-                                    type="button"
-                                    className="st-btn"
-                                    disabled={!tagInput.trim()}
-                                    onClick={handleAddTagToSelected}
-                                >
-                                    Add tag
-                                </button>
-                            </label>
-                        )}
-                        <button
-                            type="button"
-                            className="st-btn"
-                            disabled={selectedTickers.length < 2 || selectedTickers.length > MAX_COMPARE_TICKERS}
-                            onClick={handleCompareSelected}
-                            title="Compare 2–5 selected tickers"
-                        >
-                            Compare selected
-                        </button>
-                        {compareOpen && compareTickers.length >= 2 && (
-                            <button
-                                type="button"
-                                className="st-btn-ghost"
-                                onClick={handleClearCompare}
-                            >
-                                Close compare
-                            </button>
-                        )}
-                        <button
-                            type="button"
-                            className="st-btn"
-                            style={{ borderColor: 'var(--st-negative)', color: 'var(--st-negative)' }}
-                            disabled={Object.keys(rowSelection).length === 0}
-                            onClick={() => setDeleteConfirm(Object.keys(rowSelection))}
-                        >
-                            Delete Selected
-                        </button>
-                        <Link to="/admin" className="st-btn-ghost st-link-btn">Refresh data</Link>
-                    </div>
                     <ConfirmModal
                         isOpen={Boolean(deleteConfirm?.length)}
                         title="Remove tickers?"

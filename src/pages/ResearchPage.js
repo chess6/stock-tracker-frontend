@@ -36,7 +36,7 @@ import {
 } from '../config/researchMetrics';
 import { divergenceSignalLabel } from '../config/narrativeStates';
 import { formatMetricCellTooltip } from '../config/tooltipRegistry';
-import { formatDecimal, formatPercent, formatUsd, formatCompactUsd } from '../utils/formatters';
+import { formatDecimal, formatPercent, formatUsd, formatCompactUsd, formatSharesCell } from '../utils/formatters';
 import {
   buildHistoricalStats,
   describeHeat,
@@ -81,6 +81,8 @@ function formatCellValue(value, format, { compact = false } = {}) {
       return formatPercent(typeof value === 'number' && Math.abs(value) <= 1 ? value * 100 : value, 2);
     case 'integer':
       return Number.isFinite(Number(value)) ? String(Math.round(Number(value))) : '-';
+    case 'shares':
+      return formatSharesCell(value, { compact });
     case 'decimal':
       return formatDecimal(value, 2);
     case 'text':
@@ -1100,20 +1102,24 @@ export default function ResearchPage() {
 
       {!isDeepDive && screenerTickers.length > 0 && (
         <div className="research-screener-summary-row">
+          <details className="st-details research-screener-summary-col research-insider-panel" open>
+            <summary className="st-details-summary">Insider Buy Clusters</summary>
+            <div className="research-screener-summary-scroll">
+              <InsiderPanel mode="screener" tickers={screenerTickers} embedded />
+            </div>
+          </details>
           {Object.keys(screenerData).length > 0 && (
             <details className="st-details research-screener-summary-col research-screener-summary-col--scores" open>
               <summary className="st-details-summary">Score Summary</summary>
-              <ScoreSummaryBar
-                tickers={screenerTickers}
-                screenerData={screenerData}
-                onBeforeDeepDive={() => saveScreenerContextBeforeLeave(tickersText)}
-              />
+              <div className="research-screener-summary-scroll">
+                <ScoreSummaryBar
+                  tickers={screenerTickers}
+                  screenerData={screenerData}
+                  onBeforeDeepDive={() => saveScreenerContextBeforeLeave(tickersText)}
+                />
+              </div>
             </details>
           )}
-          <details className="st-details research-screener-summary-col research-insider-panel" open>
-            <summary className="st-details-summary">Insider Buy Clusters</summary>
-            <InsiderPanel mode="screener" tickers={screenerTickers} embedded />
-          </details>
         </div>
       )}
 

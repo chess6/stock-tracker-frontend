@@ -86,6 +86,24 @@ export function tightPercentBounds(seriesList, padMin = 3, padMax = 2) {
   };
 }
 
+/**
+ * Width/height for horizontally scrollable time-series charts.
+ * Wider canvases per point improve YoY slope readability on dense histories.
+ * @param {number} pointCount
+ * @param {{ variant?: 'currency' | 'percent' }} [options]
+ */
+export function scrollChartLayout(pointCount, { variant = 'currency', scale = 1 } = {}) {
+  const points = Math.max(Number(pointCount) || 0, 2);
+  const pointWidth = (variant === 'percent' ? 80 : 88) * scale;
+  const minWidth = (variant === 'percent' ? 720 : 840) * scale;
+  const width = Math.max(minWidth, points * pointWidth);
+  const aspect = variant === 'percent' ? 0.52 : 0.42;
+  const minHeight = (variant === 'percent' ? 320 : 320) * scale;
+  const maxHeight = (variant === 'percent' ? 480 : 420) * scale;
+  const height = Math.round(Math.min(maxHeight, Math.max(minHeight, width * aspect)));
+  return { width: Math.round(width), height };
+}
+
 /** Shared compact preset for Research deep-dive chart panels. */
 export function analyticsChartOptions(specific = {}) {
   return mergeApexOptions({

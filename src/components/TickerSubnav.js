@@ -1,19 +1,25 @@
 import { Link, useLocation } from 'react-router-dom';
+import { tickerFindersUrl, tickerOverviewUrl } from '../utils/tickerLinks';
 
 const TABS = [
-  { id: 'overview', suffix: '', label: 'Overview' },
+  { id: 'overview', label: 'Overview', overview: true },
   { id: 'research', label: 'Research', research: true },
-  { id: 'insiders', suffix: '/insiders', label: 'Insider Transactions' },
+  { id: 'financials', label: 'Financials', financials: true },
+  { id: 'insiders', label: 'Insider Transactions', finders: true },
 ];
 
 function tabPath(ticker, tab) {
-  if (tab.research) return `/research/${encodeURIComponent(ticker)}`;
-  return `/${encodeURIComponent(ticker)}${tab.suffix || ''}`;
+  const encoded = encodeURIComponent(ticker);
+  if (tab.research) return `/research/${encoded}`;
+  if (tab.financials) return `/financials/${encoded}`;
+  if (tab.overview) return tickerOverviewUrl(ticker);
+  if (tab.finders) return tickerFindersUrl(ticker);
+  return `/${encoded}`;
 }
 
 function isTabActive(pathname, ticker, tab) {
   const target = tabPath(ticker, tab);
-  if (tab.research) {
+  if (tab.research || tab.financials || tab.overview || tab.finders) {
     return pathname === target || pathname.startsWith(`${target}/`);
   }
   return pathname === target;

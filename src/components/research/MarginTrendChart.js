@@ -38,7 +38,13 @@ function fcfMargin(period) {
 
 const MARGIN_COLORS = ['#6ecf97', '#5b9cf5', '#f5a623', '#e87882'];
 
-export default function MarginTrendChart({ periods = [], compact = false, deepDive = false }) {
+export default function MarginTrendChart({
+  periods = [],
+  compact = false,
+  deepDive = false,
+  width,
+  height: heightOverride,
+}) {
   const annual = useMemo(() => annualPeriods(periods), [periods]);
   const hasData = annual.length >= 2;
 
@@ -126,9 +132,11 @@ export default function MarginTrendChart({ periods = [], compact = false, deepDi
     return <div className="research-chart-empty">Not enough annual history for margin trends.</div>;
   }
 
-  const height = deepDive
-    ? ANALYTICS_DEEP_DIVE_STRIP_HEIGHT
-    : (compact ? ANALYTICS_CHART_HEIGHT : 260);
+  const height = heightOverride ?? (
+    deepDive
+      ? ANALYTICS_DEEP_DIVE_STRIP_HEIGHT
+      : (compact ? ANALYTICS_CHART_HEIGHT : 260)
+  );
 
   if (deepDive) {
     return (
@@ -139,6 +147,7 @@ export default function MarginTrendChart({ periods = [], compact = false, deepDi
             series={series}
             type="line"
             height={height}
+            width={width}
           />
         </div>
       </div>
@@ -147,7 +156,7 @@ export default function MarginTrendChart({ periods = [], compact = false, deepDi
 
   return (
     <div className="research-chart-plot">
-      <Chart options={options} series={series} type="line" height={height} />
+      <Chart options={options} series={series} type="line" height={height} width={width} />
     </div>
   );
 }

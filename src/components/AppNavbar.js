@@ -11,6 +11,7 @@ import { summarizeFreshness } from '../utils/dataFreshness';
 import { useToast } from '../context/ToastContext';
 import ThemeProfileMenu from './ThemeProfileMenu';
 import { useCloseOnOutside } from '../hooks/useDismissiblePopover';
+import { tickerOverviewUrl } from '../utils/tickerLinks';
 import '../navbar-search-dropdown.css';
 import '../navbar-layout.css';
 
@@ -123,7 +124,7 @@ const AppNavbar = () => {
     setSearchResults([]);
     setActiveResultIdx(-1);
     setNavOpen(false);
-    navigate(`/${ticker}`);
+    navigate(tickerOverviewUrl(ticker));
   };
 
   return (

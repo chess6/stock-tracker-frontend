@@ -12,7 +12,7 @@ import { useToast } from '../context/ToastContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { formatFreshnessTimestamp } from '../utils/dataFreshness';
-import { insiderScreenerUrl } from '../utils/tickerLinks';
+import { insiderScreenerUrl, tickerFindersUrl } from '../utils/tickerLinks';
 
 const CLUSTER_MIN_BUY_VALUE = 100000;
 
@@ -169,14 +169,14 @@ const StockScreenerPage = () => {
         const row = info.row.original;
         return (
           <a
-            href={`/${ticker}/insiders`}
+            href={tickerFindersUrl(ticker)}
             target="_blank"
             rel="noopener noreferrer"
             className="st-ticker"
             style={{ textDecoration: 'underline', cursor: 'pointer' }}
             onClick={(e) => {
               e.preventDefault();
-              navigate(`/${ticker}/insiders`, { state: row });
+              navigate(tickerFindersUrl(ticker), { state: row });
             }}
           >
             {ticker}

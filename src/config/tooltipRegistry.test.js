@@ -8,11 +8,17 @@ import {
 describe('tooltipRegistry', () => {
   test('getMetricTooltip returns registry entry', () => {
     expect(getMetricTooltip('grossMargin')?.fullName).toBe('Gross Margin');
-    expect(getMetricTooltip('grossMargin')?.tooltip).toMatch(/pricing power/i);
+    expect(getMetricTooltip('grossMargin')?.tooltip).toMatch(/XBRL/i);
   });
 
   test('resolves aliases', () => {
     expect(getMetricTooltip('intensityScore')).toEqual(getMetricTooltip('intensityScore90d'));
+    expect(getMetricTooltip('revenueYoY')).toEqual(getMetricTooltip('yoy'));
+  });
+
+  test('includes ebitdaEv entry for overview metrics', () => {
+    expect(getMetricTooltip('ebitdaEv')?.fullName).toBe('EBITDA / Enterprise Value');
+    expect(getMetricTooltip('ebitdaEv')?.formula).toMatch(/EBITDA/);
   });
 
   test('getMetricTooltipMeta shapes ColumnHeader metadata', () => {

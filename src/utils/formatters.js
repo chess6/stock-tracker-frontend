@@ -5,6 +5,14 @@ export function formatShares(value) {
     return num.toLocaleString('en-US', { maximumFractionDigits: 0 });
 }
 
+/** Share-count cells: compact scale in grids, full commas elsewhere. */
+export function formatSharesCell(value, { compact = false } = {}) {
+    if (isMissing(value)) return '-';
+    const num = Number(value);
+    if (!isFinite(num)) return '-';
+    return compact ? formatCompactNumber(num) : formatShares(num);
+}
+
 function isMissing(value) {
     return value === null || value === undefined || value === '';
 }
