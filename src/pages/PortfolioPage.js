@@ -518,6 +518,11 @@ const PortfolioPage = () => {
     const [visibleColumns, setVisibleColumns] = useState(() => initialResearchState.visibleColumns);
     const [sorting, setSorting] = useState(() => initialResearchState.sorting);
 
+    const presetVisibleColumns = useMemo(
+        () => buildVisibleColumnsForPreset(getPortfolioPresetById(presetId), allColumnIds),
+        [presetId, allColumnIds],
+    );
+
     const [groupBy, setGroupBy] = useState(() => initialResearchState.groupBy);
     const [collapsedGroups, setCollapsedGroups] = useState(
         () => new Set(initialResearchState.collapsedGroups || []),
@@ -1063,6 +1068,8 @@ const PortfolioPage = () => {
                             useSharedColumnState
                             columnVisibility={visibleColumns}
                             onColumnVisibilityChange={setVisibleColumns}
+                            defaultVisibleColumns={presetVisibleColumns}
+                            resetColumnsTitle="Reset columns to the current view preset"
                             sorting={sorting}
                             onSortingChange={setSorting}
                             tableExtraClassName="portfolio-grid-table"

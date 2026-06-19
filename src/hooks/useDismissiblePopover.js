@@ -16,10 +16,18 @@ export function useCloseOnOutside(open, rootRef, onClose) {
       }
     };
 
-    document.addEventListener('pointerdown', onPointerDown, true);
+    // Defer so the pointer/click that opened the menu does not immediately close it.
+    let listening = false;
+    const frameId = requestAnimationFrame(() => {
+      listening = true;
+      document.addEventListener('pointerdown', onPointerDown, true);
+    });
     document.addEventListener('keydown', onKeyDown);
     return () => {
-      document.removeEventListener('pointerdown', onPointerDown, true);
+      cancelAnimationFrame(frameId);
+      if (listening) {
+        document.removeEventListener('pointerdown', onPointerDown, true);
+      }
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [open, onClose, rootRef]);

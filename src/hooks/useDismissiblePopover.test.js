@@ -1,6 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import useDismissiblePopover from './useDismissiblePopover';
+
+function flushPopoverOutsideListener() {
+  return act(async () => {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  });
+}
 
 function PopoverHarness({ initialOpen = false }) {
   const [open, setOpen] = useState(initialOpen);
@@ -33,9 +39,21 @@ describe('useDismissiblePopover', () => {
     expect(screen.queryByTestId('popover-panel')).not.toBeInTheDocument();
   });
 
-  it('closes on outside pointerdown without reopening the trigger', () => {
+  it('does not close immediately when opened via trigger click', async () => {
+    render(<PopoverHarness />);
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
+    expect(screen.getByTestId('popover-panel')).toBeInTheDocument();
+    fireEvent.pointerDown(document.body);
+    expect(screen.getByTestId('popover-panel')).toBeInTheDocument();
+    await flushPopoverOutsideListener();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByTestId('popover-panel')).not.toBeInTheDocument();
+  });
+
+  it('closes on outside pointerdown without reopening the trigger', async () => {
     render(<PopoverHarness initialOpen />);
     expect(screen.getByTestId('popover-panel')).toBeInTheDocument();
+    await flushPopoverOutsideListener();
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Outside' }));
     expect(screen.queryByTestId('popover-panel')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
