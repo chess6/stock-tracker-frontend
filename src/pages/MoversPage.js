@@ -11,44 +11,35 @@ import { signedHeatStyle } from '../utils/heatMap';
 import { addToPortfolioWithNotification, isInPortfolio } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
 
-export default function MoversPage() {
-  const [window, setWindow] = useState('d');
-  const [movers, setMovers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const { showToast } = useToast();
+const MOVER_WINDOWS = [
+  { id: 'd', label: 'Daily', changeHeader: 'D% Ch' },
+  { id: 'w', label: 'Weekly', changeHeader: 'W% Ch' },
+  { id: 'm', label: 'Monthly', changeHeader: 'M% Ch' },
+];
 
-  const handleAdd = useCallback((symbol) => {
-    const notif = addToPortfolioWithNotification(symbol);
-    showToast(notif.message, notif.type);
-  }, [showToast]);
+const WINDOW_IDS = MOVER_WINDOWS.map(({ id }) => id);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await axios.get(API_ENDPOINTS.MOVERS, {
-          params: { window, threshold: 10, limit: 75 },
-        });
-        if (!cancelled) setMovers(res.data?.movers || []);
-      } catch (err) {
-        if (!cancelled) {
-          setMovers([]);
-          setError(err?.response?.data?.error || 'Failed to load movers');
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [window]);
+function emptyByWindow() {
+  return { d: [], w: [], m: [] };
+}
 
-  const gridRows = useMemo(() => movers.map((row) => ({
+function initialStatusState(status = 'loading') {
+  return { d: status, w: status, m: status };
+}
+
+function isRequestCanceled(err) {
+  return axios.isCancel?.(err) || err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError';
+}
+
+function buildGridRows(movers) {
+  return movers.map((row) => ({
     ...row,
     _heatStyles: { change: signedHeatStyle(row.change, 10) },
-  })), [movers]);
+  }));
+}
+
+function MoversGrid({ label, changeHeader, movers, status, error, onAdd }) {
+  const gridRows = useMemo(() => buildGridRows(movers), [movers]);
 
   const columns = useMemo(() => [
     {
@@ -61,7 +52,7 @@ export default function MoversPage() {
             type="button"
             className={isInPortfolio(ticker) ? 'st-btn-success-outline st-btn-icon' : 'st-btn-success st-btn-icon'}
             title={isInPortfolio(ticker) ? 'Already in portfolio' : 'Add to portfolio'}
-            onClick={() => handleAdd(ticker)}
+            onClick={() => onAdd(ticker)}
           >
             <FontAwesomeIcon icon={faPlus} />
           </button>
@@ -87,33 +78,32 @@ export default function MoversPage() {
       size: 100,
     },
     {
-      header: window === 'd' ? 'D% Ch' : 'W% Ch',
+      header: changeHeader,
       accessorKey: 'change',
       cellStyle: ({ row }) => row.original?._heatStyles?.change || {},
       cell: info => formatPercent(info.getValue(), 1),
       size: 110,
     },
-  ], [window, handleAdd]);
+  ], [changeHeader, onAdd]);
 
   return (
-    <div className="st-page st-page--narrow">
-      <div className="st-page-header">
-        <div className="st-page-header-title">
-          <h1 className="st-page-heading">Price Movers</h1>
-          <div className="st-page-subtitle">±10% {window === 'd' ? 'daily' : 'weekly'} movers from cached prices.</div>
+    <section
+      className="movers-section"
+      aria-busy={status === 'loading'}
+      aria-live="polite"
+    >
+      <h2 className="movers-section-heading">{label}</h2>
+      {status === 'loading' ? (
+        <div className="movers-section-loading-panel">
+          <div className="movers-section-loading">
+            <StSpinner size="sm" />
+            <span>Loading {label.toLowerCase()} movers…</span>
+          </div>
         </div>
-        <div className="st-page-header-actions">
-        <div className="st-segment" role="group" aria-label="Mover window">
-          <button type="button" className={`st-segment-btn ${window === 'd' ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`} onClick={() => setWindow('d')}>Daily (d)</button>
-          <button type="button" className={`st-segment-btn ${window === 'w' ? 'st-segment-btn-active' : 'st-segment-btn-idle'}`} onClick={() => setWindow('w')}>Weekly (w)</button>
-        </div>
-        </div>
-      </div>
-      {error && <div className="st-alert-danger">{error}</div>}
-      {loading ? (
-        <div className="st-spinner-wrap"><StSpinner size="sm" /> Loading movers…</div>
+      ) : status === 'error' ? (
+        <div className="st-alert-danger movers-section-empty">{error}</div>
       ) : movers.length === 0 ? (
-        <div className="st-alert-secondary">No movers found. Bootstrap prices for more tickers via Admin.</div>
+        <div className="st-alert-secondary movers-section-empty">No {label.toLowerCase()} movers at ±10%.</div>
       ) : (
         <DataGrid
           columns={columns}
@@ -125,6 +115,94 @@ export default function MoversPage() {
           tableClassName="table table-sm table-bordered st-grid-table"
         />
       )}
+    </section>
+  );
+}
+
+async function loadMoverWindow(id, signal) {
+  const res = await axios.get(API_ENDPOINTS.MOVERS, {
+    params: { window: id, threshold: 10, limit: 75 },
+    signal,
+  });
+  return res.data?.movers || [];
+}
+
+export default function MoversPage() {
+  const [moversByWindow, setMoversByWindow] = useState(emptyByWindow);
+  const [statusByWindow, setStatusByWindow] = useState(() => initialStatusState('loading'));
+  const [errorsByWindow, setErrorsByWindow] = useState(() => ({ d: '', w: '', m: '' }));
+  const { showToast } = useToast();
+
+  const handleAdd = useCallback((symbol) => {
+    const notif = addToPortfolioWithNotification(symbol);
+    showToast(notif.message, notif.type);
+  }, [showToast]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    setStatusByWindow(initialStatusState('loading'));
+    setErrorsByWindow({ d: '', w: '', m: '' });
+
+    WINDOW_IDS.forEach((id) => {
+      loadMoverWindow(id, controller.signal)
+        .then((movers) => {
+          if (!active) return;
+          setMoversByWindow((prev) => ({ ...prev, [id]: movers }));
+          setErrorsByWindow((prev) => ({ ...prev, [id]: '' }));
+          setStatusByWindow((prev) => ({ ...prev, [id]: 'ready' }));
+        })
+        .catch((err) => {
+          if (!active || isRequestCanceled(err)) return;
+          setMoversByWindow((prev) => ({ ...prev, [id]: [] }));
+          setErrorsByWindow((prev) => ({
+            ...prev,
+            [id]: err?.response?.data?.error || `Failed to load ${id} movers`,
+          }));
+          setStatusByWindow((prev) => ({ ...prev, [id]: 'error' }));
+        });
+    });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, []);
+
+  const anyLoading = WINDOW_IDS.some((id) => statusByWindow[id] === 'loading');
+
+  return (
+    <div className="st-page st-page--full movers-page">
+      <div className="st-page-header">
+        <div className="st-page-header-title">
+          <h1 className="st-page-heading">Price Movers</h1>
+          <div className="st-page-subtitle">
+            {anyLoading
+              ? 'Loading daily, weekly, and monthly movers from cached prices…'
+              : '±10% daily, weekly, and monthly movers from cached prices.'}
+          </div>
+        </div>
+        {anyLoading && (
+          <div className="st-page-header-actions movers-page-loading-badge" aria-live="polite">
+            <StSpinner size="sm" />
+            <span>Loading…</span>
+          </div>
+        )}
+      </div>
+      <div className="movers-sections">
+        {MOVER_WINDOWS.map(({ id, label, changeHeader }) => (
+          <MoversGrid
+            key={id}
+            label={label}
+            changeHeader={changeHeader}
+            movers={moversByWindow[id]}
+            status={statusByWindow[id]}
+            error={errorsByWindow[id]}
+            onAdd={handleAdd}
+          />
+        ))}
+      </div>
     </div>
   );
 }

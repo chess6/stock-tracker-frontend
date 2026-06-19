@@ -38,6 +38,30 @@
   overflow-y: auto;
 }
 
+.portfolio-watchlists-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.portfolio-watchlists-cache {
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.portfolio-watchlists-settings-label {
+  font-size: 0.78rem;
+  color: var(--st-text-muted);
+  white-space: nowrap;
+}
+
+.portfolio-watchlists-preset-select {
+  width: auto;
+  min-width: 8.5rem;
+  font-size: 0.78rem;
+  min-height: 1.65rem;
+}
+
 .portfolio-page-meta {
   flex-shrink: 0;
   margin-bottom: 0.08rem !important;

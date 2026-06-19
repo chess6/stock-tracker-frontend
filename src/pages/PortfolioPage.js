@@ -870,6 +870,11 @@ const PortfolioPage = () => {
                             portfolio={portfolio}
                             onLoaded={() => setPortfolio(getPortfolio())}
                             showToast={showToast}
+                            cacheFreshness={cacheFreshness}
+                            formatFreshnessTimestamp={formatFreshnessTimestamp}
+                            presetId={presetId}
+                            presets={PORTFOLIO_RESEARCH_PRESETS}
+                            onPresetChange={handlePresetChange}
                         />
                         <h1 className="st-page-heading">Your portfolio is empty</h1>
                         <p className="st-muted-note">
@@ -894,31 +899,13 @@ const PortfolioPage = () => {
                         portfolio={portfolio}
                         onLoaded={() => setPortfolio(getPortfolio())}
                         showToast={showToast}
+                        cacheFreshness={cacheFreshness}
+                        formatFreshnessTimestamp={formatFreshnessTimestamp}
+                        presetId={presetId}
+                        presets={PORTFOLIO_RESEARCH_PRESETS}
+                        onPresetChange={handlePresetChange}
                     />
-                    {cacheFreshness && (
-                        <div className="st-muted-note portfolio-page-meta">
-                            Cache: prices {formatFreshnessTimestamp(cacheFreshness.pricesUpdatedAt)}
-                            {' · '}fundamentals {formatFreshnessTimestamp(cacheFreshness.fundamentalsUpdatedAt)}
-                            {' · '}insiders {formatFreshnessTimestamp(cacheFreshness.insidersUpdatedAt)}
-                        </div>
-                    )}
                     <div className="portfolio-page-toolbar d-flex align-items-center flex-wrap">
-                        <label className="d-flex align-items-center gap-2 mb-0">
-                            <span className="small text-muted">View preset</span>
-                            <select
-                                className="form-select form-select-sm"
-                                style={{ width: 'auto', minWidth: 130 }}
-                                value={presetId}
-                                onChange={handlePresetChange}
-                                aria-label="Portfolio research view preset"
-                            >
-                                {PORTFOLIO_RESEARCH_PRESETS.map((preset) => (
-                                    <option key={preset.id} value={preset.id}>
-                                        {preset.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
                         <label className="d-flex align-items-center gap-2 mb-0">
                             <span className="small text-muted">Group by</span>
                             <select

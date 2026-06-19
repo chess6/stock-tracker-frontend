@@ -59,46 +59,44 @@ export default function ScoreSummaryBar({ tickers, screenerData, onBeforeDeepDiv
       <table className="research-score-summary-table">
         <thead>
           <tr>
-            <th scope="col" className="research-score-summary-th-ticker" />
-            {SCORE_COLUMNS.map((col) => (
-              <th key={col.key} scope="col" className="research-score-summary-th-metric">
-                <ScoreHeaderCell col={col} />
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ ticker, scores, error }) => (
-            <tr key={ticker}>
-              <th scope="row" className="research-score-summary-ticker-name">
+            <th scope="col" className="research-score-summary-th-metric" />
+            {rows.map(({ ticker, scores }) => (
+              <th key={ticker} scope="col" className="research-score-summary-th-ticker">
                 {scores ? (
                   <Link
                     to={`/research/${ticker}`}
-                    className="st-ticker"
+                    className="st-ticker research-score-summary-ticker-name"
                     onClick={() => onBeforeDeepDive?.()}
                   >
                     {ticker}
                   </Link>
                 ) : (
-                  <span className="st-ticker">{ticker}</span>
+                  <span className="st-ticker research-score-summary-ticker-name">{ticker}</span>
                 )}
               </th>
-              {error && !scores ? (
-                <td colSpan={SCORE_COLUMNS.length} className="research-score-summary-empty">
-                  No data
-                </td>
-              ) : (
-                SCORE_COLUMNS.map((col) => (
-                  <td key={col.key} className="research-score-summary-td-metric">
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {SCORE_COLUMNS.map((col) => (
+            <tr key={col.key}>
+              <th scope="row" className="research-score-summary-th-metric">
+                <ScoreHeaderCell col={col} />
+              </th>
+              {rows.map(({ ticker, scores, error }) => (
+                <td key={`${ticker}-${col.key}`} className="research-score-summary-td-metric">
+                  {error && !scores ? (
+                    <span className="research-score-summary-empty">—</span>
+                  ) : (
                     <span
                       className="research-score-summary-pill"
                       style={scoreBadgeStyle(col.key, scores)}
                     >
                       {formatScoreValue(col.key, scores)}
                     </span>
-                  </td>
-                ))
-              )}
+                  )}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>

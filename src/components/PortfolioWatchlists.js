@@ -17,6 +17,11 @@ export default function PortfolioWatchlists({
   portfolio,
   onLoaded,
   showToast,
+  cacheFreshness,
+  formatFreshnessTimestamp,
+  presetId,
+  presets,
+  onPresetChange,
 }) {
   const [watchlists, setWatchlists] = useState(() => getPortfolioWatchlists());
   const [name, setName] = useState('');
@@ -67,10 +72,38 @@ export default function PortfolioWatchlists({
   return (
     <details className="st-details portfolio-watchlists-panel">
       <summary className="st-details-summary portfolio-watchlists-summary">
-        <span>Saved watchlists</span>
+        <span>Portfolio lists &amp; view</span>
         <span className="portfolio-watchlists-summary-meta">{summaryMeta}</span>
       </summary>
       <div className="st-panel-body">
+      {(cacheFreshness || (presets?.length && onPresetChange)) && (
+        <div className="portfolio-watchlists-settings mb-3">
+          {cacheFreshness && formatFreshnessTimestamp && (
+            <div className="portfolio-watchlists-cache st-muted-note">
+              Cache: prices {formatFreshnessTimestamp(cacheFreshness.pricesUpdatedAt)}
+              {' · '}fundamentals {formatFreshnessTimestamp(cacheFreshness.fundamentalsUpdatedAt)}
+              {' · '}insiders {formatFreshnessTimestamp(cacheFreshness.insidersUpdatedAt)}
+            </div>
+          )}
+          {presets?.length > 0 && onPresetChange && (
+            <label className="portfolio-watchlists-preset d-flex align-items-center gap-2 mb-0">
+              <span className="portfolio-watchlists-settings-label">View preset</span>
+              <select
+                className="form-select form-select-sm portfolio-watchlists-preset-select"
+                value={presetId}
+                onChange={onPresetChange}
+                aria-label="Portfolio research view preset"
+              >
+                {presets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      )}
       <p className="small mb-2 st-muted-note">
         Save the current ticker list to this browser. Reload it anytime if your portfolio gets wiped.
       </p>

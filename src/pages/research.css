@@ -952,10 +952,10 @@
 }
 
 .research-score-summary-table {
-  width: 19.5rem;
+  width: auto;
   max-width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
   font-size: 0.72rem;
 }
 
@@ -968,19 +968,21 @@
 
 .research-score-summary-th-ticker,
 .research-score-summary-ticker-name {
-  width: 3.5rem;
+  min-width: 3.5rem;
   padding-left: 0;
+  text-align: center;
 }
 
 .research-score-summary-th-metric,
 .research-score-summary-td-metric {
-  width: 4rem;
+  min-width: 4rem;
   text-align: center;
 }
 
 .research-score-summary-th-metric {
   font-weight: 600;
   color: var(--st-text-muted, #9aa0a6);
+  text-align: left;
 }
 
 .research-score-summary-th-label {
@@ -992,8 +994,8 @@
   font-size: 0.72rem;
   font-weight: 600;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  text-align: left;
   padding-left: 0;
+  display: inline-block;
 }
 
 .research-score-summary-ticker-name a.st-ticker {
@@ -1308,6 +1310,42 @@
 .screen-page .screen-evidence-chip[open] .screen-evidence-list {
   margin-top: 0.25rem;
   max-width: 14rem;
+}
+
+.screen-page-main-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (min-width: 992px) {
+  .screen-page-main-row {
+    grid-template-columns: minmax(260px, 32%) minmax(0, 1fr);
+  }
+}
+
+.screen-page-filter-panel {
+  margin-bottom: 0;
+  align-self: stretch;
+}
+
+.screen-page-filter-panel .st-panel-body {
+  max-height: min(72vh, 42rem);
+  overflow-y: auto;
+}
+
+.screen-page-results-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.screen-page-results-col .research-pinned-strip {
+  flex-shrink: 0;
 }
 
 .research-keyboard-hints kbd {

@@ -93,23 +93,29 @@ export default function NewsPage() {
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [sourceDomain, setSourceDomain] = useState('');
-  const [portfolioOnly, setPortfolioOnly] = useState(initialTickers.length > 0);
+  const [portfolioOnly, setPortfolioOnly] = useState(false);
   const [divergenceOnly, setDivergenceOnly] = useState(false);
   const [clusterView, setClusterView] = useState(false);
   const [sort, setSort] = useState('importance');
+  const [tickerFilter, setTickerFilter] = useState(initialTickers.join(',') || '');
   const [clusters, setClusters] = useState([]);
   const [appliedFilters, setAppliedFilters] = useState({
     q: '',
     category: '',
     sourceDomain: '',
     tickers: initialTickers.join(','),
-    portfolioOnly: initialTickers.length > 0,
+    portfolioOnly: false,
     divergenceOnly: false,
     clusterView: false,
     sort: 'importance',
   });
 
   const [portfolioTickers, setPortfolioTickers] = useState(() => getPortfolio());
+
+  const tickerOptions = useMemo(() => {
+    const merged = new Set([...portfolioTickers, ...initialTickers]);
+    return [...merged].sort();
+  }, [portfolioTickers, initialTickers]);
 
   useEffect(() => {
     loadUserPreferences().then(() => setPortfolioTickers(getPortfolio()));
@@ -178,12 +184,14 @@ export default function NewsPage() {
 
   const applyFilters = (e) => {
     e.preventDefault();
+    const normalizedTicker = tickerFilter.trim().toUpperCase();
+    const usePortfolioOnly = portfolioOnly && !normalizedTicker;
     setAppliedFilters({
       q: q.trim(),
       category,
       sourceDomain: sourceDomain.trim(),
-      tickers: initialTickers.join(','),
-      portfolioOnly,
+      tickers: normalizedTicker,
+      portfolioOnly: usePortfolioOnly,
       divergenceOnly,
       clusterView,
       sort,
@@ -194,6 +202,7 @@ export default function NewsPage() {
     setQ('');
     setCategory('');
     setSourceDomain('');
+    setTickerFilter('');
     setPortfolioOnly(false);
     setDivergenceOnly(false);
     setClusterView(false);
@@ -218,7 +227,7 @@ export default function NewsPage() {
   const hasNext = offset + PAGE_SIZE < total;
 
   return (
-    <div className="st-page st-page--constrained">
+    <div className="st-page st-page--constrained news-page">
       <div className="st-page-header">
         <div className="st-page-header-title">
           <h1 className="st-page-heading">News</h1>
@@ -233,10 +242,11 @@ export default function NewsPage() {
         </div>
       </div>
 
-      <form onSubmit={applyFilters} className="st-panel">
-        <div className="st-panel-body">
-        <div className="row g-2 align-items-end">
-          <div className="col-md-4">
+      <div className="news-page-layout">
+        <aside className="news-page-sidebar">
+          <form onSubmit={applyFilters} className="st-panel news-page-filters">
+            <div className="st-panel-header">Search &amp; filters</div>
+            <div className="st-panel-body news-page-filters-body">
               <label htmlFor="newsSearch" className="st-label">Search</label>
               <input
                 id="newsSearch"
@@ -246,21 +256,42 @@ export default function NewsPage() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
               />
-          </div>
-          <div className="col-md-3">
-              <label htmlFor="newsCategory" className="st-label">Category</label>
-              <select
-                id="newsCategory"
-                className="st-select"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                {CATEGORIES.map((item) => (
-                  <option key={item.value || 'all'} value={item.value}>{item.label}</option>
-                ))}
-              </select>
-          </div>
-          <div className="col-md-3">
+
+              <div className="news-page-filter-row">
+                <div className="news-page-filter-field">
+                  <label htmlFor="newsCategory" className="st-label">Category</label>
+                  <select
+                    id="newsCategory"
+                    className="st-select"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                  >
+                    {CATEGORIES.map((item) => (
+                      <option key={item.value || 'all'} value={item.value}>{item.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="news-page-filter-field">
+                  <label htmlFor="newsTicker" className="st-label">Ticker</label>
+                  <input
+                    id="newsTicker"
+                    type="text"
+                    className="st-input"
+                    list="news-ticker-options"
+                    placeholder="All tickers"
+                    value={tickerFilter}
+                    onChange={(e) => setTickerFilter(e.target.value.toUpperCase())}
+                    disabled={clusterView || portfolioOnly}
+                    aria-label="Filter news by ticker"
+                  />
+                  <datalist id="news-ticker-options">
+                    {tickerOptions.map((ticker) => (
+                      <option key={ticker} value={ticker} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
               <label htmlFor="newsSource" className="st-label">Source domain</label>
               <input
                 id="newsSource"
@@ -270,8 +301,7 @@ export default function NewsPage() {
                 value={sourceDomain}
                 onChange={(e) => setSourceDomain(e.target.value)}
               />
-          </div>
-          <div className="col-md-2">
+
               <label htmlFor="newsSort" className="st-label">Sort</label>
               <select
                 id="newsSort"
@@ -284,53 +314,54 @@ export default function NewsPage() {
                   <option key={item.value} value={item.value}>{item.label}</option>
                 ))}
               </select>
-          </div>
-          <div className="col-md-2">
-              <div className="form-check mt-0">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                id="clusterViewNews"
-                checked={clusterView}
-                onChange={(e) => setClusterView(e.target.checked)}
-              />
-              <label className="form-check-label" htmlFor="clusterViewNews">Cluster view</label>
-              </div>
-          </div>
-          <div className="col-md-2">
-              <div className="form-check mt-0">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                id="divergenceOnlyNews"
-                checked={divergenceOnly}
-                onChange={(e) => setDivergenceOnly(e.target.checked)}
-                disabled={clusterView}
-              />
-              <label className="form-check-label" htmlFor="divergenceOnlyNews">Narrative drift</label>
-              </div>
-          </div>
-          <div className="col-md-2">
-              <div className="form-check mt-0">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                id="portfolioOnlyNews"
-                checked={portfolioOnly}
-                onChange={(e) => setPortfolioOnly(e.target.checked)}
-                disabled={clusterView}
-              />
-              <label className="form-check-label" htmlFor="portfolioOnlyNews">Portfolio only</label>
-              </div>
-          </div>
-          <div className="col-md-2 d-flex gap-2 align-items-end">
-            <button type="submit" className="st-btn-primary">Apply</button>
-            <button type="button" className="st-btn-ghost" onClick={clearFilters}>Clear</button>
-          </div>
-        </div>
-        </div>
-      </form>
 
+              <div className="news-page-checks">
+                <div className="form-check">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id="clusterViewNews"
+                    checked={clusterView}
+                    onChange={(e) => setClusterView(e.target.checked)}
+                  />
+                  <label className="form-check-label" htmlFor="clusterViewNews">Cluster view</label>
+                </div>
+                <div className="form-check">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id="divergenceOnlyNews"
+                    checked={divergenceOnly}
+                    onChange={(e) => setDivergenceOnly(e.target.checked)}
+                    disabled={clusterView}
+                  />
+                  <label className="form-check-label" htmlFor="divergenceOnlyNews">Narrative drift</label>
+                </div>
+                <div className="form-check">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id="portfolioOnlyNews"
+                    checked={portfolioOnly}
+                    onChange={(e) => {
+                      setPortfolioOnly(e.target.checked);
+                      if (e.target.checked) setTickerFilter('');
+                    }}
+                    disabled={clusterView}
+                  />
+                  <label className="form-check-label" htmlFor="portfolioOnlyNews">Portfolio only</label>
+                </div>
+              </div>
+
+              <div className="news-page-filter-actions d-flex gap-2">
+                <button type="submit" className="st-btn-primary">Apply</button>
+                <button type="button" className="st-btn-ghost" onClick={clearFilters}>Clear</button>
+              </div>
+            </div>
+          </form>
+        </aside>
+
+        <div className="news-page-main">
       {error && <div className="st-alert-danger">{error}</div>}
 
       {loading ? (
@@ -492,6 +523,8 @@ export default function NewsPage() {
           </div>
         </>
       )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -550,59 +550,63 @@ export default function ScreenPage() {
         <RankValidationPanel compositeId={compositeId} />
       </details>
 
-      <div className="st-panel mb-3">
-        <div className="st-panel-header">{preset.label}</div>
-        <div className="st-panel-body">
-          <p className="small text-muted mb-2">{preset.description}</p>
-          <ScreenFilterBuilder groups={filterGroups} onChange={handleFilterGroupsChange} />
+      <div className="screen-page-main-row">
+        <div className="st-panel screen-page-filter-panel">
+          <div className="st-panel-header">{preset.label}</div>
+          <div className="st-panel-body">
+            <p className="small text-muted mb-2">{preset.description}</p>
+            <ScreenFilterBuilder groups={filterGroups} onChange={handleFilterGroupsChange} />
+          </div>
+        </div>
+
+        <div className="screen-page-results-col">
+          <ResearchPinnedStrip
+            pinnedTickers={pinnedTickers}
+            selectedTicker={screenTickers[selectedRowIndex]}
+            onUnpin={handleTogglePin}
+            onSelect={(ticker) => {
+              const idx = screenTickers.indexOf(ticker);
+              if (idx >= 0) setSelectedRowIndex(idx);
+              else handleOpenTicker(ticker);
+            }}
+          />
+
+          {rows.length > 0 && (
+            <div className="research-keyboard-hints small text-muted mb-2">
+              <kbd>j</kbd> prev · <kbd>k</kbd> next row · <kbd>Enter</kbd> deep-dive · <kbd>p</kbd> pin
+            </div>
+          )}
+
+          {error && <div className="st-alert-danger">{error}</div>}
+
+          {meta && (
+            <div className="small text-muted mb-2">
+              Evaluated {meta.evaluated} · Matched {meta.matched} · Showing {meta.returned}
+              {meta.universe ? ` · Universe ${meta.universe}` : ''}
+            </div>
+          )}
+
+          {!loading && !payload && !error && (
+            <div className="st-empty-state py-4 text-center text-muted small">
+              Click <strong>Run screen</strong> to evaluate the current universe and filters.
+            </div>
+          )}
+
+          {(loading || payload) && (
+            <DataGrid
+              data={rows}
+              columns={columns}
+              enableRowSelection={false}
+              stickyColumnIds={['ticker']}
+              compact
+              activeRowId={activeRowId}
+              scrollPersistenceKey="research-screen"
+              defaultVisibleColumns={['ticker', 'companyName', 'sector', 'compositeScore', 'rankDelta', 'pb', 'pe', 'survivability', 'filtersPassed', 'evidence']}
+              maxHeight="70vh"
+            />
+          )}
         </div>
       </div>
-
-      <ResearchPinnedStrip
-        pinnedTickers={pinnedTickers}
-        selectedTicker={screenTickers[selectedRowIndex]}
-        onUnpin={handleTogglePin}
-        onSelect={(ticker) => {
-          const idx = screenTickers.indexOf(ticker);
-          if (idx >= 0) setSelectedRowIndex(idx);
-          else handleOpenTicker(ticker);
-        }}
-      />
-
-      {rows.length > 0 && (
-        <div className="research-keyboard-hints small text-muted mb-2">
-          <kbd>j</kbd> prev · <kbd>k</kbd> next row · <kbd>Enter</kbd> deep-dive · <kbd>p</kbd> pin
-        </div>
-      )}
-
-      {error && <div className="st-alert-danger">{error}</div>}
-
-      {meta && (
-        <div className="small text-muted mb-2">
-          Evaluated {meta.evaluated} · Matched {meta.matched} · Showing {meta.returned}
-          {meta.universe ? ` · Universe ${meta.universe}` : ''}
-        </div>
-      )}
-
-      {!loading && !payload && !error && (
-        <div className="st-empty-state py-4 text-center text-muted small">
-          Click <strong>Run screen</strong> to evaluate the current universe and filters.
-        </div>
-      )}
-
-      {(loading || payload) && (
-        <DataGrid
-          data={rows}
-          columns={columns}
-          enableRowSelection={false}
-          stickyColumnIds={['ticker']}
-          compact
-          activeRowId={activeRowId}
-          scrollPersistenceKey="research-screen"
-          defaultVisibleColumns={['ticker', 'companyName', 'sector', 'compositeScore', 'rankDelta', 'pb', 'pe', 'survivability', 'filtersPassed', 'evidence']}
-          maxHeight="70vh"
-        />
-      )}
     </div>
   );
 }

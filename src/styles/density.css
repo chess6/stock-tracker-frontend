@@ -148,6 +148,127 @@
   margin-bottom: 0.1rem;
 }
 
+/* ── News page: left sidebar filters ── */
+
+.news-page-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+@media (min-width: 992px) {
+  .news-page-layout {
+    grid-template-columns: minmax(220px, 17rem) minmax(0, 1fr);
+  }
+}
+
+.news-page-sidebar {
+  min-width: 0;
+}
+
+@media (min-width: 992px) {
+  .news-page-sidebar {
+    position: sticky;
+    top: 0.5rem;
+    align-self: start;
+  }
+}
+
+.news-page-filters {
+  margin-bottom: 0;
+}
+
+.news-page-filters-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.news-page-filter-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.news-page-filter-field {
+  min-width: 0;
+}
+
+.news-page-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.15rem;
+}
+
+.news-page-filter-actions {
+  padding-top: 0.15rem;
+}
+
+.news-page-main {
+  min-width: 0;
+}
+
+/* ── Price movers: daily / weekly / monthly side-by-side ── */
+
+.movers-sections {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+@media (min-width: 992px) {
+  .movers-sections {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.movers-section {
+  min-width: 0;
+}
+
+.movers-page-loading-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  color: var(--st-text-muted);
+}
+
+.movers-section-heading {
+  margin: 0 0 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--st-accent-amber);
+}
+
+.movers-section-loading-panel {
+  min-height: 12rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--st-border);
+  border-radius: 4px;
+  background: var(--st-panel-bg, rgba(255, 255, 255, 0.02));
+}
+
+.movers-section-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 0.35rem;
+  font-size: 0.72rem;
+  color: var(--st-text-muted);
+}
+
+.movers-section-empty {
+  margin-bottom: 0;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.72rem;
+}
+
 /* ── Admin: stats + tables in constrained column ── */
 
 .admin-page .st-panel:last-child {
