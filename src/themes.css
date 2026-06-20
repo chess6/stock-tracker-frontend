@@ -151,6 +151,83 @@ body {
 
 .theme-profile-menu {
   min-width: 10.5rem;
+  max-width: min(20rem, calc(100vw - 1.5rem));
+}
+
+.theme-profile-menu-divider {
+  margin: 0.35rem 0;
+  border-top: 1px solid var(--st-border);
+}
+
+.page-shortcuts-modal-intro {
+  margin: 0 0 0.65rem;
+  font-size: 0.76rem;
+  color: var(--st-text-muted);
+}
+
+.page-shortcuts-modal-body .page-shortcut-item {
+  font-size: 0.78rem;
+}
+
+.page-shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.page-shortcut-section-title {
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--st-text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.page-shortcut-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.page-shortcut-item {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, auto) 1fr;
+  gap: 0.35rem;
+  align-items: start;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.page-shortcut-keys {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+.page-shortcut-label {
+  color: var(--st-text-subtle);
+}
+
+.st-shortcut-kbd {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--st-border-muted, #444);
+  border-radius: 3px;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  background: var(--st-panel-bg, rgba(255, 255, 255, 0.04));
+  color: inherit;
+  white-space: nowrap;
+}
+
+.st-shortcut-sep {
+  font-size: 0.62rem;
+  color: var(--st-text-muted);
 }
 
 .text-muted {

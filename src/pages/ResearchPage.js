@@ -983,17 +983,6 @@ export default function ResearchPage() {
         onBeforeDeepDive={!isDeepDive ? () => saveScreenerContextBeforeLeave(tickersText) : undefined}
       />
 
-      {!isDeepDive && screenerTickers.length > 0 && (
-        <div className="research-keyboard-hints small text-muted mb-2">
-          <kbd>j</kbd> prev · <kbd>k</kbd> next ticker · <kbd>Enter</kbd> deep-dive · <kbd>p</kbd> pin · <kbd>c</kbd> compare · <kbd>←</kbd>/<kbd>→</kbd> cycle compare
-        </div>
-      )}
-      {isDeepDive && (
-        <div className="research-keyboard-hints small text-muted mb-2">
-          <kbd>Esc</kbd> close section, then back to screener · <kbd>←</kbd>/<kbd>→</kbd> cycle compare
-        </div>
-      )}
-
       {error && <div className="st-alert-warn">{error}</div>}
 
       {isDeepDive && (
@@ -1040,7 +1029,7 @@ export default function ResearchPage() {
           <summary className="st-details-summary research-screener-card-summary">
             <span>Financial Screener</span>
             <span className="research-screener-card-meta">
-              {screenerTickers.length} ticker{screenerTickers.length === 1 ? '' : 's'} · metrics × tickers · arrows move cells · <kbd>j</kbd>/<kbd>k</kbd> prev/next ticker
+              {screenerTickers.length} ticker{screenerTickers.length === 1 ? '' : 's'} · metrics × tickers
             </span>
           </summary>
           <div className="research-screener-card-toolbar">

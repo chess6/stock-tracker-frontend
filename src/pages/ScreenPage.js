@@ -572,12 +572,6 @@ export default function ScreenPage() {
             }}
           />
 
-          {rows.length > 0 && (
-            <div className="research-keyboard-hints small text-muted mb-2">
-              <kbd>j</kbd> prev · <kbd>k</kbd> next row · <kbd>Enter</kbd> deep-dive · <kbd>p</kbd> pin
-            </div>
-          )}
-
           {error && <div className="st-alert-danger">{error}</div>}
 
           {meta && (

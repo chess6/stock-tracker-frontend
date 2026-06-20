@@ -635,7 +635,6 @@ export default function DataGrid({
                             <div
                               role={canSort ? 'button' : undefined}
                               onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
-                              title={canSort ? 'Click to sort. Shift+click to add a secondary sort.' : undefined}
                               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                             >
                               {flexRender(header.column.columnDef.header, header.getContext())}

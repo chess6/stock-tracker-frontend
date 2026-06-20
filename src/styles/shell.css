@@ -173,6 +173,10 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
+.st-modal-help {
+  width: min(34rem, 100%);
+}
+
 .st-modal-header {
   display: flex;
   align-items: center;

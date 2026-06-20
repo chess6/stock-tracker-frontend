@@ -37,7 +37,6 @@ function ColumnHeader({
         role={canSort ? 'button' : undefined}
         onClick={canSort ? onSort : undefined}
         style={{ cursor: canSort ? 'pointer' : 'default' }}
-        title={canSort ? 'Click to sort. Shift+click to add a secondary sort.' : undefined}
         aria-label={`${helpLabel}${sortLabel}`}
       >
         {label}
