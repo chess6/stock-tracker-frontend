@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import Chart from 'react-apexcharts';
 import { useTheme } from '../../context/ThemeContext';
 import { signedHeatBackground, signedHeatForeground } from '../../utils/heatMap';
@@ -6,10 +6,16 @@ import { formatDecimal, formatPercent } from '../../utils/formatters';
 import { mergeApexOptions } from '../../utils/chartTheme';
 
 const HEAT_SCALE = 5;
+const INDUSTRY_GROUP = 'industries';
 const MUTED_FILL_DARK = 'rgba(73, 80, 87, 0.35)';
 const MUTED_FILL_LIGHT = 'rgba(233, 236, 239, 0.9)';
+const SELECTED_FILL_DARK = 'rgba(255, 193, 7, 0.42)';
+const SELECTED_FILL_LIGHT = 'rgba(255, 193, 7, 0.28)';
 
-function cellFill(item, dark) {
+function cellFill(item, dark, selected = false) {
+  if (selected) {
+    return dark ? SELECTED_FILL_DARK : SELECTED_FILL_LIGHT;
+  }
   if (item.available === false || item.changePct == null) {
     return dark ? MUTED_FILL_DARK : MUTED_FILL_LIGHT;
   }
@@ -30,10 +36,19 @@ function treemapValue(item) {
 
 /**
  * Grouped treemap for macro snapshot — tile size by price, color by day % change.
+ * Industry tiles are clickable to filter the dashboard portfolio.
  */
-export default function MacroTreemap({ sections = [] }) {
+export default function MacroTreemap({
+  sections = [],
+  selectedIndustryIds = new Set(),
+  onIndustryToggle,
+}) {
   const { theme } = useTheme();
   const dark = theme === 'dark';
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
+  const onToggleRef = useRef(onIndustryToggle);
+  onToggleRef.current = onIndustryToggle;
 
   const { series, labelColors } = useMemo(() => {
     const built = sections.map((section) => ({
@@ -41,16 +56,22 @@ export default function MacroTreemap({ sections = [] }) {
       data: section.items.map((item) => ({
         x: item.symbol,
         y: treemapValue(item),
-        fillColor: cellFill(item, dark),
+        fillColor: cellFill(
+          item,
+          dark,
+          section.id === INDUSTRY_GROUP && selectedIndustryIds.has(item.id),
+        ),
         label: item.label,
         changePct: item.changePct,
         price: item.price,
         available: item.available,
+        macroId: item.id,
+        groupId: section.id,
       })),
     }));
     const colors = built.flatMap((section) => section.data.map((point) => cellLabelColor(point)));
     return { series: built, labelColors: colors };
-  }, [sections, dark]);
+  }, [sections, dark, selectedIndustryIds]);
 
   const options = useMemo(() => mergeApexOptions({
     chart: {
@@ -58,6 +79,15 @@ export default function MacroTreemap({ sections = [] }) {
       toolbar: { show: false },
       animations: { enabled: false },
       fontFamily: 'inherit',
+      events: {
+        click(_event, _chartContext, config) {
+          if (config?.dataPointIndex == null || config?.seriesIndex == null) return;
+          const section = sectionsRef.current[config.seriesIndex];
+          if (section?.id !== INDUSTRY_GROUP) return;
+          const item = section.items[config.dataPointIndex];
+          if (item?.id) onToggleRef.current?.(item.id);
+        },
+      },
     },
     legend: {
       show: true,
@@ -106,11 +136,15 @@ export default function MacroTreemap({ sections = [] }) {
         const fg = cellLabelColor(point);
         const bg = dark ? '#212529' : '#ffffff';
         const border = dark ? '#495057' : '#dee2e6';
+        const filterHint = point.groupId === INDUSTRY_GROUP
+          ? '<div style="margin-top:0.25rem;opacity:0.75;">Click to filter portfolio</div>'
+          : '';
         return (
           `<div class="macro-treemap-tooltip" style="padding:0.45rem 0.55rem;font-size:0.72rem;line-height:1.35;background:${bg};color:${fg};border:1px solid ${border};border-radius:0.25rem;">`
           + `<div style="font-weight:700;margin-bottom:0.15rem;">${point.label || point.x}</div>`
           + `<div style="opacity:0.85;">${group} · ${point.x}</div>`
           + `<div style="margin-top:0.2rem;font-variant-numeric:tabular-nums;">${price} · ${pct}</div>`
+          + filterHint
           + '</div>'
         );
       },
@@ -136,6 +170,9 @@ export default function MacroTreemap({ sections = [] }) {
         <span className="macro-treemap-legend-label">+5%</span>
       </div>
       <Chart options={options} series={series} type="treemap" height={height} />
+      <div className="macro-treemap-hint small text-muted">
+        Click industry tiles to filter your portfolio. Select multiple to compare sector groups.
+      </div>
     </div>
   );
 }

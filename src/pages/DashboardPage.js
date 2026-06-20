@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import API_ENDPOINTS from '../apiConfig';
@@ -9,6 +9,11 @@ import { tickerFinancialsUrl } from '../utils/tickerLinks';
 import { signedHeatStyle } from '../utils/heatMap';
 import { useHeatmapThemeKey } from '../hooks/useHeatmapThemeKey';
 import { formatPercent, formatUsd } from '../utils/formatters';
+import {
+  filterPortfolioByMacroIndustries,
+  groupPortfolioRowsBySector,
+  macroIndustrySelectionLabel,
+} from '../utils/macroIndustryFilter';
 import './dashboard.css';
 
 const GROUP_ORDER = ['indices', 'commodities', 'rates', 'risk', 'industries'];
@@ -20,6 +25,20 @@ const GROUP_LABELS = {
   industries: 'Industries',
 };
 
+function PortfolioSnapshotRows({ rows }) {
+  return rows.map((row) => (
+    <tr key={row.ticker}>
+      <td><Link to={tickerFinancialsUrl(row.ticker)} className="st-ticker fw-semibold">{row.ticker}</Link></td>
+      <td className="small text-muted">{row.name || '—'}</td>
+      <td className="text-end st-num">{row.price != null ? formatUsd(row.price) : '—'}</td>
+      <td className="text-end st-num" style={row._changeStyle}>
+        {row.change != null ? formatPercent(row.change, 2) : '—'}
+      </td>
+      <td className="small">{row.sector || '—'}</td>
+    </tr>
+  ));
+}
+
 export default function DashboardPage() {
   const heatmapThemeKey = useHeatmapThemeKey();
   const [items, setItems] = useState([]);
@@ -29,6 +48,7 @@ export default function DashboardPage() {
   const [portfolioTickers, setPortfolioTickers] = useState(() => getPortfolio());
   const [portfolioRows, setPortfolioRows] = useState([]);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [selectedMacroIndustryIds, setSelectedMacroIndustryIds] = useState(() => new Set());
   const portfolioTickersKey = useMemo(() => portfolioTickers.join(','), [portfolioTickers]);
 
   useEffect(() => {
@@ -123,6 +143,43 @@ export default function DashboardPage() {
     [portfolioRows, heatmapThemeKey],
   );
 
+  const industryItemsById = useMemo(() => {
+    const map = {};
+    items.filter((item) => item.group === 'industries').forEach((item) => {
+      map[item.id] = item;
+    });
+    return map;
+  }, [items]);
+
+  const filteredPortfolioRows = useMemo(
+    () => filterPortfolioByMacroIndustries(portfolioRowsWithHeat, selectedMacroIndustryIds),
+    [portfolioRowsWithHeat, selectedMacroIndustryIds],
+  );
+
+  const groupedPortfolioRows = useMemo(
+    () => groupPortfolioRowsBySector(filteredPortfolioRows),
+    [filteredPortfolioRows],
+  );
+
+  const industryFilterActive = selectedMacroIndustryIds.size > 0;
+  const industryFilterLabel = useMemo(
+    () => macroIndustrySelectionLabel(selectedMacroIndustryIds, industryItemsById),
+    [selectedMacroIndustryIds, industryItemsById],
+  );
+
+  const toggleMacroIndustry = useCallback((macroId) => {
+    setSelectedMacroIndustryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(macroId)) next.delete(macroId);
+      else next.add(macroId);
+      return next;
+    });
+  }, []);
+
+  const clearMacroIndustryFilter = useCallback(() => {
+    setSelectedMacroIndustryIds(new Set());
+  }, []);
+
   const grouped = useMemo(() => {
     const map = {};
     GROUP_ORDER.forEach((group) => { map[group] = []; });
@@ -167,32 +224,71 @@ export default function DashboardPage() {
           ) : portfolioLoading ? (
             <div className="text-muted py-1"><StSpinner size="sm" /> Loading portfolio quotes…</div>
           ) : (
-            <div className="table-responsive">
-              <table className="table table-sm table-bordered mb-0 st-grid-table st-grid-table-compact">
-                <thead>
-                  <tr>
-                    <th>Ticker</th>
-                    <th>Name</th>
-                    <th className="text-end">Price</th>
-                    <th className="text-end">D% Ch</th>
-                    <th>Sector</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {portfolioRowsWithHeat.map((row) => (
-                    <tr key={row.ticker}>
-                      <td><Link to={tickerFinancialsUrl(row.ticker)} className="st-ticker fw-semibold">{row.ticker}</Link></td>
-                      <td className="small text-muted">{row.name || '—'}</td>
-                      <td className="text-end st-num">{row.price != null ? formatUsd(row.price) : '—'}</td>
-                      <td className="text-end st-num" style={row._changeStyle}>
-                        {row.change != null ? formatPercent(row.change, 2) : '—'}
-                      </td>
-                      <td className="small">{row.sector || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <>
+              {industryFilterActive && (
+                <div className="dashboard-portfolio-filter-bar mb-2">
+                  <span className="small">
+                    Filtered by <strong>{industryFilterLabel}</strong>
+                    {' · '}
+                    {filteredPortfolioRows.length} holding{filteredPortfolioRows.length === 1 ? '' : 's'}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={clearMacroIndustryFilter}
+                  >
+                    Clear filter
+                  </button>
+                </div>
+              )}
+              {industryFilterActive && filteredPortfolioRows.length === 0 ? (
+                <div className="st-alert-secondary mb-0">
+                  No portfolio holdings match the selected {selectedMacroIndustryIds.size === 1 ? 'industry' : 'industries'}.
+                </div>
+              ) : industryFilterActive ? (
+                groupedPortfolioRows.map(({ sector, rows }) => (
+                  <div key={sector} className="dashboard-portfolio-sector-group mb-3">
+                    <div className="dashboard-portfolio-sector-header">
+                      {sector}
+                      <span className="text-muted fw-normal"> · {rows.length}</span>
+                    </div>
+                    <div className="table-responsive">
+                      <table className="table table-sm table-bordered mb-0 st-grid-table st-grid-table-compact">
+                        <thead>
+                          <tr>
+                            <th>Ticker</th>
+                            <th>Name</th>
+                            <th className="text-end">Price</th>
+                            <th className="text-end">D% Ch</th>
+                            <th>Sector</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <PortfolioSnapshotRows rows={rows} />
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-sm table-bordered mb-0 st-grid-table st-grid-table-compact">
+                    <thead>
+                      <tr>
+                        <th>Ticker</th>
+                        <th>Name</th>
+                        <th className="text-end">Price</th>
+                        <th className="text-end">D% Ch</th>
+                        <th>Sector</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <PortfolioSnapshotRows rows={portfolioRowsWithHeat} />
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -218,7 +314,11 @@ export default function DashboardPage() {
         <div className="st-panel">
           <div className="st-panel-header">Macro Treemap</div>
           <div className="st-panel-body">
-            <MacroTreemap sections={grouped} />
+            <MacroTreemap
+              sections={grouped}
+              selectedIndustryIds={selectedMacroIndustryIds}
+              onIndustryToggle={toggleMacroIndustry}
+            />
           </div>
         </div>
       )}

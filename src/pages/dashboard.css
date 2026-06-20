@@ -46,3 +46,37 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+.macro-treemap-hint {
+  margin-top: 0.35rem;
+  line-height: 1.35;
+}
+
+.macro-treemap .apexcharts-treemap-rect {
+  cursor: pointer;
+}
+
+.dashboard-portfolio-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--st-border);
+  border-radius: 0.25rem;
+  background: var(--st-panel-muted, rgba(0, 0, 0, 0.03));
+}
+
+.dashboard-portfolio-sector-header {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--st-text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.dashboard-portfolio-sector-group:last-child {
+  margin-bottom: 0 !important;
+}
