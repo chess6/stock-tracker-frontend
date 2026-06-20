@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -53,7 +53,7 @@ export default function AdminConsolePage() {
     [status.freshness, status.coverage],
   );
 
-  const loadStatus = async () => {
+  const loadStatus = useCallback(async () => {
     const [statusRes, feedsRes, pipelineRes] = await Promise.all([
       axios.get(API_ENDPOINTS.ADMIN_STATUS),
       axios.get(API_ENDPOINTS.ADMIN_DEFAULT_FEEDS),
@@ -63,7 +63,22 @@ export default function AdminConsolePage() {
     setPipelineStatus(pipelineRes.data || null);
     setFeeds(feedsRes.data?.feeds || []);
     setStatusLoaded(true);
-  };
+  }, []);
+
+  const handleEnrichmentCountsChange = useCallback((counts) => {
+    if (!counts) return;
+    setPipelineStatus((prev) => ({
+      ...(prev || {}),
+      articles: {
+        ...(prev?.articles || {}),
+        ...counts,
+      },
+    }));
+  }, []);
+
+  const handleEnrichmentRunComplete = useCallback(() => {
+    loadStatus().catch(() => {});
+  }, [loadStatus]);
 
   useEffect(() => {
     loadStatus().catch(() => {
@@ -75,7 +90,7 @@ export default function AdminConsolePage() {
         setSp500Meta(match || staticSp500Meta());
       })
       .catch(() => setSp500Meta(staticSp500Meta()));
-  }, [showToast]);
+  }, [loadStatus, showToast]);
 
   useEffect(() => {
     if (!statusLoaded || !freshnessSummary.stale) return;
@@ -230,9 +245,8 @@ export default function AdminConsolePage() {
           <ArticleEnrichmentPanel
             disabled={busyAction !== null}
             showToast={showToast}
-            onStatusChange={() => {
-              loadStatus().catch(() => {});
-            }}
+            onCountsChange={handleEnrichmentCountsChange}
+            onRunComplete={handleEnrichmentRunComplete}
           />
         </div>
       </div>

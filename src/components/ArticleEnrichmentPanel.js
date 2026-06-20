@@ -18,7 +18,8 @@ function computeProgress(counts) {
 export default function ArticleEnrichmentPanel({
   disabled = false,
   showToast,
-  onStatusChange,
+  onCountsChange,
+  onRunComplete,
 }) {
   const [counts, setCounts] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -30,8 +31,12 @@ export default function ArticleEnrichmentPanel({
   const [lastBatch, setLastBatch] = useState(null);
   const [embeddingsError, setEmbeddingsError] = useState('');
   const stopRef = useRef(false);
+  const onCountsChangeRef = useRef(onCountsChange);
+  const onRunCompleteRef = useRef(onRunComplete);
+  onCountsChangeRef.current = onCountsChange;
+  onRunCompleteRef.current = onRunComplete;
 
-  const refreshStatus = useCallback(async () => {
+  const fetchCounts = useCallback(async () => {
     const res = await axios.get(API_ENDPOINTS.ADMIN_ENRICH_ARTICLES_STATUS);
     const next = res.data || {};
     setCounts(next);
@@ -40,23 +45,22 @@ export default function ArticleEnrichmentPanel({
         ? (next.embeddings_error || 'Embedding model unavailable — run pip install -r requirements-nlp.txt')
         : '',
     );
-    onStatusChange?.(next);
     return next;
-  }, [onStatusChange]);
+  }, []);
 
   useEffect(() => {
-    refreshStatus()
+    fetchCounts()
       .catch(() => showToast?.('Failed to load enrichment status', 'danger', 6000))
       .finally(() => setLoadingStatus(false));
-  }, [refreshStatus, showToast]);
+  }, [fetchCounts, showToast]);
 
   useEffect(() => {
     if (!running) return undefined;
     const timer = setInterval(() => {
-      refreshStatus().catch(() => {});
+      fetchCounts().catch(() => {});
     }, STATUS_POLL_MS);
     return () => clearInterval(timer);
-  }, [running, refreshStatus]);
+  }, [running, fetchCounts]);
 
   const runEnrichmentLoop = async () => {
     stopRef.current = false;
@@ -106,7 +110,7 @@ export default function ArticleEnrichmentPanel({
           requeued: payload.requeued ?? 0,
         });
         setCounts(pipeline);
-        onStatusChange?.(pipeline);
+        onCountsChangeRef.current?.(pipeline);
 
         const pending = pipeline.pending ?? 0;
         const processing = pipeline.processing ?? 0;
@@ -134,7 +138,9 @@ export default function ArticleEnrichmentPanel({
     } finally {
       setRunning(false);
       try {
-        await refreshStatus();
+        const latest = await fetchCounts();
+        onCountsChangeRef.current?.(latest);
+        onRunCompleteRef.current?.();
       } catch {
         // ignore refresh errors after run
       }
@@ -162,7 +168,7 @@ export default function ArticleEnrichmentPanel({
           type="button"
           className="st-btn-ghost"
           disabled={disabled || running || loadingStatus}
-          onClick={() => refreshStatus().catch(() => showToast?.('Failed to refresh status', 'danger', 4000))}
+          onClick={() => fetchCounts().catch(() => showToast?.('Failed to refresh status', 'danger', 4000))}
         >
           Refresh status
         </button>
