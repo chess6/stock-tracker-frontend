@@ -6,7 +6,6 @@ import { formatDecimal, formatPercent } from '../../utils/formatters';
 import { mergeApexOptions } from '../../utils/chartTheme';
 
 const HEAT_SCALE = 5;
-const INDUSTRY_GROUP = 'industries';
 const MUTED_FILL_DARK = 'rgba(73, 80, 87, 0.35)';
 const MUTED_FILL_LIGHT = 'rgba(233, 236, 239, 0.9)';
 const SELECTED_FILL_DARK = 'rgba(255, 193, 7, 0.42)';
@@ -46,7 +45,7 @@ function bindTreemapTileClicks(root, sectionsRef, onToggleRef) {
 
     const seriesIndex = [...root.querySelectorAll('.apexcharts-series')].indexOf(seriesNode);
     const section = sectionsRef.current[seriesIndex];
-    if (section?.id !== INDUSTRY_GROUP) return;
+    if (!section) return;
 
     const dataPointIndex = [...seriesNode.querySelectorAll('.apexcharts-treemap-rect')].indexOf(rectNode);
     const item = section.items[dataPointIndex];
@@ -58,12 +57,11 @@ function bindTreemapTileClicks(root, sectionsRef, onToggleRef) {
   root.querySelectorAll('.apexcharts-series').forEach((seriesNode, seriesIndex) => {
     const section = sectionsRef.current[seriesIndex];
     if (!section) return;
-    const clickable = section.id === INDUSTRY_GROUP;
     seriesNode.querySelectorAll('.apexcharts-treemap-rect').forEach((rectNode, dataPointIndex) => {
       const item = section.items[dataPointIndex];
-      rectNode.style.cursor = clickable ? 'pointer' : 'default';
-      rectNode.setAttribute('role', clickable ? 'button' : 'presentation');
-      rectNode.setAttribute('aria-label', clickable ? `Filter portfolio by ${item?.label || item?.symbol}` : item?.label || item?.symbol);
+      rectNode.style.cursor = 'pointer';
+      rectNode.setAttribute('role', 'button');
+      rectNode.setAttribute('aria-label', `Filter portfolio by ${item?.label || item?.symbol}`);
     });
   });
 
@@ -72,19 +70,23 @@ function bindTreemapTileClicks(root, sectionsRef, onToggleRef) {
 
 /**
  * Grouped treemap for macro snapshot — tile size by price, color by day % change.
- * Industry tiles are clickable to filter the dashboard portfolio.
+ * All tiles are clickable to filter the dashboard portfolio.
  */
 export default function MacroTreemap({
   sections = [],
-  selectedIndustryIds = new Set(),
-  onIndustryToggle,
+  selectedTileIds = new Set(),
+  onTileToggle,
+  /** @deprecated */ selectedIndustryIds,
+  /** @deprecated */ onIndustryToggle,
 }) {
+  const resolvedSelected = selectedTileIds ?? selectedIndustryIds ?? new Set();
+  const resolvedToggle = onTileToggle ?? onIndustryToggle;
   const { theme } = useTheme();
   const dark = theme === 'dark';
   const sectionsRef = useRef(sections);
   sectionsRef.current = sections;
-  const onToggleRef = useRef(onIndustryToggle);
-  onToggleRef.current = onIndustryToggle;
+  const onToggleRef = useRef(resolvedToggle);
+  onToggleRef.current = resolvedToggle;
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -109,7 +111,7 @@ export default function MacroTreemap({
       if (frameId) window.cancelAnimationFrame(frameId);
       cleanup();
     };
-  }, [sections, selectedIndustryIds, onIndustryToggle]);
+  }, [sections, resolvedSelected, resolvedToggle]);
 
   const { series, labelColors } = useMemo(() => {
     const built = sections.map((section) => ({
@@ -117,11 +119,7 @@ export default function MacroTreemap({
       data: section.items.map((item) => ({
         x: item.symbol,
         y: treemapValue(item),
-        fillColor: cellFill(
-          item,
-          dark,
-          section.id === INDUSTRY_GROUP && selectedIndustryIds.has(item.id),
-        ),
+        fillColor: cellFill(item, dark, resolvedSelected.has(item.id)),
         label: item.label,
         changePct: item.changePct,
         price: item.price,
@@ -132,7 +130,7 @@ export default function MacroTreemap({
     }));
     const colors = built.flatMap((section) => section.data.map((point) => cellLabelColor(point)));
     return { series: built, labelColors: colors };
-  }, [sections, dark, selectedIndustryIds]);
+  }, [sections, dark, resolvedSelected]);
 
   const options = useMemo(() => mergeApexOptions({
     chart: {
@@ -188,9 +186,7 @@ export default function MacroTreemap({
         const fg = cellLabelColor(point);
         const bg = dark ? '#212529' : '#ffffff';
         const border = dark ? '#495057' : '#dee2e6';
-        const filterHint = point.groupId === INDUSTRY_GROUP
-          ? '<div style="margin-top:0.25rem;opacity:0.75;">Click to filter portfolio</div>'
-          : '';
+        const filterHint = '<div style="margin-top:0.25rem;opacity:0.75;">Click to filter portfolio</div>';
         return (
           `<div class="macro-treemap-tooltip" style="padding:0.45rem 0.55rem;font-size:0.72rem;line-height:1.35;background:${bg};color:${fg};border:1px solid ${border};border-radius:0.25rem;">`
           + `<div style="font-weight:700;margin-bottom:0.15rem;">${point.label || point.x}</div>`
@@ -223,7 +219,7 @@ export default function MacroTreemap({
       </div>
       <Chart options={options} series={series} type="treemap" height={height} />
       <div className="macro-treemap-hint small text-muted">
-        Click industry tiles to filter your portfolio. Select multiple to compare sector groups.
+        Click any macro tile to filter your portfolio. Select multiple tiles to combine matches.
       </div>
     </div>
   );

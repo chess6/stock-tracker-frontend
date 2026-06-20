@@ -10,9 +10,9 @@ import { signedHeatStyle } from '../utils/heatMap';
 import { useHeatmapThemeKey } from '../hooks/useHeatmapThemeKey';
 import { formatPercent, formatUsd } from '../utils/formatters';
 import {
-  filterPortfolioByMacroIndustries,
+  filterPortfolioByMacroTiles,
   groupPortfolioRowsBySector,
-  macroIndustrySelectionLabel,
+  macroTileSelectionLabel,
 } from '../utils/macroIndustryFilter';
 import './dashboard.css';
 
@@ -48,7 +48,7 @@ export default function DashboardPage() {
   const [portfolioTickers, setPortfolioTickers] = useState(() => getPortfolio());
   const [portfolioRows, setPortfolioRows] = useState([]);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
-  const [selectedMacroIndustryIds, setSelectedMacroIndustryIds] = useState(() => new Set());
+  const [selectedMacroTileIds, setSelectedMacroTileIds] = useState(() => new Set());
   const portfolioTickersKey = useMemo(() => portfolioTickers.join(','), [portfolioTickers]);
 
   useEffect(() => {
@@ -143,17 +143,17 @@ export default function DashboardPage() {
     [portfolioRows, heatmapThemeKey],
   );
 
-  const industryItemsById = useMemo(() => {
+  const macroItemsById = useMemo(() => {
     const map = {};
-    items.filter((item) => item.group === 'industries').forEach((item) => {
+    items.forEach((item) => {
       map[item.id] = item;
     });
     return map;
   }, [items]);
 
   const filteredPortfolioRows = useMemo(
-    () => filterPortfolioByMacroIndustries(portfolioRowsWithHeat, selectedMacroIndustryIds),
-    [portfolioRowsWithHeat, selectedMacroIndustryIds],
+    () => filterPortfolioByMacroTiles(portfolioRowsWithHeat, selectedMacroTileIds),
+    [portfolioRowsWithHeat, selectedMacroTileIds],
   );
 
   const groupedPortfolioRows = useMemo(
@@ -161,14 +161,14 @@ export default function DashboardPage() {
     [filteredPortfolioRows],
   );
 
-  const industryFilterActive = selectedMacroIndustryIds.size > 0;
-  const industryFilterLabel = useMemo(
-    () => macroIndustrySelectionLabel(selectedMacroIndustryIds, industryItemsById),
-    [selectedMacroIndustryIds, industryItemsById],
+  const macroFilterActive = selectedMacroTileIds.size > 0;
+  const macroFilterLabel = useMemo(
+    () => macroTileSelectionLabel(selectedMacroTileIds, macroItemsById),
+    [selectedMacroTileIds, macroItemsById],
   );
 
-  const toggleMacroIndustry = useCallback((macroId) => {
-    setSelectedMacroIndustryIds((prev) => {
+  const toggleMacroTile = useCallback((macroId) => {
+    setSelectedMacroTileIds((prev) => {
       const next = new Set(prev);
       if (next.has(macroId)) next.delete(macroId);
       else next.add(macroId);
@@ -176,8 +176,8 @@ export default function DashboardPage() {
     });
   }, []);
 
-  const clearMacroIndustryFilter = useCallback(() => {
-    setSelectedMacroIndustryIds(new Set());
+  const clearMacroFilter = useCallback(() => {
+    setSelectedMacroTileIds(new Set());
   }, []);
 
   const grouped = useMemo(() => {
@@ -225,27 +225,27 @@ export default function DashboardPage() {
             <div className="text-muted py-1"><StSpinner size="sm" /> Loading portfolio quotes…</div>
           ) : (
             <>
-              {industryFilterActive && (
+              {macroFilterActive && (
                 <div className="dashboard-portfolio-filter-bar mb-2">
                   <span className="small">
-                    Filtered by <strong>{industryFilterLabel}</strong>
+                    Filtered by <strong>{macroFilterLabel}</strong>
                     {' · '}
                     {filteredPortfolioRows.length} holding{filteredPortfolioRows.length === 1 ? '' : 's'}
                   </span>
                   <button
                     type="button"
                     className="btn btn-sm btn-outline-secondary"
-                    onClick={clearMacroIndustryFilter}
+                    onClick={clearMacroFilter}
                   >
                     Clear filter
                   </button>
                 </div>
               )}
-              {industryFilterActive && filteredPortfolioRows.length === 0 ? (
+              {macroFilterActive && filteredPortfolioRows.length === 0 ? (
                 <div className="st-alert-secondary mb-0">
-                  No portfolio holdings match the selected {selectedMacroIndustryIds.size === 1 ? 'industry' : 'industries'}.
+                  No portfolio holdings match the selected {selectedMacroTileIds.size === 1 ? 'tile' : 'tiles'}.
                 </div>
-              ) : industryFilterActive ? (
+              ) : macroFilterActive ? (
                 groupedPortfolioRows.map(({ sector, rows }) => (
                   <div key={sector} className="dashboard-portfolio-sector-group mb-3">
                     <div className="dashboard-portfolio-sector-header">
@@ -316,8 +316,8 @@ export default function DashboardPage() {
           <div className="st-panel-body">
             <MacroTreemap
               sections={grouped}
-              selectedIndustryIds={selectedMacroIndustryIds}
-              onIndustryToggle={toggleMacroIndustry}
+              selectedTileIds={selectedMacroTileIds}
+              onTileToggle={toggleMacroTile}
             />
           </div>
         </div>
