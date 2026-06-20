@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import Chart from 'react-apexcharts';
 import { useTheme } from '../../context/ThemeContext';
 import { signedHeatBackground, signedHeatForeground } from '../../utils/heatMap';
@@ -34,6 +34,42 @@ function treemapValue(item) {
   return price != null && price > 0 ? price : 1;
 }
 
+function bindTreemapTileClicks(root, sectionsRef, onToggleRef) {
+  if (!root) return () => {};
+
+  const handleClick = (event) => {
+    const rectNode = event.target.closest('.apexcharts-treemap-rect');
+    if (!rectNode || !root.contains(rectNode)) return;
+
+    const seriesNode = rectNode.closest('.apexcharts-series');
+    if (!seriesNode) return;
+
+    const seriesIndex = [...root.querySelectorAll('.apexcharts-series')].indexOf(seriesNode);
+    const section = sectionsRef.current[seriesIndex];
+    if (section?.id !== INDUSTRY_GROUP) return;
+
+    const dataPointIndex = [...seriesNode.querySelectorAll('.apexcharts-treemap-rect')].indexOf(rectNode);
+    const item = section.items[dataPointIndex];
+    if (item?.id) onToggleRef.current?.(item.id);
+  };
+
+  root.addEventListener('click', handleClick);
+
+  root.querySelectorAll('.apexcharts-series').forEach((seriesNode, seriesIndex) => {
+    const section = sectionsRef.current[seriesIndex];
+    if (!section) return;
+    const clickable = section.id === INDUSTRY_GROUP;
+    seriesNode.querySelectorAll('.apexcharts-treemap-rect').forEach((rectNode, dataPointIndex) => {
+      const item = section.items[dataPointIndex];
+      rectNode.style.cursor = clickable ? 'pointer' : 'default';
+      rectNode.setAttribute('role', clickable ? 'button' : 'presentation');
+      rectNode.setAttribute('aria-label', clickable ? `Filter portfolio by ${item?.label || item?.symbol}` : item?.label || item?.symbol);
+    });
+  });
+
+  return () => root.removeEventListener('click', handleClick);
+}
+
 /**
  * Grouped treemap for macro snapshot — tile size by price, color by day % change.
  * Industry tiles are clickable to filter the dashboard portfolio.
@@ -49,6 +85,31 @@ export default function MacroTreemap({
   sectionsRef.current = sections;
   const onToggleRef = useRef(onIndustryToggle);
   onToggleRef.current = onIndustryToggle;
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let cleanup = () => {};
+    let frameId = 0;
+
+    const attach = () => {
+      if (cancelled) return;
+      const svg = containerRef.current?.querySelector('.apexcharts-svg');
+      if (!svg) {
+        frameId = window.requestAnimationFrame(attach);
+        return;
+      }
+      cleanup = bindTreemapTileClicks(svg, sectionsRef, onToggleRef);
+    };
+
+    attach();
+
+    return () => {
+      cancelled = true;
+      if (frameId) window.cancelAnimationFrame(frameId);
+      cleanup();
+    };
+  }, [sections, selectedIndustryIds, onIndustryToggle]);
 
   const { series, labelColors } = useMemo(() => {
     const built = sections.map((section) => ({
@@ -79,15 +140,6 @@ export default function MacroTreemap({
       toolbar: { show: false },
       animations: { enabled: false },
       fontFamily: 'inherit',
-      events: {
-        click(_event, _chartContext, config) {
-          if (config?.dataPointIndex == null || config?.seriesIndex == null) return;
-          const section = sectionsRef.current[config.seriesIndex];
-          if (section?.id !== INDUSTRY_GROUP) return;
-          const item = section.items[config.dataPointIndex];
-          if (item?.id) onToggleRef.current?.(item.id);
-        },
-      },
     },
     legend: {
       show: true,
@@ -163,7 +215,7 @@ export default function MacroTreemap({
   if (!sections.length) return null;
 
   return (
-    <div className="macro-treemap">
+    <div className="macro-treemap" ref={containerRef}>
       <div className="macro-treemap-legend" aria-hidden="true">
         <span className="macro-treemap-legend-label">-5%</span>
         <div className="macro-treemap-scale" />
