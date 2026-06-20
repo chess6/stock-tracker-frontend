@@ -593,6 +593,11 @@ const PortfolioPage = () => {
         [presetId, allColumnIds],
     );
 
+    const defaultSorting = useMemo(() => {
+        const preset = getPortfolioPresetById(presetId);
+        return preset.defaultSort ? [preset.defaultSort] : [];
+    }, [presetId]);
+
     const [groupBy, setGroupBy] = useState(() => initialResearchState.groupBy);
     const [collapsedGroups, setCollapsedGroups] = useState(
         () => new Set(initialResearchState.collapsedGroups || []),
@@ -1161,6 +1166,7 @@ const PortfolioPage = () => {
                                 resetColumnsTitle="Reset columns to the current view preset"
                                 sorting={sorting}
                                 onSortingChange={setSorting}
+                                defaultSorting={defaultSorting}
                                 tableExtraClassName="portfolio-grid-table"
                                 style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                                 compact

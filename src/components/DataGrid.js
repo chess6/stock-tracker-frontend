@@ -110,10 +110,25 @@ const DataGridToolbar = memo(function DataGridToolbar({
   enableGlobalFilter,
   globalFilter,
   onGlobalFilterChange,
+  enableSorting,
+  showResetSorting,
+  onResetSorting,
+  resetSortingTitle,
   toolbarClassName = 'data-grid-toolbar d-flex justify-content-end align-items-center mb-1',
 }) {
   return (
     <div className={toolbarClassName}>
+      {enableSorting && showResetSorting && (
+        <button
+          type="button"
+          className="st-btn-ghost data-grid-sort-reset-btn"
+          onClick={onResetSorting}
+          title={resetSortingTitle}
+          aria-label={resetSortingTitle}
+        >
+          Reset sort
+        </button>
+      )}
       <DataGridColumnMenu
         columns={columns}
         effectiveVisibleColumns={effectiveVisibleColumns}
@@ -134,6 +149,14 @@ const DataGridToolbar = memo(function DataGridToolbar({
     </div>
   );
 });
+
+function sortingStatesEqual(left = [], right = []) {
+  if (left.length !== right.length) return false;
+  return left.every((item, index) => {
+    const other = right[index];
+    return item?.id === other?.id && Boolean(item?.desc) === Boolean(other?.desc);
+  });
+}
 
 export default function DataGrid({
   data,
@@ -167,6 +190,7 @@ export default function DataGrid({
   compact = false,
   sorting: controlledSorting,
   onSortingChange,
+  defaultSorting = [],
   manualSorting = false,
   onGroupHeaderToggle,
   scrollPersistenceKey,
@@ -185,6 +209,16 @@ export default function DataGrid({
   const [internalSorting, setInternalSorting] = useState([]);
   const sorting = controlledSorting ?? internalSorting;
   const handleSortingChange = onSortingChange ?? setInternalSorting;
+  const resolvedDefaultSorting = defaultSorting ?? [];
+  const multiSortActive = sorting.length > 1;
+  const showResetSorting = enableSorting
+    && !sortingStatesEqual(sorting, resolvedDefaultSorting);
+  const resetSortingTitle = resolvedDefaultSorting.length
+    ? 'Reset column sorting to the default order for this view'
+    : 'Clear column sorting';
+  const resetSorting = useCallback(() => {
+    handleSortingChange(resolvedDefaultSorting);
+  }, [handleSortingChange, resolvedDefaultSorting]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnSizingInfo, setColumnSizingInfo] = useState({});
   const [visibleCount, setVisibleCount] = useState(pageChunkSize);
@@ -234,6 +268,8 @@ export default function DataGrid({
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
     manualSorting,
+    enableMultiSort: true,
+    isMultiSortEvent: (event) => event.shiftKey,
     onRowSelectionChange: handleRowSelectionChange,
     onSortingChange: handleSortingChange,
     onGlobalFilterChange: setGlobalFilter,
@@ -460,6 +496,10 @@ export default function DataGrid({
           enableGlobalFilter={enableGlobalFilter}
           globalFilter={globalFilter}
           onGlobalFilterChange={setGlobalFilter}
+          enableSorting={enableSorting}
+          showResetSorting={showResetSorting}
+          onResetSorting={resetSorting}
+          resetSortingTitle={resetSortingTitle}
         />
       )}
 
@@ -557,6 +597,7 @@ export default function DataGrid({
                     .map((header) => {
                     const canSort = enableSorting && header.column.getCanSort();
                     const sortDir = header.column.getIsSorted();
+                    const sortIndex = header.column.getSortIndex();
                     const isResizable = header.column.getCanResize();
                     const colId = header.column.id;
                     const width = getColumnWidth(colId, header);
@@ -584,6 +625,8 @@ export default function DataGrid({
                               meta={header.column.columnDef.meta}
                               canSort={canSort}
                               sortDir={sortDir}
+                              sortIndex={sortIndex}
+                              multiSortActive={multiSortActive}
                               onSort={canSort ? header.column.getToggleSortingHandler() : undefined}
                               tooltipPlacement="top-start"
                               tooltipFloating
@@ -592,12 +635,16 @@ export default function DataGrid({
                             <div
                               role={canSort ? 'button' : undefined}
                               onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                              title={canSort ? 'Click to sort. Shift+click to add a secondary sort.' : undefined}
                               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                             >
                               {flexRender(header.column.columnDef.header, header.getContext())}
-                              {canSort && (
+                              {sortDir && (
                                 <span className="st-grid-sort-icon">
-                                  {sortDir === 'asc' ? '↑' : sortDir === 'desc' ? '↓' : '↕'}
+                                  {sortDir === 'asc' ? '↑' : '↓'}
+                                  {multiSortActive && sortIndex >= 0 && (
+                                    <span className="st-grid-sort-index">{sortIndex + 1}</span>
+                                  )}
                                 </span>
                               )}
                             </div>

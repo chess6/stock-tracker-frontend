@@ -19,12 +19,17 @@ function ColumnHeader({
   meta = {},
   canSort,
   sortDir,
+  sortIndex,
+  multiSortActive,
   onSort,
   tooltipPlacement = 'bottom-start',
   tooltipFloating = false,
 }) {
   const hasHelp = meta.tooltip || meta.formula || meta.source || meta.fullName;
   const helpLabel = hasHelp ? formatColumnHeaderHelp(meta) : label;
+  const sortLabel = sortDir
+    ? `, sorted ${sortDir === 'desc' ? 'descending' : 'ascending'}${multiSortActive ? `, priority ${sortIndex + 1}` : ''}`
+    : '';
 
   const headerInner = (
     <>
@@ -32,13 +37,17 @@ function ColumnHeader({
         role={canSort ? 'button' : undefined}
         onClick={canSort ? onSort : undefined}
         style={{ cursor: canSort ? 'pointer' : 'default' }}
-        aria-label={helpLabel}
+        title={canSort ? 'Click to sort. Shift+click to add a secondary sort.' : undefined}
+        aria-label={`${helpLabel}${sortLabel}`}
       >
         {label}
       </span>
-      {canSort && (
+      {sortDir && (
         <span className="st-grid-sort-icon" aria-hidden="true">
-          {sortDir === 'asc' ? '↑' : sortDir === 'desc' ? '↓' : '↕'}
+          {sortDir === 'asc' ? '↑' : '↓'}
+          {multiSortActive && sortIndex != null && (
+            <span className="st-grid-sort-index">{sortIndex + 1}</span>
+          )}
         </span>
       )}
     </>

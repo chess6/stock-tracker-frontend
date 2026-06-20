@@ -34,6 +34,19 @@ describe('portfolioRowGroups', () => {
     expect(sorted.map((row) => row.ticker)).toEqual(['MSFT', 'JPM', 'AAPL']);
   });
 
+  it('applies secondary sort keys when values tie on the primary column', () => {
+    const rows = [
+      { id: 'AAPL', ticker: 'AAPL', sector: 'Technology', marketCap: 100 },
+      { id: 'MSFT', ticker: 'MSFT', sector: 'Technology', marketCap: 200 },
+      { id: 'GOOG', ticker: 'GOOG', sector: 'Technology', marketCap: 100 },
+    ];
+    const sorted = sortPortfolioRows(rows, [
+      { id: 'marketCap', desc: false },
+      { id: 'ticker', desc: false },
+    ]);
+    expect(sorted.map((row) => row.ticker)).toEqual(['AAPL', 'GOOG', 'MSFT']);
+  });
+
   it('builds sector groups with headers and child rows', () => {
     const grouped = buildGroupedDisplayRows(sampleRows, 'sector', new Set());
     expect(grouped.filter((row) => row._isGroupHeader).map((row) => row._groupLabel)).toEqual([

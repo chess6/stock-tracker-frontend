@@ -98,9 +98,15 @@ export function comparePortfolioRows(a, b, sortId, desc = false) {
 export function sortPortfolioRows(rows, sorting = []) {
   if (!Array.isArray(rows) || rows.length === 0) return [];
   if (!sorting?.length) return [...rows];
-  const [{ id, desc }] = sorting;
-  if (!id) return [...rows];
-  return [...rows].sort((a, b) => comparePortfolioRows(a, b, id, Boolean(desc)));
+  const activeSorts = sorting.filter((item) => item?.id);
+  if (!activeSorts.length) return [...rows];
+  return [...rows].sort((a, b) => {
+    for (const { id, desc } of activeSorts) {
+      const cmp = comparePortfolioRows(a, b, id, Boolean(desc));
+      if (cmp !== 0) return cmp;
+    }
+    return 0;
+  });
 }
 
 function compareGroupKeys(a, b) {

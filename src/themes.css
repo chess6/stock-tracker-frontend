@@ -168,6 +168,24 @@ body {
 .st-grid-sort-icon {
   color: var(--st-grid-header-icon);
   font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.st-grid-sort-index {
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.data-grid-sort-reset-btn {
+  min-width: auto;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 [data-bs-theme='dark'] .card,
