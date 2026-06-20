@@ -46,23 +46,22 @@ export default function DashboardPage() {
       try {
         const res = await axios.get(API_ENDPOINTS.MACRO_SNAPSHOT);
         if (!cancelled) {
-          const payloadItems = res.data?.items;
+          const payload = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+          const payloadItems = payload?.items;
           if (!Array.isArray(payloadItems) || payloadItems.length === 0) {
             setItems([]);
             setMeta({});
-            setError(
-              'Macro snapshot returned no data. Confirm the backend is running on port 5000 and the frontend proxy can reach /api.',
-            );
+            setError('Macro snapshot returned an unexpected response shape.');
             return;
           }
           setItems(payloadItems);
-          setMeta(res.data?.meta || {});
+          setMeta(payload?.meta || {});
         }
       } catch (err) {
         if (!cancelled) {
           setItems([]);
           setMeta({});
-          setError(err?.response?.data?.error || 'Failed to load macro snapshot — is the backend running?');
+          setError(err?.response?.data?.error || 'Failed to load macro snapshot.');
         }
       } finally {
         if (!cancelled) setLoading(false);
