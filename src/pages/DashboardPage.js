@@ -46,13 +46,23 @@ export default function DashboardPage() {
       try {
         const res = await axios.get(API_ENDPOINTS.MACRO_SNAPSHOT);
         if (!cancelled) {
-          setItems(res.data?.items || []);
+          const payloadItems = res.data?.items;
+          if (!Array.isArray(payloadItems) || payloadItems.length === 0) {
+            setItems([]);
+            setMeta({});
+            setError(
+              'Macro snapshot returned no data. Confirm the backend is running on port 5000 and the frontend proxy can reach /api.',
+            );
+            return;
+          }
+          setItems(payloadItems);
           setMeta(res.data?.meta || {});
         }
       } catch (err) {
         if (!cancelled) {
           setItems([]);
-          setError(err?.response?.data?.error || 'Failed to load macro snapshot');
+          setMeta({});
+          setError(err?.response?.data?.error || 'Failed to load macro snapshot — is the backend running?');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -129,6 +139,7 @@ export default function DashboardPage() {
   }, [items]);
 
   const unavailableCount = meta?.unavailable ?? items.filter((item) => !item.available).length;
+  const availableCount = items.length - unavailableCount;
 
   return (
     <div className="st-page st-page--split-wide">
@@ -191,8 +202,11 @@ export default function DashboardPage() {
         <div className="st-spinner-wrap"><StSpinner /> Loading macro data…</div>
       )}
       {error && <div className="st-alert-danger">{error}</div>}
-      {!loading && !error && items.length === 0 && (
-        <div className="st-alert-secondary">Macro data unavailable. Ensure yfinance can reach market data sources.</div>
+      {!loading && !error && items.length > 0 && availableCount === 0 && (
+        <div className="st-alert-secondary">
+          Macro quotes are not available yet. Re-run <strong>Refresh Macro</strong> in Admin → Bootstrap pipeline
+          (or POST /api/admin/refresh-macro). Snapshot reads SQLite first, then falls back to live yfinance for gaps like ^VIX.
+        </div>
       )}
 
       {!loading && unavailableCount > 0 && (
