@@ -9,6 +9,7 @@ import {
   buildInsiderBuyAnnotations,
   buildPeriodEndAnnotations,
   tightPriceBounds,
+  tightVolumeBounds,
   marketHistoryChartHeight,
 } from './priceVolumeChart';
 
@@ -91,5 +92,14 @@ describe('priceVolumeChart utils', () => {
     const withVolume = marketHistoryChartHeight(900, { showVolume: true, pointCount: 120 });
     expect(priceOnly).toBeGreaterThan(withVolume);
     expect(priceOnly).toBeGreaterThanOrEqual(220);
+  });
+
+  it('builds explicit volume axis bounds from zero', () => {
+    const bounds = tightVolumeBounds([
+      { y: 10_000_000 },
+      { y: 85_962_200 },
+    ]);
+    expect(bounds.min).toBe(0);
+    expect(bounds.max).toBeGreaterThan(85_962_200);
   });
 });

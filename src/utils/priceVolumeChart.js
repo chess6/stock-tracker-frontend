@@ -141,6 +141,20 @@ export function tightPriceBounds(filteredHistory = [], padRatio = 0.06) {
   };
 }
 
+/** Explicit secondary-axis bounds for raw share volume (millions–billions). */
+export function tightVolumeBounds(volumePoints = [], padRatio = 0.08) {
+  const values = volumePoints
+    .map((point) => Number(point?.y ?? point?.volume))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  if (!values.length) return {};
+  const max = Math.max(...values);
+  if (max === 0) return { min: 0, max: 1 };
+  return {
+    min: 0,
+    max: max * (1 + padRatio),
+  };
+}
+
 /**
  * Responsive plot height from container width — taller when price-only for slope readability.
  * @param {number} containerWidth

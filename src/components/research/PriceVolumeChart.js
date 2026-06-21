@@ -7,6 +7,7 @@ import {
   MARKET_HISTORY_CHART_HEIGHT,
   analyticsChartOptions,
 } from '../../utils/chartTheme';
+import { isDarkTheme } from '../../utils/themeState';
 import { formatCompactUsd, formatDecimal, formatPercent } from '../../utils/formatters';
 import { useHeatmapThemeKey } from '../../hooks/useHeatmapThemeKey';
 import {
@@ -19,6 +20,7 @@ import {
   buildInsiderBuyAnnotations,
   buildPeriodEndAnnotations,
   tightPriceBounds,
+  tightVolumeBounds,
   marketHistoryChartHeight,
 } from '../../utils/priceVolumeChart';
 
@@ -115,24 +117,37 @@ export default function PriceVolumeChart({
     .map((point) => ({ x: point.date, y: Number(point.close) })), [filteredHistory]);
 
   const volumePoints = useMemo(() => filteredHistory
-    .filter((point) => point.volume != null)
+    .filter((point) => point.volume != null && Number.isFinite(Number(point.volume)))
     .map((point) => ({ x: point.date, y: Number(point.volume) })), [filteredHistory]);
+
+  const hasVolumeData = volumePoints.length >= 2;
+  const dark = isDarkTheme();
+  const priceColor = dark ? '#7ec0ff' : '#4a90e2';
+  const volumeColor = dark ? '#ffc857' : '#b86e00';
+  const priceFillFrom = dark ? 0.58 : 0.4;
+  const priceFillTo = dark ? 0.18 : 0.1;
+  const volumeFillOpacity = dark ? 0.88 : 0.62;
+
+  const volumeAxisBounds = useMemo(
+    () => tightVolumeBounds(volumePoints),
+    [volumePoints],
+  );
 
   const chartSeries = useMemo(() => {
     const series = [{
       name: 'Close',
-      type: 'area',
+      type: 'line',
       data: pricePoints,
     }];
-    if (showVolume && volumePoints.length > 0) {
+    if (showVolume && hasVolumeData) {
       series.push({
         name: 'Volume',
-        type: 'line',
+        type: 'column',
         data: volumePoints,
       });
     }
     return series;
-  }, [pricePoints, volumePoints, showVolume]);
+  }, [pricePoints, volumePoints, showVolume, hasVolumeData]);
 
   const chartHeight = useMemo(() => {
     const width = plotWidth || chartPlotRef.current?.clientWidth || 0;
@@ -150,23 +165,41 @@ export default function PriceVolumeChart({
       zoom: { enabled: false },
       animations: { enabled: false },
     },
-    stroke: {
-      width: showVolume ? [2, 1.5] : 2,
-      curve: 'smooth',
+    plotOptions: {
+      bar: {
+        columnWidth: showVolume && hasVolumeData ? '88%' : '50%',
+      },
     },
-    fill: showVolume
+    stroke: {
+      width: showVolume && hasVolumeData ? [3, 0] : 3,
+      curve: 'smooth',
+      colors: [priceColor, volumeColor],
+    },
+    fill: showVolume && hasVolumeData
       ? {
         type: ['gradient', 'solid'],
-        opacity: [1, 0],
-        gradient: { opacityFrom: 0.28, opacityTo: 0.04 },
+        opacity: [1, volumeFillOpacity],
+        colors: [priceColor, volumeColor],
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: priceFillFrom,
+          opacityTo: priceFillTo,
+          stops: [0, 100],
+        },
       }
       : {
         type: 'gradient',
-        gradient: { opacityFrom: 0.28, opacityTo: 0.04 },
+        colors: [priceColor],
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: priceFillFrom,
+          opacityTo: priceFillTo,
+          stops: [0, 100],
+        },
       },
     dataLabels: { enabled: false },
     legend: {
-      show: showVolume,
+      show: showVolume && hasVolumeData,
       position: 'bottom',
       fontSize: '9px',
       height: 24,
@@ -176,7 +209,7 @@ export default function PriceVolumeChart({
       type: 'datetime',
       labels: { rotate: -45, style: { fontSize: '9px' } },
     },
-    yaxis: showVolume
+    yaxis: showVolume && hasVolumeData
       ? [
         {
           seriesName: 'Close',
@@ -188,11 +221,13 @@ export default function PriceVolumeChart({
           title: { text: undefined },
         },
         {
-          opposite: true,
           seriesName: 'Volume',
+          opposite: true,
+          show: true,
+          ...volumeAxisBounds,
           labels: {
             formatter: (value) => formatVolume(value),
-            style: { fontSize: '9px' },
+            style: { fontSize: '9px', colors: volumeColor },
           },
           title: { text: undefined },
         },
@@ -206,7 +241,7 @@ export default function PriceVolumeChart({
         title: { text: undefined },
       },
     grid: {
-      padding: { top: 2, right: showVolume ? 8 : 6, bottom: 0, left: 2 },
+      padding: { top: 2, right: showVolume && hasVolumeData ? 10 : 6, bottom: 0, left: 2 },
     },
     annotations: {
       xaxis: annotations,
@@ -221,12 +256,25 @@ export default function PriceVolumeChart({
         ),
       },
     },
-    colors: showVolume ? ['#5b9cf5', '#6c757d'] : ['#5b9cf5'],
-  }), [annotations, heatmapThemeKey, priceAxisBounds, showVolume]);
+    colors: showVolume && hasVolumeData ? [priceColor, volumeColor] : [priceColor],
+  }), [
+    annotations,
+    heatmapThemeKey,
+    priceAxisBounds,
+    volumeAxisBounds,
+    showVolume,
+    hasVolumeData,
+    volumeColor,
+    priceColor,
+    priceFillFrom,
+    priceFillTo,
+    volumeFillOpacity,
+  ]);
 
   const hasChartData = pricePoints.length >= 2;
   const showLoading = loading && !mergedHistory.length;
   const showExtendedLoading = extendedLoading && EXTENDED_HISTORY_RANGES.has(range);
+  const chartKey = `${range}-${showVolume ? 'vol' : 'price'}-${pricePoints.length}-${heatmapThemeKey}`;
 
   const performanceLabel = performance ? (
     <>
@@ -304,6 +352,12 @@ export default function PriceVolumeChart({
               <span className="text-muted">Limited history available in cache.</span>
             </>
           )}
+          {showVolume && !hasVolumeData && !showLoading && (
+            <>
+              <span className="research-market-history-performance-sep">·</span>
+              <span className="text-muted">Volume data unavailable for this range.</span>
+            </>
+          )}
         </div>
 
         {showLoading && (
@@ -332,6 +386,7 @@ export default function PriceVolumeChart({
             style={{ minHeight: chartHeight }}
           >
             <Chart
+              key={chartKey}
               options={chartOptions}
               series={chartSeries}
               type="line"
