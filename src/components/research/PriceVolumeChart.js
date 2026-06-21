@@ -112,51 +112,58 @@ export default function PriceVolumeChart({
     ];
   }, [filteredHistory, insiderTransactions, periods]);
 
-  const pricePoints = useMemo(() => filteredHistory
+  const chartCategories = useMemo(() => filteredHistory
     .filter((point) => point.close != null)
-    .map((point) => ({ x: point.date, y: Number(point.close) })), [filteredHistory]);
+    .map((point) => point.date), [filteredHistory]);
 
-  const volumePoints = useMemo(() => filteredHistory
-    .filter((point) => point.volume != null && Number.isFinite(Number(point.volume)))
-    .map((point) => ({ x: point.date, y: Number(point.volume) })), [filteredHistory]);
+  const priceValues = useMemo(() => filteredHistory
+    .filter((point) => point.close != null)
+    .map((point) => Number(point.close)), [filteredHistory]);
 
-  const hasVolumeData = volumePoints.length >= 2;
+  const volumeValues = useMemo(() => {
+    const closeDates = new Set(chartCategories);
+    return filteredHistory
+      .filter((point) => closeDates.has(point.date) && point.volume != null && Number.isFinite(Number(point.volume)))
+      .map((point) => Number(point.volume));
+  }, [filteredHistory, chartCategories]);
+
+  const hasVolumeData = volumeValues.length >= 2;
   const dark = isDarkTheme();
-  const priceColor = dark ? '#7ec0ff' : '#4a90e2';
+  const priceColor = dark ? '#5b9cf5' : '#4a90e2';
   const volumeColor = dark ? '#ffc857' : '#b86e00';
-  const priceFillFrom = dark ? 0.58 : 0.4;
-  const priceFillTo = dark ? 0.18 : 0.1;
+  const priceFillFrom = dark ? 0.35 : 0.4;
+  const priceFillTo = dark ? 0.05 : 0.1;
   const volumeFillOpacity = dark ? 0.88 : 0.62;
 
   const volumeAxisBounds = useMemo(
-    () => tightVolumeBounds(volumePoints),
-    [volumePoints],
+    () => tightVolumeBounds(volumeValues.map((v) => ({ y: v }))),
+    [volumeValues],
   );
 
   const chartSeries = useMemo(() => {
     const series = [{
       name: 'Close',
-      type: 'line',
-      data: pricePoints,
+      type: 'area',
+      data: priceValues,
     }];
     if (showVolume && hasVolumeData) {
       series.push({
         name: 'Volume',
         type: 'column',
-        data: volumePoints,
+        data: volumeValues,
       });
     }
     return series;
-  }, [pricePoints, volumePoints, showVolume, hasVolumeData]);
+  }, [priceValues, volumeValues, showVolume, hasVolumeData]);
 
   const chartHeight = useMemo(() => {
     const width = plotWidth || chartPlotRef.current?.clientWidth || 0;
     if (!width) return MARKET_HISTORY_CHART_HEIGHT;
     return marketHistoryChartHeight(width, {
       showVolume,
-      pointCount: pricePoints.length,
+      pointCount: priceValues.length,
     });
-  }, [plotWidth, showVolume, pricePoints.length]);
+  }, [plotWidth, showVolume, priceValues.length]);
 
   const chartOptions = useMemo(() => analyticsChartOptions({
     chart: {
@@ -171,7 +178,7 @@ export default function PriceVolumeChart({
       },
     },
     stroke: {
-      width: showVolume && hasVolumeData ? [3, 0] : 3,
+      width: showVolume && hasVolumeData ? [2, 0] : 2,
       curve: 'smooth',
       colors: [priceColor, volumeColor],
     },
@@ -181,7 +188,7 @@ export default function PriceVolumeChart({
         opacity: [1, volumeFillOpacity],
         colors: [priceColor, volumeColor],
         gradient: {
-          shadeIntensity: 1,
+          shadeIntensity: 0,
           opacityFrom: priceFillFrom,
           opacityTo: priceFillTo,
           stops: [0, 100],
@@ -191,7 +198,7 @@ export default function PriceVolumeChart({
         type: 'gradient',
         colors: [priceColor],
         gradient: {
-          shadeIntensity: 1,
+          shadeIntensity: 0,
           opacityFrom: priceFillFrom,
           opacityTo: priceFillTo,
           stops: [0, 100],
@@ -206,8 +213,23 @@ export default function PriceVolumeChart({
       itemMargin: { horizontal: 6, vertical: 0 },
     },
     xaxis: {
-      type: 'datetime',
-      labels: { rotate: -45, style: { fontSize: '9px' } },
+      type: 'category',
+      categories: chartCategories,
+      labels: {
+        rotate: -45,
+        hideOverlappingLabels: true,
+        style: { fontSize: '9px' },
+        formatter: (value) => {
+          const str = String(value);
+          if (!/^\d{4}-\d{2}-\d{2}/.test(str)) return str;
+          const d = new Date(str.slice(0, 10));
+          if (Number.isNaN(d.getTime())) return str;
+          const mon = d.toLocaleDateString(undefined, { month: 'short' });
+          const yr = String(d.getFullYear()).slice(2);
+          return `${mon} '${yr}`;
+        },
+      },
+      tickAmount: 6,
     },
     yaxis: showVolume && hasVolumeData
       ? [
@@ -249,7 +271,16 @@ export default function PriceVolumeChart({
     tooltip: {
       shared: true,
       intersect: false,
-      x: { format: 'MMM dd, yyyy' },
+      x: {
+        formatter: (value, opts) => {
+          const idx = opts?.dataPointIndex;
+          const dateStr = (idx != null && chartCategories[idx]) || String(value);
+          if (!/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr;
+          const d = new Date(dateStr.slice(0, 10));
+          if (Number.isNaN(d.getTime())) return dateStr;
+          return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        },
+      },
       y: {
         formatter: (value, { seriesIndex }) => (
           seriesIndex === 1 ? formatVolume(value) : formatCompactUsd(value)
@@ -259,6 +290,7 @@ export default function PriceVolumeChart({
     colors: showVolume && hasVolumeData ? [priceColor, volumeColor] : [priceColor],
   }), [
     annotations,
+    chartCategories,
     heatmapThemeKey,
     priceAxisBounds,
     volumeAxisBounds,
@@ -271,10 +303,10 @@ export default function PriceVolumeChart({
     volumeFillOpacity,
   ]);
 
-  const hasChartData = pricePoints.length >= 2;
+  const hasChartData = priceValues.length >= 2;
   const showLoading = loading && !mergedHistory.length;
   const showExtendedLoading = extendedLoading && EXTENDED_HISTORY_RANGES.has(range);
-  const chartKey = `${range}-${showVolume ? 'vol' : 'price'}-${pricePoints.length}-${heatmapThemeKey}`;
+  const chartKey = `${range}-${showVolume ? 'vol' : 'price'}-${priceValues.length}-${heatmapThemeKey}`;
 
   const performanceLabel = performance ? (
     <>
