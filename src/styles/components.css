@@ -390,8 +390,80 @@ a.st-ticker {
 
 a.st-ticker:hover,
 a.st-ticker:focus-visible {
-  color: var(--st-accent-blue);
+  color: color-mix(in srgb, var(--st-accent-amber) 78%, white);
   text-decoration: underline;
+  text-decoration-color: currentColor;
+}
+
+/* Grid cell hyperlinks — amber gold across data grids */
+.st-grid-table tbody a:not(.st-btn):not(.st-link-btn):not(.portfolio-tag-remove),
+.data-grid-table tbody a:not(.st-btn):not(.st-link-btn):not(.portfolio-tag-remove),
+.research-grid-table tbody a:not(.st-btn):not(.st-link-btn),
+.research-narrative-table tbody a:not(.st-btn):not(.st-link-btn),
+.research-insider-table tbody a:not(.st-btn):not(.st-link-btn),
+.research-compare-snapshot-table tbody a:not(.st-btn):not(.st-link-btn),
+.research-score-summary-table tbody a:not(.st-btn):not(.st-link-btn),
+.nasdaq-columns-grid-table tbody a:not(.st-btn):not(.st-link-btn),
+.st-grid-table tbody a.st-link-muted,
+.data-grid-table tbody a.st-link-muted,
+.research-grid-table tbody a.st-link-muted,
+.research-narrative-table tbody a.st-link-muted,
+.research-insider-table tbody a.st-link-muted,
+.research-compare-snapshot-table tbody a.st-link-muted,
+.research-score-summary-table tbody a.st-link-muted,
+.nasdaq-columns-grid-table tbody a.st-link-muted {
+  color: var(--st-accent-amber);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--st-accent-amber) 45%, transparent);
+  text-underline-offset: 2px;
+}
+
+.st-grid-table tbody a:not(.st-btn):not(.st-link-btn):not(.portfolio-tag-remove):hover,
+.st-grid-table tbody a:not(.st-btn):not(.st-link-btn):not(.portfolio-tag-remove):focus-visible,
+.data-grid-table tbody a:not(.st-btn):not(.st-link-btn):not(.portfolio-tag-remove):hover,
+.data-grid-table tbody a:not(.st-btn):not(.st-link-btn):not(.portfolio-tag-remove):focus-visible,
+.research-grid-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+.research-grid-table tbody a:not(.st-btn):not(.st-link-btn):focus-visible,
+.research-narrative-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+.research-narrative-table tbody a:not(.st-btn):not(.st-link-btn):focus-visible,
+.research-insider-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+.research-insider-table tbody a:not(.st-btn):not(.st-link-btn):focus-visible,
+.research-compare-snapshot-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+.research-compare-snapshot-table tbody a:not(.st-btn):not(.st-link-btn):focus-visible,
+.research-score-summary-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+.research-score-summary-table tbody a:not(.st-btn):not(.st-link-btn):focus-visible,
+.nasdaq-columns-grid-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+.nasdaq-columns-grid-table tbody a:not(.st-btn):not(.st-link-btn):focus-visible,
+.st-grid-table tbody a.st-link-muted:hover,
+.st-grid-table tbody a.st-link-muted:focus-visible,
+.data-grid-table tbody a.st-link-muted:hover,
+.data-grid-table tbody a.st-link-muted:focus-visible,
+.research-grid-table tbody a.st-link-muted:hover,
+.research-grid-table tbody a.st-link-muted:focus-visible,
+.research-narrative-table tbody a.st-link-muted:hover,
+.research-narrative-table tbody a.st-link-muted:focus-visible,
+.research-insider-table tbody a.st-link-muted:hover,
+.research-insider-table tbody a.st-link-muted:focus-visible,
+.research-compare-snapshot-table tbody a.st-link-muted:hover,
+.research-compare-snapshot-table tbody a.st-link-muted:focus-visible,
+.research-score-summary-table tbody a.st-link-muted:hover,
+.research-score-summary-table tbody a.st-link-muted:focus-visible,
+.nasdaq-columns-grid-table tbody a.st-link-muted:hover,
+.nasdaq-columns-grid-table tbody a.st-link-muted:focus-visible {
+  color: color-mix(in srgb, var(--st-accent-amber) 78%, white);
+  text-decoration-color: currentColor;
+}
+
+.st-grid-table tbody a.st-ticker,
+.data-grid-table tbody a.st-ticker,
+.research-grid-table tbody a.st-ticker,
+.research-narrative-table tbody a.st-ticker,
+.research-insider-table tbody a.st-ticker,
+.research-compare-snapshot-table tbody a.st-ticker,
+.research-score-summary-table tbody a.st-ticker,
+.nasdaq-columns-grid-table tbody a.st-ticker {
+  text-decoration: none;
+  text-decoration-color: transparent;
 }
 
 .ticker-subnav {

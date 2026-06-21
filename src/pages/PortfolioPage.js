@@ -383,6 +383,18 @@ const PortfolioPage = () => {
             cellStyle: portfolioHeatCell('divYield'),
             cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
         }),
+        columnHelper.accessor('revDebt', {
+            meta: meta('revDebt'),
+            header: 'Rev/Debt',
+            cellStyle: portfolioHeatCell('revDebt'),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
+        columnHelper.accessor('mcEv', {
+            meta: meta('mcEv'),
+            header: 'MC/EV',
+            cellStyle: portfolioHeatCell('mcEv'),
+            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+        }),
         columnHelper.accessor('operatingMargin', {
             meta: meta('operatingMargin'),
             header: 'Op%',
@@ -471,18 +483,6 @@ const PortfolioPage = () => {
             meta: meta('assetp'),
             header: 'Asset/P',
             cellStyle: portfolioHeatCell('assetp'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
-        }),
-        columnHelper.accessor('revDebt', {
-            meta: meta('revDebt'),
-            header: 'Rev/Debt',
-            cellStyle: portfolioHeatCell('revDebt'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
-        }),
-        columnHelper.accessor('mcEv', {
-            meta: meta('mcEv'),
-            header: 'MC/EV',
-            cellStyle: portfolioHeatCell('mcEv'),
             cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
         }),
         columnHelper.accessor('divergenceSignal', {

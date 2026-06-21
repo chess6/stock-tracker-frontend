@@ -412,12 +412,28 @@ body {
   --bs-alert-border-color: #997404;
 }
 
-[data-bs-theme='dark'] .table a {
-  color: var(--bs-link-color);
+[data-bs-theme='dark'] .st-grid-table tbody a:not(.st-btn):not(.st-link-btn),
+[data-bs-theme='dark'] .data-grid-table tbody a:not(.st-btn):not(.st-link-btn),
+[data-bs-theme='dark'] .research-grid-table tbody a:not(.st-btn):not(.st-link-btn),
+[data-bs-theme='dark'] .research-narrative-table tbody a:not(.st-btn):not(.st-link-btn),
+[data-bs-theme='dark'] .research-insider-table tbody a:not(.st-btn):not(.st-link-btn),
+[data-bs-theme='dark'] .research-compare-snapshot-table tbody a:not(.st-btn):not(.st-link-btn),
+[data-bs-theme='dark'] .research-score-summary-table tbody a:not(.st-btn):not(.st-link-btn),
+[data-bs-theme='dark'] .table.st-grid-table tbody a:not(.st-btn):not(.st-link-btn),
+[data-bs-theme='dark'] .table.data-grid-table tbody a:not(.st-btn):not(.st-link-btn) {
+  color: var(--st-accent-amber);
 }
 
-[data-bs-theme='dark'] .table a:hover {
-  color: var(--bs-link-hover-color);
+[data-bs-theme='dark'] .st-grid-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+[data-bs-theme='dark'] .data-grid-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+[data-bs-theme='dark'] .research-grid-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+[data-bs-theme='dark'] .research-narrative-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+[data-bs-theme='dark'] .research-insider-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+[data-bs-theme='dark'] .research-compare-snapshot-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+[data-bs-theme='dark'] .research-score-summary-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+[data-bs-theme='dark'] .table.st-grid-table tbody a:not(.st-btn):not(.st-link-btn):hover,
+[data-bs-theme='dark'] .table.data-grid-table tbody a:not(.st-btn):not(.st-link-btn):hover {
+  color: color-mix(in srgb, var(--st-accent-amber) 78%, white);
 }
 
 [data-bs-theme='dark'] .text-secondary-emphasis {

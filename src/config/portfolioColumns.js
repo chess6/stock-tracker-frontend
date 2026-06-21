@@ -1,14 +1,14 @@
 /** Portfolio grid column metadata (labels, tooltips, formulas, column groups). */
 
 export const PORTFOLIO_COLUMN_GROUPS = [
-  { id: 'quote', label: 'Quote' },
-  { id: 'returns', label: 'Returns' },
-  { id: 'range52w', label: '52-Week' },
-  { id: 'valuation', label: 'Valuation' },
-  { id: 'ratios', label: 'Ratios' },
-  { id: 'cashflow', label: 'Cash Flow' },
-  { id: 'insider', label: 'Insider' },
-  { id: 'links', label: 'Links' },
+  { id: 'quote', label: 'Quote', headerClass: 'portfolio-col-group-quote' },
+  { id: 'returns', label: 'Returns', headerClass: 'portfolio-col-group-returns' },
+  { id: 'range52w', label: '52-Week', headerClass: 'portfolio-col-group-range52w' },
+  { id: 'valuation', label: 'Valuation', headerClass: 'portfolio-col-group-valuation' },
+  { id: 'ratios', label: 'Ratios', headerClass: 'portfolio-col-group-ratios' },
+  { id: 'cashflow', label: 'Cash Flow', headerClass: 'portfolio-col-group-cashflow' },
+  { id: 'insider', label: 'Insider', headerClass: 'portfolio-col-group-insider' },
+  { id: 'links', label: 'Links', headerClass: 'portfolio-col-group-links' },
 ];
 
 /** Default visible columns — extended metrics hidden until user enables them. */

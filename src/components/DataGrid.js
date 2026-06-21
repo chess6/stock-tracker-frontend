@@ -382,6 +382,23 @@ export default function DataGrid({
     );
   }, [columnGroups, filteredColumns]);
 
+  const columnIdToGroupHeaderClass = useMemo(() => {
+    const map = new Map();
+    columnGroups.forEach((group) => {
+      if (!group.headerClass) return;
+      group.columnIds.forEach((colId) => map.set(colId, group.headerClass));
+    });
+    return map;
+  }, [columnGroups]);
+
+  const useGroupHeaderColors = columnIdToGroupHeaderClass.size > 0;
+
+  const stripHeaderBackground = (style) => {
+    if (!style?.background) return style;
+    const { background, ...rest } = style;
+    return rest;
+  };
+
   const getColumnWidth = (columnId, header) => {
     if (effectiveColumnSizing[columnId]) {
       return effectiveColumnSizing[columnId];
@@ -535,7 +552,7 @@ export default function DataGrid({
             )}
             <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
               {columnGroups.length > 0 && (
-                <tr style={{ ...headerStyle, background: 'var(--st-grid-group-header-bg)' }}>
+                <tr style={useGroupHeaderColors ? stripHeaderBackground(headerStyle) : headerStyle}>
                   {(() => {
                     const cells = [];
                     let idx = 0;
@@ -575,11 +592,19 @@ export default function DataGrid({
                         if (!group.columnIds.includes(nextId)) break;
                         span += 1;
                       }
+                      const groupHeaderClass = group.headerClass
+                        ? `${group.headerClass} st-grid-col-group-header`
+                        : undefined;
                       cells.push(
                         <th
                           key={`group-${group.id}-${idx}`}
                           colSpan={span}
-                          style={{ ...headerStyle, textAlign: 'center', fontSize: compact ? 11 : 12 }}
+                          className={groupHeaderClass}
+                          style={{
+                            ...stripHeaderBackground(headerStyle),
+                            textAlign: 'center',
+                            fontSize: compact ? 11 : 12,
+                          }}
                         >
                           {group.label}
                         </th>,
@@ -591,7 +616,7 @@ export default function DataGrid({
                 </tr>
               )}
               {table.getHeaderGroups().map(headerGroup => (
-                <tr key={headerGroup.id} style={headerStyle}>
+                <tr key={headerGroup.id} style={useGroupHeaderColors ? stripHeaderBackground(headerStyle) : headerStyle}>
                   {headerGroup.headers
                     .filter((header) => !columnGroups.length || !ungroupedColumnIds.has(header.column.id))
                     .map((header) => {
@@ -601,6 +626,7 @@ export default function DataGrid({
                     const isResizable = header.column.getCanResize();
                     const colId = header.column.id;
                     const width = getColumnWidth(colId, header);
+                    const groupHeaderClass = columnIdToGroupHeaderClass.get(colId);
                     let thStyle = applyWidthStyle(
                       applyStickyStyle(colId, {
                         ...headerStyle,
@@ -609,6 +635,9 @@ export default function DataGrid({
                       colId,
                       width,
                     );
+                    if (groupHeaderClass) {
+                      thStyle = stripHeaderBackground(thStyle);
+                    }
                     if (isResizable && !stickyIds.includes(colId)) {
                       thStyle.position = 'relative';
                     }
@@ -616,6 +645,7 @@ export default function DataGrid({
                       <th
                         key={header.id}
                         data-col-id={colId}
+                        className={groupHeaderClass ? `${groupHeaderClass} st-grid-col-subheader` : undefined}
                         style={thStyle}
                       >
                         {header.isPlaceholder ? null : (

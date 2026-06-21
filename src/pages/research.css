@@ -1212,7 +1212,7 @@
 
 .research-score-summary-ticker-name a.st-ticker:hover,
 .research-score-summary-ticker-name a.st-ticker:focus-visible {
-  color: var(--st-accent-blue);
+  color: color-mix(in srgb, var(--st-accent-amber) 78%, white);
   text-decoration: underline;
 }
 
@@ -1387,6 +1387,7 @@
 .research-narrative-table a.st-link,
 .research-narrative-table a.st-link-muted {
   font-weight: 500;
+  color: var(--st-accent-amber);
 }
 
 .research-narrative-table td:last-child {

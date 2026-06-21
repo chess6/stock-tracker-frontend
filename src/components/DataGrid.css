@@ -127,6 +127,97 @@
     box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.15);
 }
 
+/* Portfolio column group band colors — top group row + matching sub-headers */
+.portfolio-grid-table .portfolio-col-group-quote {
+  --st-portfolio-group-top: #3d5a73;
+  --st-portfolio-group-sub: #354f66;
+}
+
+.portfolio-grid-table .portfolio-col-group-returns {
+  --st-portfolio-group-top: #3d5c4a;
+  --st-portfolio-group-sub: #354f42;
+}
+
+.portfolio-grid-table .portfolio-col-group-range52w {
+  --st-portfolio-group-top: #4a3d5c;
+  --st-portfolio-group-sub: #42354f;
+}
+
+.portfolio-grid-table .portfolio-col-group-valuation {
+  --st-portfolio-group-top: #7a6820;
+  --st-portfolio-group-sub: #6b5c18;
+}
+
+.portfolio-grid-table .portfolio-col-group-ratios {
+  --st-portfolio-group-top: #3d5c5c;
+  --st-portfolio-group-sub: #354f4f;
+}
+
+.portfolio-grid-table .portfolio-col-group-cashflow {
+  --st-portfolio-group-top: #3d6b4a;
+  --st-portfolio-group-sub: #355f42;
+}
+
+.portfolio-grid-table .portfolio-col-group-insider {
+  --st-portfolio-group-top: #5c3d4a;
+  --st-portfolio-group-sub: #4f3542;
+}
+
+.portfolio-grid-table .portfolio-col-group-links {
+  --st-portfolio-group-top: #8a5a18;
+  --st-portfolio-group-sub: #754d14;
+}
+
+[data-bs-theme='dark'] .portfolio-grid-table .portfolio-col-group-quote {
+  --st-portfolio-group-top: #2d4560;
+  --st-portfolio-group-sub: #263a52;
+}
+
+[data-bs-theme='dark'] .portfolio-grid-table .portfolio-col-group-returns {
+  --st-portfolio-group-top: #2d4838;
+  --st-portfolio-group-sub: #264032;
+}
+
+[data-bs-theme='dark'] .portfolio-grid-table .portfolio-col-group-range52w {
+  --st-portfolio-group-top: #3a2d48;
+  --st-portfolio-group-sub: #322640;
+}
+
+[data-bs-theme='dark'] .portfolio-grid-table .portfolio-col-group-valuation {
+  --st-portfolio-group-top: #5c5218;
+  --st-portfolio-group-sub: #4a4212;
+}
+
+[data-bs-theme='dark'] .portfolio-grid-table .portfolio-col-group-ratios {
+  --st-portfolio-group-top: #2d4848;
+  --st-portfolio-group-sub: #264040;
+}
+
+[data-bs-theme='dark'] .portfolio-grid-table .portfolio-col-group-cashflow {
+  --st-portfolio-group-top: #2d5238;
+  --st-portfolio-group-sub: #264832;
+}
+
+[data-bs-theme='dark'] .portfolio-grid-table .portfolio-col-group-insider {
+  --st-portfolio-group-top: #482d38;
+  --st-portfolio-group-sub: #402630;
+}
+
+[data-bs-theme='dark'] .portfolio-grid-table .portfolio-col-group-links {
+  --st-portfolio-group-top: #6b4510;
+  --st-portfolio-group-sub: #5a3a0d;
+}
+
+.portfolio-grid-table thead th.st-grid-col-group-header {
+  background: var(--st-portfolio-group-top);
+  color: var(--st-grid-header-fg);
+}
+
+.portfolio-grid-table thead th.st-grid-col-subheader {
+  background: var(--st-portfolio-group-sub);
+  color: var(--st-grid-header-fg);
+}
+
 /* Sticky quote columns (ticker, price): lift header on hover so tooltips clear later stickies */
 .data-grid-table thead th[style*="position: sticky"] {
     overflow: visible;
