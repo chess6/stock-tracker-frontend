@@ -209,6 +209,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="dashboard-layout">
+        <div className="dashboard-layout__portfolio">
       <div className="st-panel">
         <div className="st-panel-header">Your Portfolio</div>
         <div className="st-panel-body">
@@ -292,7 +293,9 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+        </div>
 
+        <div className="dashboard-layout__macro">
       {loading && (
         <div className="st-spinner-wrap"><StSpinner /> Loading macro data…</div>
       )}
@@ -322,6 +325,7 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+        </div>
       </div>
 
       {meta?.source && (
