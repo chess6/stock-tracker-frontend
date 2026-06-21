@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
@@ -11,6 +11,7 @@ import MarginTrendChart from '../components/research/MarginTrendChart';
 import RankFactorChart from '../components/research/RankFactorChart';
 import CapitalStructureSummary from '../components/research/CapitalStructureSummary';
 import MetricSparkline from '../components/research/MetricSparkline';
+import PriceVolumeChart from '../components/research/PriceVolumeChart';
 import StIcon from '../components/StIcon';
 import { RESEARCH_ICONS } from '../icons/researchIcons';
 import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
@@ -348,6 +349,9 @@ export default function ResearchOverviewPage() {
   const [thesisData, setThesisData] = useState(null);
   const [compositeRank, setCompositeRank] = useState(null);
   const [compositeRankLoading, setCompositeRankLoading] = useState(false);
+  const [extendedPriceHistory, setExtendedPriceHistory] = useState(null);
+  const [extendedPriceLoading, setExtendedPriceLoading] = useState(false);
+  const [extendedPriceFetched, setExtendedPriceFetched] = useState(false);
 
   useEffect(() => {
     if (!ticker) return undefined;
@@ -369,6 +373,9 @@ export default function ResearchOverviewPage() {
     setPillarData(null);
     setThesisData(null);
     setCompositeRank(null);
+    setExtendedPriceHistory(null);
+    setExtendedPriceLoading(false);
+    setExtendedPriceFetched(false);
 
     const finish = () => {
       if (!cancelled && failures.length) {
@@ -478,6 +485,23 @@ export default function ResearchOverviewPage() {
 
     return () => { cancelled = true; };
   }, [ticker]);
+
+  const handleNeedExtendedHistory = useCallback(() => {
+    if (!ticker || extendedPriceFetched || extendedPriceLoading) return;
+    setExtendedPriceLoading(true);
+    axios.get(API_ENDPOINTS.SUMMARY(ticker))
+      .then((res) => {
+        setExtendedPriceHistory(res.data?.prices || []);
+        setExtendedPriceFetched(true);
+      })
+      .catch(() => {
+        setExtendedPriceHistory(null);
+        setExtendedPriceFetched(true);
+      })
+      .finally(() => {
+        setExtendedPriceLoading(false);
+      });
+  }, [ticker, extendedPriceFetched, extendedPriceLoading]);
 
   useEffect(() => {
     if (!ticker) return undefined;
@@ -642,6 +666,16 @@ export default function ResearchOverviewPage() {
         thesisLoading={thesisLoading}
         compositeRank={compositeRank}
         compositeRankLoading={compositeRankLoading}
+      />
+
+      <PriceVolumeChart
+        priceHistory={detailData?.price?.history || []}
+        extendedPriceHistory={extendedPriceHistory}
+        insiderTransactions={detailData?.insiderAnalysis?.recentTransactions || []}
+        periods={detailPeriods}
+        loading={detailLoading}
+        extendedLoading={extendedPriceLoading}
+        onNeedExtendedHistory={handleNeedExtendedHistory}
       />
 
       <div className={`research-overview-main${compositeRank || compositeRankLoading ? '' : ' research-overview-main--no-rank'}`}>

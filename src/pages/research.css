@@ -2077,6 +2077,84 @@
   gap: 0.45rem;
 }
 
+.research-overview-market-history {
+  min-width: 0;
+}
+
+.research-market-history-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.5rem;
+}
+
+.research-market-history-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.research-market-history-ranges {
+  flex: 0 1 auto;
+}
+
+.research-market-history-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.research-market-history-volume-toggle {
+  flex: 0 0 auto;
+}
+
+.research-market-history-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.research-market-history-performance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.35rem;
+  min-height: 1.1rem;
+}
+
+.research-market-history-performance-sep {
+  color: var(--st-text-muted);
+}
+
+.research-market-history-chart-plot {
+  width: 100%;
+  min-width: 0;
+}
+
+.research-market-history-chart-plot .apexcharts-canvas {
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .research-market-history-header {
+    align-items: flex-start;
+  }
+
+  .research-market-history-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .research-market-history-ranges {
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
 @media (max-width: 1280px) {
   .research-overview-content-col .research-overview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

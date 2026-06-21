@@ -67,6 +67,8 @@ export const ANALYTICS_DEEP_DIVE_STRIP_HEIGHT = 220;
 export const ANALYTICS_CHART_HEIGHT_SHORT = 130;
 /** Narrative overlay in the wider analytics column. */
 export const ANALYTICS_CHART_HEIGHT_NARRATIVE = 240;
+/** Fallback height before container width is measured. */
+export const MARKET_HISTORY_CHART_HEIGHT = 240;
 
 /** Tight Y-axis for percent/ratio charts so slopes are visible. */
 export function tightPercentBounds(seriesList, padMin = 3, padMax = 2) {
