@@ -61,7 +61,7 @@ test.describe('visual regression', () => {
 
   test('research deep-dive', async ({ page }) => {
     await mockStockTrackerApi(page, { theme: 'dark' });
-    await page.goto('/research/AAPL?dim=MRY&years=10&groups=balance,income,cashflow');
+    await page.goto('/overview/AAPL');
     await waitForPageReady(page);
     await expect(page.getByText('Historical Financials')).toBeVisible({ timeout: 20000 });
     await stabilizeForScreenshot(page);

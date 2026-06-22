@@ -16,7 +16,7 @@ describe('researchNavigation', () => {
   });
 
   it('builds research ticker paths', () => {
-    expect(buildResearchTickerPath('aapl', 'MRY')).toBe('/research/AAPL?dim=MRY');
+    expect(buildResearchTickerPath('aapl', 'MRY')).toBe('/overview/AAPL?dim=MRY');
   });
 
   it('commits screener and screen scroll keys', () => {

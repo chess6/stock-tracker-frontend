@@ -34,6 +34,11 @@ export const RESEARCH_SCREENER_SHORTCUTS = [
 ];
 
 /** @type {PageShortcut[]} */
+export const OVERVIEW_SHORTCUTS = [
+  { keys: ['←', '→'], label: 'Switch ticker subnav tabs' },
+];
+
+/** @type {PageShortcut[]} */
 export const RESEARCH_DEEP_DIVE_SHORTCUTS = [
   { keys: 'Esc', label: 'Close open section, then return to screener' },
   { keys: ['←', '→'], label: 'Cycle compare tickers (when 2+ selected)' },
@@ -66,11 +71,24 @@ export function resolvePageShortcuts(pathname = '') {
     return gridSortGuide('Portfolio');
   }
 
+  if (pathname.startsWith('/overview/')) {
+    return {
+      pageLabel: 'Overview',
+      sections: [{ items: OVERVIEW_SHORTCUTS }],
+    };
+  }
+
   if (pathname.startsWith('/research/') && pathname !== '/research') {
     return {
-      pageLabel: 'Research deep-dive',
+      pageLabel: 'Overview',
+      sections: [{ items: OVERVIEW_SHORTCUTS }],
+    };
+  }
+
+  if (pathname.startsWith('/financials/')) {
+    return {
+      pageLabel: 'Financials',
       sections: [
-        { items: RESEARCH_DEEP_DIVE_SHORTCUTS },
         { title: 'Financial tables', items: FINANCIAL_GRID_SHORTCUTS },
       ],
     };

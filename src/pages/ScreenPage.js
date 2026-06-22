@@ -13,7 +13,7 @@ import {
   groupsFromSpec,
 } from '../config/screenPresets';
 import ScreenFilterBuilder from '../components/research/ScreenFilterBuilder';
-import { tickerFinancialsUrl } from '../utils/tickerLinks';
+import { tickerOverviewUrl } from '../utils/tickerLinks';
 import { formatDecimal, formatPercent, formatUsd } from '../utils/formatters';
 import { useToast } from '../context/ToastContext';
 import ResearchPinnedStrip from '../components/research/ResearchPinnedStrip';
@@ -170,7 +170,7 @@ export default function ScreenPage() {
 
   const handleOpenTicker = useCallback((ticker) => {
     commitResearchScroll('research-screen');
-    navigate(tickerFinancialsUrl(ticker));
+    navigate(tickerOverviewUrl(ticker));
   }, [navigate]);
 
   useResearchKeyboard({
@@ -192,7 +192,7 @@ export default function ScreenPage() {
       header: 'Ticker',
       cell: ({ row }) => (
         <Link
-          to={tickerFinancialsUrl(row.original.ticker)}
+          to={tickerOverviewUrl(row.original.ticker)}
           className="research-ticker-link"
           onClick={saveScreenScrollBeforeLeave}
         >

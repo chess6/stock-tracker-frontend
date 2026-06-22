@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import HeatLegend from '../components/research/HeatLegend';
 import ResearchToolbar from '../components/research/ResearchToolbar';
 import FinancialGrid from '../components/research/FinancialGrid';
-import MetricSparklineLite from '../components/research/MetricSparklineLite';
 import ScoreSummaryBar from '../components/research/ScoreSummaryBar';
 import MetricTooltipLabel from '../components/research/MetricTooltipLabel';
 import InsiderPanel from '../components/research/InsiderPanel';
-import ResearchDeepDive from '../components/research/ResearchDeepDive';
 import CompareMetricsPanel, { MAX_COMPARE_TICKERS } from '../components/research/CompareMetricsPanel';
 import ResearchCompactScoreBadges from '../components/research/ResearchCompactScoreBadges';
 import ResearchPinnedStrip from '../components/research/ResearchPinnedStrip';
@@ -27,35 +25,25 @@ import {
   readScreenerTickersContext,
   saveScreenerContextBeforeLeave,
 } from '../utils/researchNavigation';
-import { tickerFinancialsUrl } from '../utils/tickerLinks';
+import { tickerOverviewUrl } from '../utils/tickerLinks';
 import { hydratePinnedTickersFromApi } from '../utils/researchPinned';
 import StTooltip, { StTooltipText } from '../components/StTooltip';
 import {
-  RESEARCH_METRIC_GROUPS,
   SCREENER_METRIC_GROUPS,
-  buildGteDate,
   getScreenerMetricValue,
 } from '../config/researchMetrics';
-import {
-  CORE_ALWAYS_SHOW_METRIC_KEYS,
-  sliceColumnPeriods,
-} from '../utils/financialsPeriods';
 import { divergenceSignalLabel } from '../config/narrativeStates';
 import { formatMetricCellTooltip } from '../config/tooltipRegistry';
 import { formatDecimal, formatPercent, formatUsd, formatCompactUsd, formatSharesCell } from '../utils/formatters';
 import {
   buildHistoricalStats,
   describeHeat,
-  getMetricBackground,
-  getTrendColor,
   precomputeRowHeatStyles,
   precomputeScreenerRowHeatStyles,
 } from '../utils/scoringColors';
-import { computeTrendPair, extractPeriodSeries, trendArrow } from '../utils/researchCalculations';
 import { researchPrefsFromUserData, saveResearchPreferences } from '../utils/researchPrefs';
 import { copyTextToClipboard } from '../utils/gridExport';
 import {
-  buildDeepDiveSearchParams,
   buildScreenerSearchParams,
   parseCompareParam,
   parseGroupParam,
@@ -63,12 +51,8 @@ import {
   sortTickersByMetric,
   useResearchExport,
 } from '../utils/researchUrlState';
-import { addToPortfolioWithNotification, getPortfolio, isInPortfolio, loadUserPreferences } from '../utils/portfolio';
+import { getPortfolio, loadUserPreferences } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
-import TickerSubnav from '../components/TickerSubnav';
-import { DEFAULT_COMPOSITE_ID } from '../config/compositePresets';
-import { fetchCompositeRank, fetchCompositeRankHistory, fetchThesisDriftHistory } from '../utils/compositeRankApi';
-import { fetchPillarProfile, fetchThesis } from '../utils/researchThesisApi';
 import { isRegistryLoaded, loadMetricRegistry } from '../config/metricRegistry';
 import './research.css';
 
@@ -97,40 +81,14 @@ function formatCellValue(value, format, { compact = false } = {}) {
   }
 }
 
-function rawMetricValue(period, metric, source = 'fundamentals') {
-  if (source === 'metrics') return period.metrics?.[metric.key];
-  if (source === 'scores') {
-    const match = (period.scoreSnapshot || {})[metric.key];
-    return match ?? null;
-  }
-  const fundamentals = period.fundamentals || {};
-  if (fundamentals[metric.key] != null) return fundamentals[metric.key];
-  if (Array.isArray(metric.alt)) {
-    for (const altKey of metric.alt) {
-      if (fundamentals[altKey] != null) return fundamentals[altKey];
-    }
-  }
-  return null;
-}
-
-function metricRowHasValues(row, periodCount) {
-  for (let idx = 0; idx < periodCount; idx += 1) {
-    if (row[`p${idx}`] != null) return true;
-  }
-  return false;
-}
-
 export default function ResearchPage() {
-  const { ticker: routeTicker } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const mountedRef = useRef(true);
   const { showToast } = useToast();
   const heatmapThemeKey = useHeatmapThemeKey();
-  const { exportScreener, copyScreener, exportDetail, copyDetail } = useResearchExport({ showToast });
-  const isDeepDive = Boolean(routeTicker);
-  const activeTicker = routeTicker?.toUpperCase();
+  const { exportScreener, copyScreener } = useResearchExport({ showToast });
 
   const [tickersText, setTickersText] = useState(() => {
     const fromUrl = searchParams.get('tickers');
@@ -140,34 +98,12 @@ export default function ResearchPage() {
     return getPortfolio().slice(0, 10).join(',');
   });
   const [dimension, setDimension] = useState(searchParams.get('dim') || 'MRY');
-  const [years, setYears] = useState(() => {
-    const raw = searchParams.get('years');
-    if (raw === 'all') return 'all';
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
-  });
   const [hideEmptyRows, setHideEmptyRows] = useState(searchParams.get('hideEmpty') !== '0');
   const [sortMetric, setSortMetric] = useState(searchParams.get('sort') || null);
   const [compareTickers, setCompareTickers] = useState(() => parseCompareParam(searchParams.get('compare')));
   const [screenerData, setScreenerData] = useState({});
-  const [detailData, setDetailData] = useState(null);
-  const [narrativeData, setNarrativeData] = useState(null);
-  const [compositeRank, setCompositeRank] = useState(null);
-  const [compositeRankHistory, setCompositeRankHistory] = useState([]);
-  const [thesisDriftHistory, setThesisDriftHistory] = useState([]);
-  const [compositeRankLoading, setCompositeRankLoading] = useState(false);
-  const [thesisDriftLoading, setThesisDriftLoading] = useState(false);
-  const [pillarData, setPillarData] = useState(null);
-  const [pillarLoading, setPillarLoading] = useState(false);
-  const [thesisData, setThesisData] = useState(null);
-  const [thesisLoading, setThesisLoading] = useState(false);
-  const [pillarThesisError, setPillarThesisError] = useState(null);
-  const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [expandedGroups, setExpandedGroups] = useState(
-    () => parseGroupParam(searchParams.get('groups'), RESEARCH_METRIC_GROUPS.map((group) => group.id)),
-  );
   const [screenerExpandedGroups, setScreenerExpandedGroups] = useState(
     () => parseGroupParam(searchParams.get('groups'), SCREENER_METRIC_GROUPS.map((group) => group.id)),
   );
@@ -178,7 +114,6 @@ export default function ResearchPage() {
   const [pinnedTickers, setPinnedTickers] = useState(() => loadPinnedTickers());
   const pinsLocallyModifiedRef = useRef(false);
   const [selectedTickerIndex, setSelectedTickerIndex] = useState(0);
-  const [compareFocusIndex, setCompareFocusIndex] = useState(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -257,20 +192,6 @@ export default function ResearchPage() {
     tickersText,
   ]);
 
-  const syncDeepDiveParams = useCallback((overrides = {}) => {
-    if (!mountedRef.current || !location.pathname.startsWith('/research/')) return;
-    const params = buildDeepDiveSearchParams({
-      dim: overrides.dim ?? dimension,
-      years: overrides.years ?? years,
-      hideEmpty: overrides.hideEmptyRows ?? hideEmptyRows,
-      groups: serializeGroupParam(
-        overrides.expandedGroups ?? expandedGroups,
-        RESEARCH_METRIC_GROUPS.map((group) => group.id),
-      ),
-    });
-    setSearchParams(params, { replace: true });
-  }, [dimension, expandedGroups, hideEmptyRows, location.pathname, setSearchParams, years]);
-
   const loadScreener = useCallback(async (tickers, dim) => {
     if (!tickers.length) {
       if (!mountedRef.current) return;
@@ -296,123 +217,16 @@ export default function ResearchPage() {
     }
   }, [syncScreenerParams]);
 
-  const loadDetail = useCallback(async (symbol, dim, yrs) => {
-    if (!symbol) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const params = { dimension: dim };
-      const gte = buildGteDate(yrs);
-      if (gte) params.gte = gte;
-      const res = await axios.get(API_ENDPOINTS.RESEARCH_TICKER(symbol), { params });
-      setDetailData(res.data || {});
-    } catch {
-      setError(`Failed to load research data for ${symbol}.`);
-      setDetailData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const loadNarrative = useCallback(async (symbol) => {
-    if (!symbol) return;
-    setNarrativeLoading(true);
-    try {
-      const res = await axios.get(API_ENDPOINTS.RESEARCH_NARRATIVE(symbol));
-      setNarrativeData(res.data);
-    } catch {
-      setNarrativeData(null);
-    } finally {
-      setNarrativeLoading(false);
-    }
-  }, []);
-
-  const loadPillarThesis = useCallback(async (symbol) => {
-    if (!symbol) return;
-    setPillarLoading(true);
-    setThesisLoading(true);
-    setPillarThesisError(null);
-    try {
-      const [pillarsPayload, thesisPayload] = await Promise.all([
-        fetchPillarProfile(symbol),
-        fetchThesis(symbol),
-      ]);
-      setPillarData(pillarsPayload);
-      setThesisData(thesisPayload);
-    } catch (err) {
-      setPillarData(null);
-      setThesisData(null);
-      const status = err?.response?.status;
-      const detail = err?.response?.data?.error;
-      if (status === 404) {
-        setPillarThesisError('Pillar and thesis endpoints are unavailable. Restart the backend to load the thesis engine routes.');
-      } else if (status >= 500) {
-        setPillarThesisError('Pillar/thesis evaluation failed on the server. Check backend logs for this ticker.');
-      } else {
-        setPillarThesisError('Could not load pillar profile or investment thesis for this ticker.');
-      }
-      if (detail) {
-        setPillarThesisError((prev) => `${prev} (${detail})`);
-      }
-    } finally {
-      setPillarLoading(false);
-      setThesisLoading(false);
-    }
-  }, []);
-
-  const loadCompositeRank = useCallback(async (symbol) => {
-    if (!symbol) return;
-    setCompositeRankLoading(true);
-    setThesisDriftLoading(true);
-    try {
-      const [rankPayload, historyPayload, driftPayload] = await Promise.all([
-        fetchCompositeRank({ composite: DEFAULT_COMPOSITE_ID, tickers: [symbol], limit: 1 }),
-        fetchCompositeRankHistory(symbol, { composite: DEFAULT_COMPOSITE_ID, limit: 90 }),
-        fetchThesisDriftHistory(symbol, { composite: DEFAULT_COMPOSITE_ID, limit: 90 }),
-      ]);
-      setCompositeRank(rankPayload?.results?.[0] || null);
-      setCompositeRankHistory(historyPayload?.history || []);
-      setThesisDriftHistory(driftPayload?.history || []);
-    } catch {
-      setCompositeRank(null);
-      setCompositeRankHistory([]);
-      setThesisDriftHistory([]);
-    } finally {
-      setCompositeRankLoading(false);
-      setThesisDriftLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    if (isDeepDive) {
-      loadDetail(activeTicker, dimension, years);
-      loadNarrative(activeTicker);
-      loadCompositeRank(activeTicker);
-      loadPillarThesis(activeTicker);
-      return;
-    }
-    setNarrativeData(null);
-    setCompositeRank(null);
-    setCompositeRankHistory([]);
-    setThesisDriftHistory([]);
-    setPillarData(null);
-    setThesisData(null);
-    setPillarThesisError(null);
     const tickers = parseTickers(tickersText);
     if (tickers.length) loadScreener(tickers, dimension);
     // Initial load only; toolbar actions refresh explicitly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDeepDive, routeTicker, dimension, years]);
+  }, [dimension]);
 
   useEffect(() => {
-    if (isDeepDive) syncDeepDiveParams();
-  }, [isDeepDive, dimension, years, hideEmptyRows, expandedGroups, syncDeepDiveParams]);
-
-  useEffect(() => {
-    if (isDeepDive) return;
     syncScreenerParams();
   }, [
-    isDeepDive,
     compareTickers,
     sortMetric,
     screenerExpandedGroups,
@@ -427,15 +241,8 @@ export default function ResearchPage() {
 
   const handleDimensionChange = (nextDim) => {
     setDimension(nextDim);
-    if (isDeepDive) return;
     const tickers = parseTickers(tickersText);
     loadScreener(tickers, nextDim);
-  };
-
-  const handleAddToPortfolio = () => {
-    if (!activeTicker) return;
-    const notif = addToPortfolioWithNotification(activeTicker);
-    showToast(notif.message, notif.type);
   };
 
   const handleCopyShareLink = async () => {
@@ -468,7 +275,7 @@ export default function ResearchPage() {
   );
   const screenerTickersKey = useMemo(() => screenerTickers.join(','), [screenerTickers]);
   const selectedTicker = screenerTickers[selectedTickerIndex] || null;
-  const highlightedColumnId = !isDeepDive && screenerTickers.length
+  const highlightedColumnId = screenerTickers.length
     ? `t${clampTickerIndex(selectedTickerIndex, screenerTickers.length)}`
     : null;
 
@@ -477,7 +284,7 @@ export default function ResearchPage() {
   }, [screenerTickers]);
 
   useEffect(() => {
-    if (isDeepDive || !screenerTickers.length || loading) return undefined;
+    if (!screenerTickers.length || loading) return undefined;
     const saved = readResearchScroll('research-screener');
     if (saved == null) return undefined;
     let attempts = 0;
@@ -493,43 +300,12 @@ export default function ResearchPage() {
     };
     frame = requestAnimationFrame(restore);
     return () => cancelAnimationFrame(frame);
-  }, [isDeepDive, screenerTickersKey, loading]);
-
-  useEffect(() => {
-    if (!isDeepDive || !activeTicker || compareTickers.length < 2) return;
-    const idx = compareTickers.indexOf(activeTicker);
-    if (idx >= 0) setCompareFocusIndex(idx);
-  }, [isDeepDive, activeTicker, compareTickers]);
+  }, [screenerTickersKey, loading]);
 
   const handleOpenTicker = useCallback((ticker) => {
     saveScreenerContextBeforeLeave(tickersText);
-    safeNavigate(tickerFinancialsUrl(ticker));
+    safeNavigate(tickerOverviewUrl(ticker));
   }, [safeNavigate, tickersText]);
-
-  const handleEscapeToScreener = useCallback(() => {
-    if (!window.location.pathname.startsWith('/research/')) return;
-    const params = buildScreenerSearchParams({
-      tickers: parseTickers(tickersText),
-      dim: dimension,
-      compare: compareTickers,
-      groups: serializeGroupParam(
-        screenerExpandedGroups,
-        SCREENER_METRIC_GROUPS.map((group) => group.id),
-      ),
-      sort: sortMetric,
-      hideEmpty: hideEmptyRows,
-    });
-    const qs = new URLSearchParams(params).toString();
-    safeNavigate(`/research${qs ? `?${qs}` : ''}`);
-  }, [
-    compareTickers,
-    dimension,
-    hideEmptyRows,
-    safeNavigate,
-    screenerExpandedGroups,
-    sortMetric,
-    tickersText,
-  ]);
 
   const handleTogglePin = useCallback((ticker) => {
     pinsLocallyModifiedRef.current = true;
@@ -553,18 +329,9 @@ export default function ResearchPage() {
     tickers: screenerTickers,
     selectedIndex: selectedTickerIndex,
     onSelectedIndexChange: setSelectedTickerIndex,
-    isDeepDive,
-    compareTickers,
-    compareFocusIndex,
-    onCompareFocusIndexChange: (nextIndex) => {
-      setCompareFocusIndex(nextIndex);
-      const ticker = compareTickers[nextIndex];
-      if (ticker) safeNavigate(tickerFinancialsUrl(ticker));
-    },
     onOpenTicker: handleOpenTicker,
     onTogglePin: handleTogglePin,
     onToggleCompare: toggleCompareTicker,
-    onEscape: handleEscapeToScreener,
   });
 
   useEffect(() => {
@@ -572,9 +339,7 @@ export default function ResearchPage() {
       setSectorStats(null);
       return undefined;
     }
-    const tickers = isDeepDive && activeTicker
-      ? [activeTicker]
-      : (screenerTickersKey ? screenerTickersKey.split(',') : []);
+    const tickers = screenerTickersKey ? screenerTickersKey.split(',') : [];
     if (!tickers.length) {
       setSectorStats(null);
       return undefined;
@@ -588,7 +353,7 @@ export default function ResearchPage() {
         if (!cancelled) setSectorStats(null);
       });
     return () => { cancelled = true; };
-  }, [colorMode, isDeepDive, activeTicker, screenerTickersKey]);
+  }, [colorMode, screenerTickersKey]);
 
   const screenerGridRows = useMemo(() => {
     if (!screenerTickers.length) return [];
@@ -734,239 +499,24 @@ export default function ResearchPage() {
     return cols;
   }, [screenerTickers, screenerData, dimension, compareTickers, toggleCompareTicker, colorMode, sectorStats, selectedTicker, tickersText]);
 
-  const detailPeriods = useMemo(() => {
-    if (!detailData?.periods) return [];
-    return [...detailData.periods].sort(
-      (a, b) => (b.periodEnd || '').localeCompare(a.periodEnd || ''),
-    );
-  }, [detailData]);
-
-  const columnPeriods = useMemo(
-    () => sliceColumnPeriods(detailPeriods, { years, dimension }),
-    [detailPeriods, years, dimension],
-  );
-
-  const scoreByPeriod = useMemo(() => {
-    const map = {};
-    (detailData?.scoreHistory || []).forEach((score) => {
-      map[score.periodEnd] = score;
-    });
-    return map;
-  }, [detailData]);
-
-  const detailGridRows = useMemo(() => {
-    if (!columnPeriods.length) return [];
-    const rows = [];
-    RESEARCH_METRIC_GROUPS.forEach((group) => {
-      if (!expandedGroups.has(group.id)) return;
-      rows.push({
-        id: `group-${group.id}`,
-        _isGroupHeader: true,
-        _groupLabel: group.label,
-      });
-      group.metrics.forEach((metric) => {
-        const readValue = (period) => {
-          const enriched = {
-            ...period,
-            scoreSnapshot: scoreByPeriod[period.periodEnd] || null,
-          };
-          return rawMetricValue(enriched, metric, group.source || 'fundamentals');
-        };
-        const columnValues = columnPeriods.map(readValue);
-        const sparklineValues = detailPeriods.map(readValue);
-        const sparkline = extractPeriodSeries(
-          detailPeriods.map((period, idx) => ({ periodEnd: period.periodEnd, value: sparklineValues[idx] })),
-          'value',
-        );
-        const { yoy, cagr } = computeTrendPair(columnValues);
-        const row = {
-          id: `${group.id}-${metric.key}`,
-          metric: metric.label,
-          metricKey: metric.key,
-          format: metric.format,
-          scoreCategory: metric.scoreCategory,
-          sparkline,
-          yoy,
-          cagr,
-        };
-        columnPeriods.forEach((period, idx) => {
-          row[`p${idx}`] = columnValues[idx];
-        });
-        if (metric.scoreCategory) {
-          row._historicalStats = buildHistoricalStats(columnValues);
-          const companySector = detailData?.company?.sector;
-          const sectorByMetric = colorMode === 'sector' && companySector
-            ? (sectorStats?.bySector?.[companySector] || {})
-            : undefined;
-          row._heatStyles = precomputeRowHeatStyles(row, columnPeriods.length, {
-            mode: colorMode,
-            sectorByMetric,
-          });
-        }
-        row._heatStyles = { ...(row._heatStyles || {}) };
-        if (columnPeriods.length >= 2) {
-          row._heatStyles.yoy = getMetricBackground('yoy', yoy, { mode: colorMode, format: 'percent' });
-        }
-        if (columnPeriods.length >= 3) {
-          row._heatStyles.cagr = getMetricBackground('cagr', cagr, { mode: colorMode, format: 'percent' });
-        }
-        const alwaysShowRow = group.id === 'scores' || CORE_ALWAYS_SHOW_METRIC_KEYS.has(metric.key);
-        if (hideEmptyRows && !alwaysShowRow && !metricRowHasValues(row, columnPeriods.length)) return;
-        rows.push(row);
-      });
-    });
-    return rows;
-  }, [columnPeriods, detailPeriods, scoreByPeriod, expandedGroups, hideEmptyRows, colorMode, detailData, sectorStats, registryReady, heatmapThemeKey]);
-
-  const detailColumns = useMemo(() => {
-    const fmt = (value, format) => formatCellValue(value, format, { compact: true });
-    const cols = [
-      {
-        id: 'metric',
-        accessorKey: 'metric',
-        header: 'Metric',
-        cell: ({ row }) => (
-          <span className="research-metric-cell">
-            <MetricTooltipLabel
-              metricKey={row.original.metricKey || row.original.id}
-              label={row.original.metric}
-            />
-            <MetricSparklineLite
-              series={row.original.sparkline}
-              format={row.original.format}
-              height={20}
-              width={56}
-            />
-          </span>
-        ),
-      },
-      ...columnPeriods.map((period, idx) => ({
-        id: `p${idx}`,
-        accessorKey: `p${idx}`,
-        header: (period.periodEnd || '').slice(0, 10),
-        meta: { numeric: true },
-        cellStyle: ({ row }) => {
-          if (row.original?._isGroupHeader) return {};
-          return row.original._heatStyles?.[`p${idx}`] || {};
-        },
-        cell: ({ row }) => {
-          const val = row.original[`p${idx}`];
-          const tip = row.original._heatStyles?.[`p${idx}Title`];
-          const formatted = fmt(val, row.original.format);
-          if (!tip) return <span>{formatted}</span>;
-          return (
-            <StTooltip tip={<StTooltipText text={tip} />} {...GRID_HEAT_TOOLTIP_PROPS}>
-              <span>{formatted}</span>
-            </StTooltip>
-          );
-        },
-      })),
-    ];
-    if (columnPeriods.length >= 2) {
-      cols.push({
-        id: 'yoy',
-        accessorKey: 'yoy',
-        header: 'YoY %',
-        meta: { numeric: true },
-        cellStyle: ({ row }) => row.original._heatStyles?.yoy || {},
-        cell: ({ row }) => {
-          const val = row.original.yoy;
-          const arrow = trendArrow(val);
-          const arrowColor = getTrendColor(val, 8);
-          const tip = val != null
-            ? formatMetricCellTooltip('yoy', describeHeat('yoy', val, { mode: colorMode, format: 'percent' }))
-            : null;
-          const body = (
-            <>
-              {val == null ? '-' : formatPercent(val, 2)}
-              {arrow && <span className="research-trend-arrow" style={{ color: arrowColor }}>{arrow.symbol}</span>}
-            </>
-          );
-          if (!tip) return <span>{body}</span>;
-          return (
-            <StTooltip tip={<StTooltipText text={tip} />} {...GRID_HEAT_TOOLTIP_PROPS}>
-              <span>{body}</span>
-            </StTooltip>
-          );
-        },
-      });
-    }
-    if (columnPeriods.length >= 3) {
-      cols.push({
-        id: 'cagr',
-        accessorKey: 'cagr',
-        header: 'CAGR %',
-        meta: { numeric: true },
-        cellStyle: ({ row }) => row.original._heatStyles?.cagr || {},
-        cell: ({ row }) => {
-          const val = row.original.cagr;
-          const arrow = trendArrow(val, 10);
-          const arrowColor = getTrendColor(val, 10);
-          const tip = val != null
-            ? formatMetricCellTooltip('cagr', describeHeat('cagr', val, { mode: colorMode, format: 'percent' }))
-            : null;
-          const body = (
-            <>
-              {val == null ? '-' : formatPercent(val, 2)}
-              {arrow && <span className="research-trend-arrow" style={{ color: arrowColor }}>{arrow.symbol}</span>}
-            </>
-          );
-          if (!tip) return <span>{body}</span>;
-          return (
-            <StTooltip tip={<StTooltipText text={tip} />} {...GRID_HEAT_TOOLTIP_PROPS}>
-              <span>{body}</span>
-            </StTooltip>
-          );
-        },
-      });
-    }
-    return cols;
-  }, [columnPeriods, colorMode]);
-
-  const scoreBadges = useMemo(() => {
-    if (!isDeepDive || !detailData?.scoreHistory?.length) return null;
-    const latest = detailData.scoreHistory[0];
-    const items = [
-      ['Piotroski', latest.piotroskiF],
-      ['Altman Z', latest.altmanZ != null ? formatDecimal(latest.altmanZ, 2) : '-'],
-      ['Beneish M', latest.beneishM != null ? formatDecimal(latest.beneishM, 2) : '-'],
-      ['Survivability', latest.survivability != null ? Math.round(latest.survivability) : '-'],
-    ];
-    return items;
-  }, [isDeepDive, detailData]);
-
   return (
     <div className="st-page st-page--full research-page">
-      {isDeepDive && activeTicker && <TickerSubnav ticker={activeTicker} />}
-
       <ResearchToolbar
         tickersText={tickersText}
         onTickersTextChange={setTickersText}
         onLoad={handleLoad}
         dimension={dimension}
         onDimensionChange={handleDimensionChange}
-        years={years}
-        onYearsChange={setYears}
         hideEmptyRows={hideEmptyRows}
         onHideEmptyRowsChange={setHideEmptyRows}
         loading={loading}
-        mode={isDeepDive ? 'deep-dive' : 'screener'}
+        mode="screener"
         sortMetric={sortMetric}
         onSortMetricChange={setSortMetric}
-        onExportCsv={isDeepDive
-          ? () => exportDetail(detailGridRows, activeTicker, {
-            includeYoY: columnPeriods.length >= 2,
-            includeCagr: columnPeriods.length >= 3,
-          })
-          : () => exportScreener(screenerGridRows, screenerTickers)}
-        onCopyGrid={isDeepDive
-          ? () => copyDetail(detailGridRows, {
-            includeYoY: columnPeriods.length >= 2,
-            includeCagr: columnPeriods.length >= 3,
-          })
-          : () => copyScreener(screenerGridRows, screenerTickers)}
+        onExportCsv={() => exportScreener(screenerGridRows, screenerTickers)}
+        onCopyGrid={() => copyScreener(screenerGridRows, screenerTickers)}
         onCopyShareLink={handleCopyShareLink}
-        exportDisabled={isDeepDive ? !detailGridRows.length : !screenerGridRows.length}
+        exportDisabled={!screenerGridRows.length}
         colorMode={colorMode}
         onColorModeChange={handleColorModeChange}
         showHeatLegend={showHeatLegend}
@@ -977,100 +527,61 @@ export default function ResearchPage() {
 
       <ResearchPinnedStrip
         pinnedTickers={pinnedTickers}
-        selectedTicker={isDeepDive ? activeTicker : selectedTicker}
+        selectedTicker={selectedTicker}
         onUnpin={handleTogglePin}
         onSelect={handleSelectPinned}
-        onBeforeDeepDive={!isDeepDive ? () => saveScreenerContextBeforeLeave(tickersText) : undefined}
+        onBeforeDeepDive={() => saveScreenerContextBeforeLeave(tickersText)}
       />
 
       {error && <div className="st-alert-warn">{error}</div>}
 
-      {isDeepDive && (
-        <ResearchDeepDive
-          activeTicker={activeTicker}
-          detailData={detailData}
-          narrativeData={narrativeData}
-          narrativeLoading={narrativeLoading}
-          loading={loading}
-          scoreBadges={scoreBadges}
-          isInPortfolio={isInPortfolio(activeTicker)}
-          onAddToPortfolio={handleAddToPortfolio}
-          detailGridRows={detailGridRows}
-          detailColumns={detailColumns}
-          expandedGroups={expandedGroups}
-          onToggleGroup={(groupId) => setExpandedGroups((prev) => {
-            const next = new Set(prev);
-            if (next.has(groupId)) next.delete(groupId);
-            else next.add(groupId);
-            return next;
-          })}
-          detailPeriods={detailPeriods}
-          compareLink={`/research?tickers=${encodeURIComponent(activeTicker)}&compare=${encodeURIComponent(activeTicker)}`}
-          compositeRank={compositeRank}
-          compositeRankHistory={compositeRankHistory}
-          compositeRankLoading={compositeRankLoading}
-          thesisDriftHistory={thesisDriftHistory}
-          thesisDriftLoading={thesisDriftLoading}
-          compositeId={DEFAULT_COMPOSITE_ID}
-          pillarData={pillarData}
-          pillarLoading={pillarLoading}
-          thesisData={thesisData}
-          thesisLoading={thesisLoading}
-          pillarThesisError={pillarThesisError}
-        />
-      )}
+      <CompareMetricsPanel compareTickers={compareTickers} />
 
-      {!isDeepDive && (
-        <CompareMetricsPanel compareTickers={compareTickers} />
-      )}
+      <details className="st-details research-screener-card" open>
+        <summary className="st-details-summary research-screener-card-summary">
+          <span>Financial Screener</span>
+          <span className="research-screener-card-meta">
+            {screenerTickers.length} ticker{screenerTickers.length === 1 ? '' : 's'} · metrics × tickers
+          </span>
+        </summary>
+        <div className="research-screener-card-toolbar">
+          {SCREENER_METRIC_GROUPS.map((group) => (
+            <button
+              key={group.id}
+              type="button"
+              className={screenerExpandedGroups.has(group.id) ? 'st-btn-active' : 'st-btn-muted'}
+              onClick={() => setScreenerExpandedGroups((prev) => {
+                const next = new Set(prev);
+                if (next.has(group.id)) next.delete(group.id);
+                else next.add(group.id);
+                return next;
+              })}
+            >
+              {group.label}
+            </button>
+          ))}
+        </div>
+        <div className="research-screener-card-body">
+          {loading && !screenerGridRows.length ? (
+            <div className="p-2 text-xs text-st-muted">Loading…</div>
+          ) : screenerTickers.length === 0 ? (
+            <div className="p-2 text-xs text-st-muted">Enter at least one ticker above.</div>
+          ) : (
+            <FinancialGrid
+              data={screenerGridRows}
+              columns={screenerGridColumns}
+              stickyColumnIds={['metric']}
+              getRowId={(row) => row.id}
+              scrollMode="page"
+              scrollPersistenceKey="research-screener"
+              highlightedColumnId={highlightedColumnId}
+              compact
+            />
+          )}
+        </div>
+      </details>
 
-      {!isDeepDive && (
-        <details className="st-details research-screener-card" open>
-          <summary className="st-details-summary research-screener-card-summary">
-            <span>Financial Screener</span>
-            <span className="research-screener-card-meta">
-              {screenerTickers.length} ticker{screenerTickers.length === 1 ? '' : 's'} · metrics × tickers
-            </span>
-          </summary>
-          <div className="research-screener-card-toolbar">
-            {SCREENER_METRIC_GROUPS.map((group) => (
-              <button
-                key={group.id}
-                type="button"
-                className={screenerExpandedGroups.has(group.id) ? 'st-btn-active' : 'st-btn-muted'}
-                onClick={() => setScreenerExpandedGroups((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(group.id)) next.delete(group.id);
-                  else next.add(group.id);
-                  return next;
-                })}
-              >
-                {group.label}
-              </button>
-            ))}
-          </div>
-          <div className="research-screener-card-body">
-            {loading && !screenerGridRows.length ? (
-              <div className="p-2 text-xs text-st-muted">Loading…</div>
-            ) : screenerTickers.length === 0 ? (
-              <div className="p-2 text-xs text-st-muted">Enter at least one ticker above.</div>
-            ) : (
-              <FinancialGrid
-                data={screenerGridRows}
-                columns={screenerGridColumns}
-                stickyColumnIds={['metric']}
-                getRowId={(row) => row.id}
-                scrollMode="page"
-                scrollPersistenceKey="research-screener"
-                highlightedColumnId={highlightedColumnId}
-                compact
-              />
-            )}
-          </div>
-        </details>
-      )}
-
-      {!isDeepDive && screenerTickers.length > 0 && (
+      {screenerTickers.length > 0 && (
         <div className="research-screener-summary-row">
           <details className="st-details research-screener-summary-col research-insider-panel" open>
             <summary className="st-details-summary">Insider Buy Clusters</summary>

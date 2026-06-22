@@ -16,10 +16,16 @@ describe('pageShortcuts', () => {
     expect(guide?.sections).toHaveLength(2);
   });
 
-  it('returns deep-dive shortcuts on ticker research route', () => {
-    const guide = resolvePageShortcuts('/research/AAPL');
-    expect(guide?.pageLabel).toBe('Research deep-dive');
-    expect(guide?.sections[0].items.some((item) => item.keys === 'Esc')).toBe(true);
+  it('returns deep-dive shortcuts on ticker overview route', () => {
+    const guide = resolvePageShortcuts('/overview/AAPL');
+    expect(guide?.pageLabel).toBe('Overview');
+    expect(guide?.sections[0].items.some((item) => item.keys.includes('←'))).toBe(true);
+  });
+
+  it('returns financial grid shortcuts on financials route', () => {
+    const guide = resolvePageShortcuts('/financials/AAPL');
+    expect(guide?.pageLabel).toBe('Financials');
+    expect(guide?.sections[0].title).toBe('Financial tables');
   });
 
   it('returns screen navigation shortcuts', () => {

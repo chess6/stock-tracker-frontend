@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import PortfolioPage from './pages/PortfolioPage';
 import SummaryPage from './pages/SummaryPage';
 import ResearchOverviewPage from './pages/ResearchOverviewPage';
@@ -24,7 +24,13 @@ import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { loadMetricRegistry } from './config/metricRegistry';
 import { loadUserPreferences } from './utils/portfolio';
-import { tickerFindersUrl, tickerFinancialsUrl } from './utils/tickerLinks';
+import { tickerFindersUrl, tickerFinancialsUrl, tickerOverviewUrl } from './utils/tickerLinks';
+
+function LegacyResearchTickerRedirect() {
+  const { ticker } = useParams();
+  const location = useLocation();
+  return <Navigate to={`${tickerOverviewUrl(ticker)}${location.search}`} replace />;
+}
 
 function LegacyOverviewRedirect() {
   const { ticker } = useParams();
@@ -62,7 +68,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/news" element={<NewsPage />} />
           <Route path="/research" element={<ResearchPage />} />
-          <Route path="/research/:ticker" element={<ResearchPage />} />
+          <Route path="/research/:ticker" element={<LegacyResearchTickerRedirect />} />
           <Route path="/screen" element={<ScreenPage />} />
           <Route path="columns" element={<NasdaqColumnsGrid />} />
           {/* legacy: direct Nasdaq reference path — redirect kept for bookmarks */}

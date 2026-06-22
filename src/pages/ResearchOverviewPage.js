@@ -5,10 +5,14 @@ import API_ENDPOINTS from '../apiConfig';
 import StSpinner from '../components/StSpinner';
 import TickerSubnav from '../components/TickerSubnav';
 import PillarRadarPanel from '../components/research/PillarRadarPanel';
+import PillarFactorPanel from '../components/research/PillarFactorPanel';
 import InsiderPanel from '../components/research/InsiderPanel';
 import NarrativePanel from '../components/research/NarrativePanel';
-import MarginTrendChart from '../components/research/MarginTrendChart';
 import RankFactorChart from '../components/research/RankFactorChart';
+import CompositeRankHistory from '../components/research/CompositeRankHistory';
+import ThesisDriftChart from '../components/research/ThesisDriftChart';
+import ThesisPanel from '../components/research/ThesisPanel';
+import ScoringPanel from '../components/research/ScoringPanel';
 import CapitalStructureSummary from '../components/research/CapitalStructureSummary';
 import MetricSparkline from '../components/research/MetricSparkline';
 import PriceVolumeChart from '../components/research/PriceVolumeChart';
@@ -17,185 +21,23 @@ import { RESEARCH_ICONS } from '../icons/researchIcons';
 import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
 import { fetchPillarProfile, fetchThesis } from '../utils/researchThesisApi';
-import { fetchCompositeRank } from '../utils/compositeRankApi';
+import {
+  fetchCompositeRank,
+  fetchCompositeRankHistory,
+  fetchThesisDriftHistory,
+} from '../utils/compositeRankApi';
 import { DEFAULT_COMPOSITE_ID } from '../config/compositePresets';
 import { formatCompositeScore } from '../utils/compositeRank';
-import {
-  formatCompactUsd,
-  formatDecimal,
-  formatPercent,
-  formatUsd,
-} from '../utils/formatters';
-import { computeYoY } from '../utils/researchCalculations';
-import { getMetricBackground } from '../utils/scoringColors';
+import { formatCompactUsd, formatDecimal } from '../utils/formatters';
 import { getMetricTooltip } from '../config/tooltipRegistry';
+import { tickerFinancialsUrl } from '../utils/tickerLinks';
 import './research.css';
-
-const KEY_METRICS = [
-  { key: 'revenueYoY', label: 'Rev YoY', format: 'percent', heatKey: 'yoy' },
-  { key: 'ebitdaEv', label: 'EBITDA/EV', format: 'decimal', heatKey: 'ebitdaEv' },
-  { key: 'roe', label: 'ROE', format: 'percent', heatKey: 'roe' },
-  { key: 'pb', label: 'P/B', format: 'decimal', heatKey: 'pb' },
-  { key: 'de', label: 'D/E', format: 'decimal', heatKey: 'de' },
-  { key: 'currentRatio', label: 'CR', format: 'decimal', heatKey: 'currentRatio' },
-  { key: 'pe', label: 'P/E', format: 'decimal', heatKey: 'pe' },
-  { key: 'fcfMargin', label: 'FCF Margin', format: 'percent', heatKey: 'fcfMargin' },
-];
-
-function formatMetricValue(value, format) {
-  if (value == null || value === '') return '—';
-  switch (format) {
-    case 'percent':
-      return formatPercent(typeof value === 'number' && Math.abs(value) <= 1 ? value * 100 : value, 1);
-    case 'decimal':
-      return formatDecimal(value, 2);
-    case 'usd':
-      return formatUsd(value, value >= 100 ? 0 : 2);
-    default:
-      return String(value);
-  }
-}
 
 function PanelLoading({ label }) {
   return (
     <div className="research-chart-empty d-flex align-items-center gap-2">
       <StSpinner size="sm" />
       <span>Loading {label}…</span>
-    </div>
-  );
-}
-
-function ThesisBriefing({ thesisData, loading }) {
-  if (loading) {
-    return <PanelLoading label="investment signal" />;
-  }
-  if (!thesisData) {
-    return <div className="research-chart-empty">No thesis available.</div>;
-  }
-
-  const sections = thesisData.sections || {};
-  const preMortem = sections.preMortem || {};
-  const disqualified = Boolean(thesisData.disqualified);
-  const notice = thesisData.disqualificationNotice || {};
-  const bullItems = (sections.bullCase || []).slice(0, 3);
-  const bearItems = (sections.bearCase || []).slice(0, 3);
-
-  return (
-    <div className="research-overview-thesis-briefing">
-      {disqualified && (
-        <div className="thesis-disqualified-banner mb-2">
-          Disqualified — gate failure.
-          {(notice.failedGates || []).length > 0 && (
-            <div className="small text-muted mt-1">
-              Failed gates: {(notice.failedGates || []).join(', ')}
-            </div>
-          )}
-        </div>
-      )}
-
-      {preMortem.statements?.length > 0 && (
-        <div className="research-overview-thesis-block">
-          <div className="research-section-label">{preMortem.headline || 'Pre-mortem'}</div>
-          <ul className="thesis-statement-list mb-0">
-            {preMortem.statements.slice(0, 3).map((item, idx) => (
-              <li key={item.factorKey || item.source || idx}>
-                {item.text || item.statement}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {!disqualified && (
-        <>
-          {bullItems.length > 0 && (
-            <div className="research-overview-thesis-block">
-              <div className="research-section-label research-text-positive">Bull case</div>
-              <ul className="thesis-statement-list mb-0">
-                {bullItems.map((item, idx) => (
-                  <li key={item.factorKey || idx}>
-                    {item.rebuttal || item.text}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {bearItems.length > 0 && (
-            <div className="research-overview-thesis-block">
-              <div className="research-section-label research-text-negative">Bear case</div>
-              <ul className="thesis-statement-list mb-0">
-                {bearItems.map((item, idx) => (
-                  <li key={item.factorKey || idx}>{item.text}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function KeyMetricsStrip({ detailData, loading }) {
-  const badges = useMemo(() => {
-    const periods = [...(detailData?.periods || [])].sort(
-      (a, b) => (b.periodEnd || '').localeCompare(a.periodEnd || ''),
-    );
-    if (!periods.length) return [];
-
-    const latest = periods[0];
-    const prior = periods[1];
-    const metrics = latest.metrics || {};
-    const fundamentals = latest.fundamentals || {};
-
-    const revenueYoY = prior
-      ? computeYoY(fundamentals.revenue, prior.fundamentals?.revenue)
-      : null;
-
-    return KEY_METRICS.map((spec) => {
-      let value = null;
-      if (spec.key === 'revenueYoY') {
-        value = revenueYoY;
-      } else {
-        value = metrics[spec.key] ?? null;
-      }
-      const heatStyle = value != null
-        ? getMetricBackground(spec.heatKey, value, {
-          mode: 'deep_value',
-          format: spec.format,
-        })
-        : {};
-      return {
-        ...spec,
-        value,
-        heatStyle,
-        formatted: formatMetricValue(value, spec.format),
-      };
-    }).filter((item) => item.value != null);
-  }, [detailData]);
-
-  if (loading) {
-    return <PanelLoading label="key metrics" />;
-  }
-
-  if (!badges.length) {
-    return <div className="small text-muted">No key metrics available.</div>;
-  }
-
-  return (
-    <div className="research-overview-metrics-strip">
-      {badges.map((badge) => (
-        <div
-          key={badge.key}
-          className="research-overview-metric-badge"
-          style={badge.heatStyle}
-          title={getMetricTooltip(badge.heatKey)?.tooltip || badge.label}
-        >
-          <span className="research-overview-metric-label">{badge.label}</span>
-          <span className="research-overview-metric-value st-num">{badge.formatted}</span>
-        </div>
-      ))}
     </div>
   );
 }
@@ -348,7 +190,11 @@ export default function ResearchOverviewPage() {
   const [pillarData, setPillarData] = useState(null);
   const [thesisData, setThesisData] = useState(null);
   const [compositeRank, setCompositeRank] = useState(null);
+  const [compositeRankHistory, setCompositeRankHistory] = useState([]);
+  const [thesisDriftHistory, setThesisDriftHistory] = useState([]);
   const [compositeRankLoading, setCompositeRankLoading] = useState(false);
+  const [thesisDriftLoading, setThesisDriftLoading] = useState(false);
+  const [pillarThesisError, setPillarThesisError] = useState(null);
   const [extendedPriceHistory, setExtendedPriceHistory] = useState(null);
   const [extendedPriceLoading, setExtendedPriceLoading] = useState(false);
   const [extendedPriceFetched, setExtendedPriceFetched] = useState(false);
@@ -373,6 +219,9 @@ export default function ResearchOverviewPage() {
     setPillarData(null);
     setThesisData(null);
     setCompositeRank(null);
+    setCompositeRankHistory([]);
+    setThesisDriftHistory([]);
+    setPillarThesisError(null);
     setExtendedPriceHistory(null);
     setExtendedPriceLoading(false);
     setExtendedPriceFetched(false);
@@ -459,10 +308,21 @@ export default function ResearchOverviewPage() {
 
     fetchPillarProfile(ticker)
       .then((data) => {
-        if (!cancelled) setPillarData(data || null);
+        if (!cancelled) {
+          setPillarData(data || null);
+          setPillarThesisError(null);
+        }
       })
-      .catch(() => {
-        if (!cancelled) setPillarData(null);
+      .catch((err) => {
+        if (!cancelled) {
+          setPillarData(null);
+          const status = err?.response?.status;
+          if (status === 404) {
+            setPillarThesisError('Pillar and thesis endpoints are unavailable. Restart the backend to load the thesis engine routes.');
+          } else if (status >= 500) {
+            setPillarThesisError('Pillar/thesis evaluation failed on the server. Check backend logs for this ticker.');
+          }
+        }
       })
       .finally(() => {
         if (!cancelled) setPillarLoading(false);
@@ -470,12 +330,27 @@ export default function ResearchOverviewPage() {
 
     fetchThesis(ticker)
       .then((data) => {
-        if (!cancelled) setThesisData(data || null);
+        if (!cancelled) {
+          setThesisData(data || null);
+          if (data) setPillarThesisError(null);
+        }
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setThesisData(null);
           failures.push('thesis');
+          const status = err?.response?.status;
+          const detail = err?.response?.data?.error;
+          if (status === 404) {
+            setPillarThesisError('Pillar and thesis endpoints are unavailable. Restart the backend to load the thesis engine routes.');
+          } else if (status >= 500) {
+            setPillarThesisError('Pillar/thesis evaluation failed on the server. Check backend logs for this ticker.');
+          } else {
+            setPillarThesisError('Could not load pillar profile or investment thesis for this ticker.');
+          }
+          if (detail) {
+            setPillarThesisError((prev) => `${prev || 'Could not load thesis.'} (${detail})`);
+          }
         }
       })
       .finally(() => {
@@ -507,15 +382,30 @@ export default function ResearchOverviewPage() {
     if (!ticker) return undefined;
     let cancelled = false;
     setCompositeRankLoading(true);
-    fetchCompositeRank({ composite: DEFAULT_COMPOSITE_ID, tickers: [ticker], limit: 1 })
-      .then((res) => {
-        if (!cancelled) setCompositeRank(res?.results?.[0] ?? null);
+    setThesisDriftLoading(true);
+    Promise.all([
+      fetchCompositeRank({ composite: DEFAULT_COMPOSITE_ID, tickers: [ticker], limit: 1 }),
+      fetchCompositeRankHistory(ticker, { composite: DEFAULT_COMPOSITE_ID, limit: 90 }),
+      fetchThesisDriftHistory(ticker, { composite: DEFAULT_COMPOSITE_ID, limit: 90 }),
+    ])
+      .then(([rankPayload, historyPayload, driftPayload]) => {
+        if (cancelled) return;
+        setCompositeRank(rankPayload?.results?.[0] ?? null);
+        setCompositeRankHistory(historyPayload?.history || []);
+        setThesisDriftHistory(driftPayload?.history || []);
       })
       .catch(() => {
-        if (!cancelled) setCompositeRank(null);
+        if (!cancelled) {
+          setCompositeRank(null);
+          setCompositeRankHistory([]);
+          setThesisDriftHistory([]);
+        }
       })
       .finally(() => {
-        if (!cancelled) setCompositeRankLoading(false);
+        if (!cancelled) {
+          setCompositeRankLoading(false);
+          setThesisDriftLoading(false);
+        }
       });
     return () => { cancelled = true; };
   }, [ticker]);
@@ -653,8 +543,8 @@ export default function ResearchOverviewPage() {
               >
                 {isInPortfolio(ticker) ? 'In Portfolio' : 'Add'}
               </button>
-              <Link to={`/research/${ticker}`} className="st-btn-ghost st-link-btn">
-                Full Research →
+              <Link to={tickerFinancialsUrl(ticker)} className="st-btn-ghost st-link-btn">
+                Financials →
               </Link>
             </div>
           </div>
@@ -667,6 +557,10 @@ export default function ResearchOverviewPage() {
         compositeRank={compositeRank}
         compositeRankLoading={compositeRankLoading}
       />
+
+      {pillarThesisError && (
+        <div className="st-alert-warn research-pillar-thesis-error">{pillarThesisError}</div>
+      )}
 
       <PriceVolumeChart
         priceHistory={detailData?.price?.history || []}
@@ -692,19 +586,24 @@ export default function ResearchOverviewPage() {
                 loading={compositeRankLoading}
                 embedded
               />
+              <CompositeRankHistory
+                history={compositeRankHistory}
+                loading={compositeRankLoading}
+                compact
+              />
             </div>
           </div>
         )}
 
         <div className="research-overview-content-col">
           <div className="research-overview-grid">
-            <div className="st-panel research-overview-col">
+            <div className="st-panel research-overview-col research-overview-col--wide">
               <div className="st-panel-header">
                 <StIcon icon={RESEARCH_ICONS.scores} />
-                Investment Signal
+                Investment Thesis
               </div>
               <div className="st-panel-body research-panel-body-tight">
-                <ThesisBriefing thesisData={thesisData} loading={thesisLoading} />
+                <ThesisPanel thesisData={thesisData} loading={thesisLoading} />
               </div>
             </div>
 
@@ -713,8 +612,9 @@ export default function ResearchOverviewPage() {
                 <StIcon icon={RESEARCH_ICONS.scoreBreakdown} />
                 Pillar Profile
               </div>
-              <div className="st-panel-body research-panel-body-tight">
+              <div className="st-panel-body research-panel-body-tight research-pillar-split">
                 <PillarRadarPanel pillarData={pillarData} loading={pillarLoading} embedded />
+                <PillarFactorPanel pillars={pillarData?.pillars || []} loading={pillarLoading} />
               </div>
             </div>
 
@@ -733,28 +633,6 @@ export default function ResearchOverviewPage() {
                     embedded
                   />
                 )}
-              </div>
-            </div>
-          </div>
-
-          <div className="research-overview-kpi-row">
-            <div className="st-panel research-overview-margins-panel">
-              <div className="st-panel-header">
-                <StIcon icon={RESEARCH_ICONS.marginTrends} />
-                Margin Trends
-              </div>
-              <div className="st-panel-body research-margin-panel-body">
-                {detailLoading && !detailData ? (
-                  <PanelLoading label="margin trends" />
-                ) : (
-                  <MarginTrendChart periods={detailPeriods} compact deepDive />
-                )}
-              </div>
-            </div>
-
-            <div className="st-panel research-overview-metrics-panel">
-              <div className="st-panel-body research-panel-body-tight research-overview-metrics-body">
-                <KeyMetricsStrip detailData={detailData} loading={detailLoading} />
               </div>
             </div>
           </div>
@@ -781,6 +659,32 @@ export default function ResearchOverviewPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="research-overview-deep-sections">
+        <div className="st-panel research-thesis-drift-panel">
+          <div className="st-panel-header">
+            <StIcon icon={RESEARCH_ICONS.scores} />
+            Thesis Drift
+          </div>
+          <div className="st-panel-body research-panel-body-tight">
+            <ThesisDriftChart
+              history={thesisDriftHistory}
+              loading={thesisDriftLoading}
+              compact
+            />
+          </div>
+        </div>
+
+        {detailData?.scoreHistory?.length > 0 && (
+          <details className="st-details research-overview-score-breakdown" open>
+            <summary className="st-details-summary">
+              <StIcon icon={RESEARCH_ICONS.scoreBreakdown} />
+              Score Breakdown
+            </summary>
+            <ScoringPanel scoreHistory={detailData.scoreHistory} embedded />
+          </details>
+        )}
       </div>
     </div>
   );

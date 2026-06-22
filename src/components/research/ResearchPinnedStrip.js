@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { tickerFinancialsUrl } from '../../utils/tickerLinks';
+import { tickerOverviewUrl } from '../../utils/tickerLinks';
 
 export default function ResearchPinnedStrip({
   pinnedTickers = [],
@@ -25,7 +25,7 @@ export default function ResearchPinnedStrip({
               onClick={() => onSelect?.(ticker)}
             >
               <Link
-                to={tickerFinancialsUrl(ticker)}
+                to={tickerOverviewUrl(ticker)}
                 className="st-ticker"
                 onClick={(e) => {
                   e.stopPropagation();

@@ -7,7 +7,7 @@ const { waitForPageReady } = require('./support/page-ready');
 
 const REPORT_PATH = path.join(__dirname, '..', 'agent_tasks', 'health-scan-report.json');
 
-const ROUTES = ['/', '/dashboard', '/news', '/admin', '/screener', '/research/AAPL'];
+const ROUTES = ['/', '/dashboard', '/news', '/admin', '/screener', '/overview/AAPL'];
 
 test.describe('health scan', () => {
   test('collect console errors, API failures, and broken UI', async ({ page }) => {

@@ -5,12 +5,10 @@ const TABS = [
   { id: 'overview', label: 'Overview', overview: true },
   { id: 'financials', label: 'Financials', financials: true },
   { id: 'insiders', label: 'Insider Transactions', finders: true },
-  { id: 'research', label: 'Research', research: true },
 ];
 
 function tabPath(ticker, tab) {
   const encoded = encodeURIComponent(ticker);
-  if (tab.research) return `/research/${encoded}`;
   if (tab.financials) return `/financials/${encoded}`;
   if (tab.overview) return tickerOverviewUrl(ticker);
   if (tab.finders) return tickerFindersUrl(ticker);
@@ -19,7 +17,7 @@ function tabPath(ticker, tab) {
 
 function isTabActive(pathname, ticker, tab) {
   const target = tabPath(ticker, tab);
-  if (tab.research || tab.financials || tab.overview || tab.finders) {
+  if (tab.financials || tab.overview || tab.finders) {
     return pathname === target || pathname.startsWith(`${target}/`);
   }
   return pathname === target;

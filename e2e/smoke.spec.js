@@ -25,7 +25,7 @@ test.describe('smoke', () => {
 
   test('research deep-dive renders mocked AAPL history', async ({ page }) => {
     await mockStockTrackerApi(page, { theme: 'dark' });
-    await page.goto('/research/AAPL?dim=MRY&years=10&groups=balance,income,cashflow');
+    await page.goto('/overview/AAPL');
     await waitForPageReady(page);
     await expect(page.getByText('Historical Financials')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'AAPL' })).toBeVisible();
@@ -42,7 +42,7 @@ test.describe('smoke', () => {
     });
 
     await mockStockTrackerApi(page, { portfolio: ['JPM'], theme: 'dark' });
-    for (const route of ['/', '/dashboard', '/news', '/admin', '/screener', '/research/AAPL']) {
+    for (const route of ['/', '/dashboard', '/news', '/admin', '/screener', '/overview/AAPL']) {
       await page.goto(route);
       await waitForPageReady(page);
       await expect(page.locator(ERROR_ALERT)).toHaveCount(0);

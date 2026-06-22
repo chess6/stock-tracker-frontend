@@ -16,20 +16,16 @@ test.describe('research workflow (B3)', () => {
     await expect(page.locator('.research-ticker-header--selected .st-ticker', { hasText: 'MCD' })).toBeVisible();
 
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/\/research\/MCD/);
-    await expect(page.getByText(/Esc.*back to screener/i)).toBeVisible();
-    await expect(page.getByText('Historical Financials')).toBeVisible();
+    await expect(page).toHaveURL(/\/overview\/MCD/);
+    await expect(page.getByText('Investment Thesis')).toBeVisible();
   });
 
-  test('Escape returns from deep-dive to screener with tickers preserved', async ({ page }) => {
+  test('legacy research deep-dive URL redirects to overview', async ({ page }) => {
     await mockStockTrackerApi(page, { theme: 'dark' });
     await page.goto('/research/MCD?dim=MRY');
     await waitForPageReady(page);
-    await expect(page.getByText(/Esc.*back to screener/i)).toBeVisible();
-
-    await page.keyboard.press('Escape');
-    await expect(page).toHaveURL(/\/research\?/);
-    await expect(page.getByText('Financial Screener')).toBeVisible();
+    await expect(page).toHaveURL(/\/overview\/MCD\?dim=MRY/);
+    await expect(page.getByText('Investment Thesis')).toBeVisible();
   });
 
   test('p pins selected ticker to persistent strip', async ({ page }) => {
@@ -60,9 +56,8 @@ test.describe('research workflow (B3)', () => {
     await page.waitForFunction(() => window.scrollY >= 200, null, { timeout: 3000 });
 
     await page.locator('.research-ticker-header').getByRole('link', { name: 'MCD' }).click();
-    await expect(page).toHaveURL(/\/research\/MCD/);
-    await expect(page.getByText(/Esc.*back to screener/i)).toBeVisible();
-    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(/\/financials\/MCD/);
+    await page.goBack();
     await expect(page.getByText('Financial Screener')).toBeVisible({ timeout: 15000 });
     await page.waitForFunction(() => window.scrollY >= 200, null, { timeout: 5000 });
   });
@@ -80,8 +75,8 @@ test.describe('research workflow (B3)', () => {
 
     await page.keyboard.press('k');
     await page.keyboard.press('Enter');
-    await expect(page.getByText(/Esc.*back to screener/i)).toBeVisible();
-    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(/\/overview\/MCD/);
+    await page.goBack();
     await expect(page.getByText('Financial Screener')).toBeVisible({ timeout: 15000 });
 
     await page.waitForFunction(() => window.scrollY >= 200, null, { timeout: 5000 });
@@ -106,6 +101,6 @@ test.describe('composable screen (B1/B2)', () => {
     await expect(activeRows.first()).toContainText('MCD');
 
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/\/research\/MCD/);
+    await expect(page).toHaveURL(/\/overview\/MCD/);
   });
 });

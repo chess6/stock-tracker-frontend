@@ -1,4 +1,5 @@
 import { commitResearchScroll } from './researchScrollState';
+import { tickerOverviewUrl } from './tickerLinks';
 
 export const RESEARCH_SCREENER_TICKERS_KEY = 'research-screener-tickers';
 
@@ -31,5 +32,5 @@ export function saveScreenScrollBeforeLeave() {
 export function buildResearchTickerPath(ticker, dimension = 'MRY') {
   const symbol = String(ticker || '').trim().toUpperCase();
   const dim = dimension || 'MRY';
-  return `/research/${encodeURIComponent(symbol)}?dim=${encodeURIComponent(dim)}`;
+  return `${tickerOverviewUrl(symbol)}?dim=${encodeURIComponent(dim)}`;
 }
