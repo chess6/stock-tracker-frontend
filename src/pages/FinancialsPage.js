@@ -24,7 +24,7 @@ import {
 } from '../utils/financialsPeriods';
 import { formatDecimal, formatPercent, formatUsd, formatCompactUsd, formatSharesCell } from '../utils/formatters';
 import { analyticsChartOptions, scrollChartLayout } from '../utils/chartTheme';
-import { computeTrendPair } from '../utils/researchCalculations';
+import { computeTrendPair, metricOverallTrendArrow } from '../utils/researchCalculations';
 import {
   buildHistoricalStats,
   describeHeat,
@@ -236,6 +236,7 @@ const FinancialsPage = () => {
           scoreCategory: metric.scoreCategory,
           yoy,
           cagr,
+          _trendArrow: metricOverallTrendArrow(columnValues),
         };
         columnPeriods.forEach((periodRow, idx) => {
           row[`p${idx}`] = columnValues[idx];
@@ -274,12 +275,22 @@ const FinancialsPage = () => {
             return <strong>{row.original._groupLabel}</strong>;
           }
           const selected = selectedMetrics.includes(row.original.key);
+          const trend = row.original._trendArrow;
           return (
-            <span className={selected ? 'financials-metric-selected' : undefined}>
+            <span className={`research-metric-cell${selected ? ' financials-metric-selected' : ''}`}>
               <MetricTooltipLabel
                 metricKey={row.original.metricKey || row.original.key}
                 label={row.original.metric}
               />
+              {trend && (
+                <span
+                  className="research-trend-arrow"
+                  style={{ color: trend.color }}
+                  aria-hidden="true"
+                >
+                  {trend.symbol}
+                </span>
+              )}
             </span>
           );
         },

@@ -112,3 +112,24 @@ export function trendArrow(value, scale = 5) {
     color: `rgba(220, 53, 69, ${0.5 + magnitude * 0.5})`,
   };
 }
+
+/** Overall up/down arrow for newest-first visible column values. */
+export function metricOverallTrendArrow(columnValues) {
+  const vals = Array.isArray(columnValues) ? columnValues : [];
+  if (vals.length < 2) return null;
+
+  let oldestIdx = vals.length - 1;
+  while (oldestIdx > 0 && vals[oldestIdx] == null) oldestIdx -= 1;
+  if (oldestIdx <= 0) return null;
+
+  const newest = vals[0];
+  const oldest = vals[oldestIdx];
+  if (newest == null || oldest == null) return null;
+
+  const pctChange = computeYoY(newest, oldest);
+  if (pctChange != null) return trendArrow(pctChange);
+
+  const delta = Number(newest) - Number(oldest);
+  if (!Number.isFinite(delta)) return null;
+  return trendArrow(delta, Math.max(Math.abs(delta) * 0.2, 1));
+}

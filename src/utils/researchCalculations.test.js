@@ -3,6 +3,7 @@ import {
   computeCAGR,
   computeTrendPair,
   extractPeriodSeries,
+  metricOverallTrendArrow,
   prepareSparklineData,
   trendArrow,
 } from './researchCalculations';
@@ -53,5 +54,12 @@ describe('researchCalculations', () => {
   test('trendArrow', () => {
     expect(trendArrow(3)?.symbol).toBe('▲');
     expect(trendArrow(-2)?.symbol).toBe('▼');
+  });
+
+  test('metricOverallTrendArrow compares newest to oldest visible value', () => {
+    expect(metricOverallTrendArrow([150, 120, 100, 80])?.symbol).toBe('▲');
+    expect(metricOverallTrendArrow([80, 100, 120, 150])?.symbol).toBe('▼');
+    expect(metricOverallTrendArrow([100])).toBeNull();
+    expect(metricOverallTrendArrow([100, null, 100])?.symbol).toBe('→');
   });
 });
