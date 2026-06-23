@@ -280,6 +280,10 @@ async function mockStockTrackerApi(page, options = {}) {
       return json({ universe: 'sp500', totalTickers: 503, chunks: 7, jobs: [{ jobId: 1, chunk: 1, tickers: 75 }] });
     }
     if (path === '/api/macro/snapshot') return json({ items: MACRO_ITEMS, meta: { source: 'yfinance' } });
+    if (path === '/api/news/source-domains') {
+      const domains = [...new Set(NEWS_ARTICLES.map((article) => article.sourceDomain).filter(Boolean))].sort();
+      return json({ domains });
+    }
     if (path === '/api/news') {
       return json({ articles: NEWS_ARTICLES, total: NEWS_ARTICLES.length, limit: 50, offset: 0 });
     }

@@ -114,6 +114,7 @@ export default function NewsPage() {
   });
 
   const [portfolioTickers, setPortfolioTickers] = useState(() => getPortfolio());
+  const [sourceDomainOptions, setSourceDomainOptions] = useState([]);
 
   const tickerOptions = useMemo(() => {
     const merged = new Set([...portfolioTickers, ...initialTickers]);
@@ -125,6 +126,20 @@ export default function NewsPage() {
     const sync = () => setPortfolioTickers(getPortfolio());
     window.addEventListener(PORTFOLIO_UPDATED_EVENT, sync);
     return () => window.removeEventListener(PORTFOLIO_UPDATED_EVENT, sync);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios.get(API_ENDPOINTS.NEWS_SOURCE_DOMAINS)
+      .then((res) => {
+        if (cancelled) return;
+        const domains = Array.isArray(res.data?.domains) ? res.data.domains : [];
+        setSourceDomainOptions(domains.filter(Boolean));
+      })
+      .catch(() => {
+        if (!cancelled) setSourceDomainOptions([]);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   const loadClusters = useCallback(async (nextOffset, append = false) => {
@@ -337,10 +352,17 @@ export default function NewsPage() {
                 id="newsSource"
                 type="text"
                 className="st-input"
-                placeholder="e.g. bbc.co.uk"
+                list="news-source-domain-options"
+                placeholder="All sources"
                 value={sourceDomain}
                 onChange={(e) => setSourceDomain(e.target.value)}
+                aria-label="Filter news by source domain"
               />
+              <datalist id="news-source-domain-options">
+                {sourceDomainOptions.map((domain) => (
+                  <option key={domain} value={domain} />
+                ))}
+              </datalist>
 
               <label htmlFor="newsSort" className="st-label">Sort</label>
               <select

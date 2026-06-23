@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
   SUMMARY: ticker => `${API_BASE}/ticker/${ticker}/summary`,
   NEWS: ticker => `${API_BASE}/ticker/${ticker}/news`,
   NEWS_FEED: `${API_BASE}/news`,
+  NEWS_SOURCE_DOMAINS: `${API_BASE}/news/source-domains`,
   NEWS_CLUSTERS: `${API_BASE}/news/clusters`,
   MACRO_SNAPSHOT: `${API_BASE}/macro/snapshot`,
   FINANCIALS: `${API_BASE}/ticker/financials`,
