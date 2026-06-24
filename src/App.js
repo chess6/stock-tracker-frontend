@@ -14,6 +14,7 @@ import store from './store';
 import TickerDetailsPage from './pages/TickerDetailsPage';
 import AdminConsolePage from './pages/AdminConsolePage';
 import NewsPage from './pages/NewsPage';
+import ResearchQueuePage from './pages/ResearchQueuePage';
 import DashboardPage from './pages/DashboardPage';
 import IndustryPage from './pages/IndustryPage';
 import MoversPage from './pages/MoversPage';
@@ -66,7 +67,10 @@ function App() {
         <Routes>
           <Route path="/" element={<PortfolioPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/news" element={<NewsPage />} />
+          <Route path="/firehose" element={<NewsPage />} />
+          <Route path="/news" element={<Navigate to="/firehose" replace />} />
+          <Route path="/signals" element={<ResearchQueuePage />} />
+          <Route path="/research-queue" element={<Navigate to="/signals" replace />} />
           <Route path="/research" element={<ResearchPage />} />
           <Route path="/research/:ticker" element={<LegacyResearchTickerRedirect />} />
           <Route path="/screen" element={<ScreenPage />} />

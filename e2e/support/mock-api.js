@@ -222,6 +222,7 @@ async function mockStockTrackerApi(page, options = {}) {
       experimental_composite_rank: false,
       experimental_research_composite_rank: false,
       experimental_signal_ranking: false,
+      experimental_signals: false,
       embedding_heavy_retag: false,
     },
   };
@@ -464,6 +465,42 @@ async function mockStockTrackerApi(page, options = {}) {
         recentArticles: [],
         articleCount: 3,
         meta: { source: 'mock' },
+      });
+    }
+
+    if (path === '/api/signals/morning-brief') {
+      return json({
+        items: [],
+        returned: 0,
+        lastVisitedAt: null,
+        meta: { source: 'mock' },
+      });
+    }
+    if (path === '/api/signals/state') {
+      if (route.request().method() === 'PUT') {
+        return json({ state: { lastVisitedAt: new Date().toISOString(), items: {} }, meta: { source: 'mock' } });
+      }
+      return json({ lastVisitedAt: null, items: {}, meta: { source: 'mock' } });
+    }
+    if (path === '/api/signals/dismiss') {
+      return json({ dismissed: true, meta: { source: 'mock' } });
+    }
+    if (path === '/api/signals') {
+      return json({
+        items: [{
+          dedupKey: 'AAPL:rank_up:2026-06-20',
+          ticker: 'AAPL',
+          signalType: 'rank_up',
+          eventDate: '2026-06-20',
+          researchImportance: 0.72,
+          whyItMatters: 'Composite rank improved materially.',
+          evidence: [],
+          userState: { read: false, snoozedUntil: null },
+        }],
+        returned: 1,
+        uniqueAfterDedup: 1,
+        userState: { lastVisitedAt: null },
+        meta: { source: 'mock', computedAt: new Date().toISOString() },
       });
     }
 

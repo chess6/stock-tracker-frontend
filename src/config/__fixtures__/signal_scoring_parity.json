@@ -1,0 +1,35 @@
+[
+  {
+    "id": "going_concern_portfolio",
+    "inputs": {
+      "signal_type": "going_concern_8k",
+      "event_date": "2026-06-20",
+      "in_portfolio": true,
+      "has_fundamentals": true,
+      "as_of": "2026-06-23"
+    },
+    "expected": 0.6532
+  },
+  {
+    "id": "insider_cluster_high_intensity",
+    "inputs": {
+      "signal_type": "insider_cluster_buy",
+      "event_date": "2026-06-22",
+      "magnitude": 0.85,
+      "abnormal_return_1d": 0.03,
+      "has_fundamentals": true,
+      "as_of": "2026-06-23"
+    },
+    "expected": 0.6651
+  },
+  {
+    "id": "stale_rank_move",
+    "inputs": {
+      "signal_type": "rank_up",
+      "event_date": "2026-05-01",
+      "magnitude": 0.4,
+      "as_of": "2026-06-23"
+    },
+    "expected": 0.3923
+  }
+]

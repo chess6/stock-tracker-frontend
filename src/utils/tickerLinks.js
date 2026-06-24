@@ -13,7 +13,7 @@ export function analysisUrl(ticker) {
 }
 
 export function tickerNewsUrl(ticker) {
-  return `/news?tickers=${encodeURIComponent(ticker)}`;
+  return `/firehose?tickers=${encodeURIComponent(ticker)}`;
 }
 
 export function tickerOverviewUrl(ticker) {

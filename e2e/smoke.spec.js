@@ -42,7 +42,7 @@ test.describe('smoke', () => {
     });
 
     await mockStockTrackerApi(page, { portfolio: ['JPM'], theme: 'dark' });
-    for (const route of ['/', '/dashboard', '/news', '/admin', '/screener', '/overview/AAPL']) {
+    for (const route of ['/', '/dashboard', '/firehose', '/signals', '/admin', '/screener', '/overview/AAPL']) {
       await page.goto(route);
       await waitForPageReady(page);
       await expect(page.locator(ERROR_ALERT)).toHaveCount(0);

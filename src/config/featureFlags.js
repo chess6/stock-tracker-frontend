@@ -51,4 +51,10 @@ export const FEATURE_FLAG_META = [
     label: 'Narrative alerts API',
     description: 'Enables GET /api/research/narrative-alerts for narrative divergence alerts.',
   },
+  {
+    key: 'experimental_signals',
+    label: 'Unified signals API',
+    description:
+      'Enables GET /api/signals — normalized research signals ranked by research_importance.',
+  },
 ];

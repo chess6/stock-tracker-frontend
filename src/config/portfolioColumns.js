@@ -491,7 +491,7 @@ export const PORTFOLIO_COLUMN_META = {
   secLink: { label: 'SEC', shortLabel: 'SEC', group: 'links' },
   wwLink: { label: 'Inst', shortLabel: 'Inst', group: 'links' },
   saLink: { label: 'Analysis', shortLabel: 'Anlys', group: 'links' },
-  newsLink: { label: 'News', shortLabel: 'News', group: 'links' },
+  newsLink: { label: 'Firehose', shortLabel: 'Firehose', group: 'links' },
   chartLink: { label: 'Chart', shortLabel: 'Chart', group: 'links' },
   openInsiderLink: { label: 'Insiders', shortLabel: 'Ins', group: 'links' },
 };

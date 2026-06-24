@@ -32,9 +32,9 @@ test.describe('visual regression', () => {
     await expect(page).toHaveScreenshot('dashboard.png', { fullPage: true });
   });
 
-  test('news hub', async ({ page }) => {
+  test('firehose hub', async ({ page }) => {
     await mockStockTrackerApi(page, { theme: 'dark' });
-    await page.goto('/news');
+    await page.goto('/firehose');
     await waitForPageReady(page);
     await expect(page.getByText('Markets steady')).toBeVisible({ timeout: 15000 });
     await stabilizeForScreenshot(page);

@@ -556,7 +556,7 @@ const PortfolioPage = () => {
             meta: meta('newsLink'),
             header: 'News',
             cell: ({ row }) => (
-                <Link to={tickerNewsUrl(row.original.ticker)}>News</Link>
+                <Link to={tickerNewsUrl(row.original.ticker)}>Firehose</Link>
             ),
         }),
         columnHelper.display({

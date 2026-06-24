@@ -24,6 +24,11 @@ describe('AdminFeatureFlags', () => {
           experimental_backtest_route: false,
           experimental_insider_alerts: false,
           experimental_narrative_alerts: false,
+          experimental_signals: false,
+        },
+        sources: {
+          experimental_signals: 'default',
+          experimental_composite_rank: 'default',
         },
       },
     });
@@ -44,7 +49,7 @@ describe('AdminFeatureFlags', () => {
 
     const summary = await screen.findByText('Experimental feature flags');
     expect(summary.closest('details')).not.toHaveAttribute('open');
-    expect(await screen.findByText('0 of 8 enabled')).toBeInTheDocument();
+    expect(await screen.findByText('0 of 9 enabled')).toBeInTheDocument();
   });
 
   it('shows research composite ranking as inactive without a toggle', async () => {

@@ -31,12 +31,6 @@ function snippet(text, maxLen = 140) {
   return clean.length <= maxLen ? clean : `${clean.slice(0, maxLen)}…`;
 }
 
-function sentimentBadge(label) {
-  if (!label || label === 'neutral') return null;
-  const cls = label === 'positive' ? 'st-badge-positive' : label === 'negative' ? 'st-badge-negative' : 'st-badge-muted';
-  return <span className={`st-badge ${cls} ms-2`}>{label}</span>;
-}
-
 function matchStrategyLabel(strategy) {
   const labels = {
     cashtag: '$',
@@ -66,13 +60,6 @@ function tickerMatchBadge(match) {
 function formatEventType(value) {
   if (!value) return 'event';
   return String(value).replace(/_/g, ' ');
-}
-
-function formatSentiment(value) {
-  if (value == null || Number.isNaN(Number(value))) return null;
-  const num = Number(value);
-  const label = num > 0.05 ? 'positive' : num < -0.05 ? 'negative' : 'neutral';
-  return { num, label };
 }
 
 const SORT_OPTIONS = [
@@ -285,11 +272,11 @@ export default function NewsPage() {
     <div className="st-page st-page--constrained news-page">
       <div className="st-page-header">
         <div className="st-page-header-title">
-          <h1 className="st-page-heading">News</h1>
+          <h1 className="st-page-heading">Firehose</h1>
           <div className="st-page-subtitle">
             {appliedFilters.clusterView
-              ? 'Event clusters group related stories across sources (last 72 hours).'
-              : 'Unique articles from ingested RSS feeds, deduplicated by URL and near-duplicate titles.'}
+              ? 'Events group related stories across sources (last 72 hours).'
+              : 'Evidence stream — unique articles from ingested RSS feeds, deduplicated by URL and near-duplicate titles.'}
           </div>
         </div>
         <div className="st-page-header-actions">
@@ -386,7 +373,7 @@ export default function NewsPage() {
                     checked={clusterView}
                     onChange={(e) => setClusterView(e.target.checked)}
                   />
-                  <label className="form-check-label" htmlFor="clusterViewNews">Cluster view</label>
+                  <label className="form-check-label" htmlFor="clusterViewNews">Events</label>
                 </div>
                 <div className="form-check">
                   <input
@@ -397,7 +384,7 @@ export default function NewsPage() {
                     onChange={(e) => setDivergenceOnly(e.target.checked)}
                     disabled={clusterView}
                   />
-                  <label className="form-check-label" htmlFor="divergenceOnlyNews">Narrative drift</label>
+                  <label className="form-check-label" htmlFor="divergenceOnlyNews">Thesis change / Divergence</label>
                 </div>
                 <div className="form-check">
                   <input
@@ -427,21 +414,19 @@ export default function NewsPage() {
       {error && <div className="st-alert-danger">{error}</div>}
 
       {loading ? (
-        <div className="st-spinner-wrap"><StSpinner /> Loading news…</div>
+        <div className="st-spinner-wrap"><StSpinner /> Loading firehose…</div>
       ) : appliedFilters.clusterView ? (
         clusters.length === 0 ? (
           <div className="st-alert-secondary">
-            No event clusters yet. Run ingest and enrichment so articles can be grouped by event.
+            No event groups yet. Run ingest and enrichment so articles can be grouped by event.
           </div>
         ) : (
           <>
             <div className="text-muted small mb-1">
-              Showing {pageStart}–{pageEnd} of {total} clusters
+              Showing {pageStart}–{pageEnd} of {total} events
             </div>
             <div className="list-group news-feed">
-              {clusters.map((cluster) => {
-                const sentiment = formatSentiment(cluster.consensusSentiment);
-                return (
+              {clusters.map((cluster) => (
                   <div key={cluster.id} className="list-group-item list-group-item-compact news-feed-item flex-column align-items-start">
                     <div className="d-flex w-100 justify-content-between gap-2 align-items-start">
                       <div>
@@ -450,11 +435,6 @@ export default function NewsPage() {
                           <span className="st-badge st-badge-muted me-1">{formatEventType(cluster.eventType)}</span>
                           <span className="me-2">{cluster.sourceCount} source{cluster.sourceCount === 1 ? '' : 's'}</span>
                           <span className="me-2">{cluster.articleCount} article{cluster.articleCount === 1 ? '' : 's'}</span>
-                          {sentiment && (
-                            <span className={`st-badge ${sentiment.label === 'positive' ? 'st-badge-positive' : sentiment.label === 'negative' ? 'st-badge-negative' : 'st-badge-muted'}`}>
-                              consensus {sentiment.num.toFixed(2)}
-                            </span>
-                          )}
                         </div>
                         {cluster.sourceDomains?.length > 0 && (
                           <div className="small text-secondary mt-1">
@@ -487,8 +467,7 @@ export default function NewsPage() {
                       </div>
                     )}
                   </div>
-                );
-              })}
+                ))}
             </div>
             {hasMore && (
               <div
@@ -522,7 +501,6 @@ export default function NewsPage() {
                     className="fw-semibold st-link-muted text-decoration-none"
                   >
                     {item.title}
-                    {sentimentBadge(item.sentimentLabel)}
                   </a>
                   <small className="text-muted text-nowrap">{formatPublished(item.publishedDate)}</small>
                 </div>

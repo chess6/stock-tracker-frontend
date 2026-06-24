@@ -17,7 +17,8 @@ import '../navbar-layout.css';
 
 const NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard' },
-  { to: '/news', label: 'News' },
+  { to: '/firehose', label: 'Firehose' },
+  { to: '/signals', label: 'Signals' },
   { to: '/research', label: 'Research' },
   { to: '/screen', label: 'Screen' },
   { to: '/screener', label: 'Screener' },
