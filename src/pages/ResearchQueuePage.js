@@ -7,12 +7,20 @@ import API_ENDPOINTS from '../apiConfig';
 import { SIGNAL_LENS_TABS, SIGNAL_RADAR_PRESETS } from '../config/signalRadarPresets';
 import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT } from '../utils/portfolio';
 import {
+  deleteSavedRadarScan,
+  getSavedRadarScans,
+  listRadarScanOptions,
+  resolveRadarSelection,
+  saveRadarScan,
+} from '../utils/savedRadarScans';
+import {
   dismissSignal,
   fetchSignalState,
   markSignalRead,
   snoozeSignal,
   touchSignalLastVisited,
 } from '../utils/signalState';
+import { useToast } from '../context/ToastContext';
 import { formatQueueDate } from '../utils/researchQueueFormat';
 
 const SIGNAL_LIMIT = 50;
@@ -46,8 +54,8 @@ function LensTabs({ active, onChange }) {
 }
 
 export default function ResearchQueuePage() {
+  const { showToast } = useToast();
   const [lens, setLens] = useState('worklist');
-  const [radarPreset, setRadarPreset] = useState(SIGNAL_RADAR_PRESETS[0].id);
   const [signals, setSignals] = useState([]);
   const [briefItems, setBriefItems] = useState([]);
   const [meta, setMeta] = useState({});
@@ -58,6 +66,9 @@ export default function ResearchQueuePage() {
   const [portfolioTickers, setPortfolioTickers] = useState(() => getPortfolio());
   const [portfolioOnly, setPortfolioOnly] = useState(false);
   const [showRead, setShowRead] = useState(false);
+  const [radarSelection, setRadarSelection] = useState(SIGNAL_RADAR_PRESETS[0].id);
+  const [savedRadarScans, setSavedRadarScans] = useState(() => getSavedRadarScans());
+  const [watchDigest, setWatchDigest] = useState(null);
 
   useEffect(() => {
     loadUserPreferences().then(() => setPortfolioTickers(getPortfolio()));
@@ -67,9 +78,11 @@ export default function ResearchQueuePage() {
   }, []);
 
   const activeRadar = useMemo(
-    () => SIGNAL_RADAR_PRESETS.find((p) => p.id === radarPreset) || SIGNAL_RADAR_PRESETS[0],
-    [radarPreset],
+    () => resolveRadarSelection(radarSelection) || resolveRadarSelection(SIGNAL_RADAR_PRESETS[0].id),
+    [radarSelection],
   );
+
+  const radarOptions = useMemo(() => listRadarScanOptions(), [savedRadarScans]);
 
   const loadSignals = useCallback(async () => {
     setLoading(true);
@@ -82,7 +95,7 @@ export default function ResearchQueuePage() {
         params.lens = 'watch';
         params.portfolio_only = true;
         params.min_importance = 0.5;
-      } else if (lens === 'radar') {
+      } else if (lens === 'radar' && activeRadar?.lens) {
         params.lens = activeRadar.lens;
       }
 
@@ -92,6 +105,7 @@ export default function ResearchQueuePage() {
       ]);
 
       setSignals(signalsRes.data?.items || []);
+      setWatchDigest(lens === 'watch' ? signalsRes.data?.digest || null : null);
       setMeta({
         returned: signalsRes.data?.returned,
         uniqueAfterDedup: signalsRes.data?.uniqueAfterDedup,
@@ -115,7 +129,7 @@ export default function ResearchQueuePage() {
     } finally {
       setLoading(false);
     }
-  }, [lens, activeRadar.lens, portfolioOnly, showRead]);
+  }, [lens, activeRadar?.lens, portfolioOnly, showRead]);
 
   useEffect(() => {
     loadSignals();
@@ -126,6 +140,30 @@ export default function ResearchQueuePage() {
       touchSignalLastVisited().catch(() => {});
     };
   }, []);
+
+  const handleSaveRadarScan = () => {
+    const name = window.prompt('Name this radar scan', activeRadar?.label || '');
+    if (!name?.trim()) return;
+    try {
+      const preset = SIGNAL_RADAR_PRESETS.find((item) => item.lens === activeRadar?.lens);
+      saveRadarScan({
+        name: name.trim(),
+        lens: activeRadar.lens,
+        sourcePresetId: preset?.id || null,
+      });
+      setSavedRadarScans(getSavedRadarScans());
+      showToast?.('Radar scan saved', 'success', 3000);
+    } catch (err) {
+      showToast?.(err.message || 'Failed to save radar scan', 'danger', 5000);
+    }
+  };
+
+  const handleDeleteRadarScan = () => {
+    if (!activeRadar?.saved) return;
+    deleteSavedRadarScan(activeRadar.id);
+    setSavedRadarScans(getSavedRadarScans());
+    setRadarSelection(SIGNAL_RADAR_PRESETS[0].id);
+  };
 
   const handleDismiss = async (signal) => {
     await dismissSignal({
@@ -160,6 +198,10 @@ export default function ResearchQueuePage() {
                 Research workstation — ranked by research importance, not news volume.
                 Legacy article feed: <Link to="/firehose">Firehose</Link>.
               </p>
+              <p className="text-muted small mb-2 signal-ri-legend">
+                <strong>RI badge</strong> — green ≥70 high · blue 45–69 · gray below 45.
+                Left stripe matches the badge tier (not a separate meaning).
+              </p>
               <div className="news-page-checks">
                 <div className="form-check">
                   <input
@@ -189,14 +231,33 @@ export default function ResearchQueuePage() {
                   <select
                     id="radarPreset"
                     className="st-select"
-                    value={radarPreset}
-                    onChange={(e) => setRadarPreset(e.target.value)}
+                    value={radarSelection}
+                    onChange={(e) => setRadarSelection(e.target.value)}
                   >
-                    {SIGNAL_RADAR_PRESETS.map((preset) => (
-                      <option key={preset.id} value={preset.id}>{preset.label}</option>
-                    ))}
+                    {radarOptions.saved.length > 0 && (
+                      <optgroup label="Saved scans">
+                        {radarOptions.saved.map((scan) => (
+                          <option key={scan.id} value={scan.id}>{scan.label}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <optgroup label="Presets">
+                      {radarOptions.presets.map((preset) => (
+                        <option key={preset.id} value={preset.id}>{preset.label}</option>
+                      ))}
+                    </optgroup>
                   </select>
-                  <p className="text-muted small mb-0">{activeRadar.description}</p>
+                  <p className="text-muted small mb-2">{activeRadar?.description}</p>
+                  <div className="d-flex flex-wrap gap-2">
+                    <button type="button" className="st-btn-ghost btn-sm" onClick={handleSaveRadarScan}>
+                      Save scan
+                    </button>
+                    {activeRadar?.saved && (
+                      <button type="button" className="st-btn-ghost btn-sm text-danger" onClick={handleDeleteRadarScan}>
+                        Delete saved
+                      </button>
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -212,7 +273,7 @@ export default function ResearchQueuePage() {
           <div className="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-2">
             <div>
               <h2 className="h6 mb-0 text-muted text-uppercase">
-                {lens === 'brief' ? 'Morning brief' : lens === 'radar' ? activeRadar.label : lens === 'watch' ? 'Portfolio watch' : 'Prioritized worklist'}
+                {lens === 'brief' ? 'Morning brief' : lens === 'radar' ? (activeRadar?.label || 'Radar') : lens === 'watch' ? 'Portfolio watch' : 'Prioritized worklist'}
               </h2>
               <p className="text-muted small mb-0">
                 {loading ? 'Loading…' : `${displayedSignals.length} signal${displayedSignals.length === 1 ? '' : 's'}`}
@@ -226,6 +287,19 @@ export default function ResearchQueuePage() {
               )}
             </div>
           </div>
+
+          {lens === 'watch' && watchDigest && !loading && (
+            <div className="st-alert-secondary mb-3 research-queue-watch-digest">
+              {watchDigest.summaryLines?.map((line) => (
+                <p key={line} className="small mb-1">{line}</p>
+              ))}
+              {watchDigest.earningsImminent?.length > 0 && (
+                <p className="small mb-0 text-muted">
+                  Earnings: {watchDigest.earningsImminent.map((item) => item.ticker).join(', ')}
+                </p>
+              )}
+            </div>
+          )}
 
           {loading ? (
             <div className="st-spinner-wrap"><StSpinner label="Loading signals…" /></div>

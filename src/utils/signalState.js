@@ -54,6 +54,53 @@ export function formatImportancePct(value) {
   return `${Math.round(Number(value) * 100)}`;
 }
 
+/** Research importance tier for badge styling (0–1 scale). */
+export function importanceTier(value) {
+  const pct = Number(value);
+  if (Number.isNaN(pct)) return 'unknown';
+  const scaled = pct * 100;
+  if (scaled >= 70) return 'high';
+  if (scaled >= 45) return 'medium';
+  return 'low';
+}
+
+export function importanceTierLabel(tier) {
+  switch (tier) {
+    case 'high':
+      return 'High priority (RI ≥ 70)';
+    case 'medium':
+      return 'Medium priority (RI 45–69)';
+    case 'low':
+      return 'Lower priority (RI < 45)';
+    default:
+      return 'Research importance (0–100)';
+  }
+}
+
+export function importanceBadgeClass(value) {
+  switch (importanceTier(value)) {
+    case 'high':
+      return 'st-badge st-badge-positive';
+    case 'medium':
+      return 'st-badge st-badge-blue';
+    default:
+      return 'st-badge st-badge-muted';
+  }
+}
+
+/** Subtle left accent — replaces full-row background heat. */
+export function importanceAccentStyle(value) {
+  switch (importanceTier(value)) {
+    case 'high':
+      return { borderLeft: '3px solid rgba(40, 167, 69, 0.7)' };
+    case 'medium':
+      return { borderLeft: '3px solid rgba(91, 156, 245, 0.65)' };
+    default:
+      return { borderLeft: '3px solid rgba(108, 117, 125, 0.35)' };
+  }
+}
+
+/** @deprecated Prefer importanceBadgeClass + importanceAccentStyle on signal cards. */
 export function importanceHeatStyle(value) {
   const pct = Number(value);
   if (Number.isNaN(pct)) return {};

@@ -161,6 +161,52 @@
   margin-bottom: 0.1rem;
 }
 
+.signal-card {
+  padding-left: 0.55rem !important;
+}
+
+.signal-evidence {
+  font-size: 0.72rem;
+  color: var(--st-text-subtle, #6c757d);
+}
+
+.signal-evidence-label {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--st-text-muted, #868e96);
+  margin-bottom: 0.15rem;
+}
+
+.signal-evidence-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.signal-evidence-list li {
+  position: relative;
+  padding-left: 0.85rem;
+  line-height: 1.35;
+}
+
+.signal-evidence-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--st-text-muted, #868e96);
+}
+
+.signal-ri-legend {
+  line-height: 1.35;
+  padding: 0.35rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(108, 117, 125, 0.08);
+  border: 1px solid rgba(108, 117, 125, 0.15);
+}
+
 /* ── News page: left sidebar filters ── */
 
 .news-page-layout {
