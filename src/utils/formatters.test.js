@@ -1,4 +1,4 @@
-import { formatDecimal, formatUsd, formatPercent, changePercentStyle, formatCompactNumber, formatCompactUsd, formatSharesCell } from './formatters';
+import { formatDecimal, formatUsd, formatPercent, changePercentStyle, formatCompactNumber, formatCompactUsd, formatSharesCell, spaceScaleSuffix } from './formatters';
 
 describe('formatters', () => {
     test('formatDecimal treats null as missing', () => {
@@ -29,6 +29,12 @@ describe('formatters', () => {
         expect(formatSharesCell(14776353000, { compact: true })).toBe('14.8B');
         expect(formatSharesCell(14776353000, { compact: false })).toBe('14,776,353,000');
         expect(formatSharesCell(null)).toBe('-');
+    });
+
+    test('spaceScaleSuffix separates magnitude suffix', () => {
+        expect(spaceScaleSuffix('$392B')).toBe('$392 B');
+        expect(spaceScaleSuffix('97.0B')).toBe('97.0 B');
+        expect(spaceScaleSuffix('89.27%')).toBe('89.27%');
     });
 
     test('changePercentStyle scales by magnitude', () => {

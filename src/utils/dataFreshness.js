@@ -7,6 +7,7 @@ export const FRESHNESS_THRESHOLDS = {
   pricesUpdatedAt: 36,
   insidersUpdatedAt: 168,
   insiderClustersUpdatedAt: 168,
+  edgarEventsUpdatedAt: 168,
   latestArticleFetchedAt: 12,
 };
 

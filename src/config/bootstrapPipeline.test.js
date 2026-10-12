@@ -21,6 +21,31 @@ describe('bootstrapPipeline', () => {
     expect(defaults).toContain('market_reactions');
   });
 
+  test('default selection excludes optional EDGAR step', () => {
+    const defaults = defaultSelectedStepIds();
+    expect(defaults).not.toContain('edgar_events');
+  });
+
+  test('recommended includes EDGAR only for small ticker scope when missing', () => {
+    const selected = recommendedSelectedStepIds({
+      freshness: {},
+      counts: { edgar_events: 0 },
+      coverage: {},
+      tickerCount: 8,
+    });
+    expect(selected).toContain('edgar_events');
+  });
+
+  test('recommended skips EDGAR for large ticker scope', () => {
+    const selected = recommendedSelectedStepIds({
+      freshness: {},
+      counts: { edgar_events: 0 },
+      coverage: {},
+      tickerCount: 120,
+    });
+    expect(selected).not.toContain('edgar_events');
+  });
+
   test('buildExecutionWaves groups parallel steps in wave 1', () => {
     const waves = buildExecutionWaves([
       'sync_companies',
@@ -56,7 +81,7 @@ describe('bootstrapPipeline', () => {
     expect(stages).toHaveLength(3);
     expect(stages[0].parallel).toBe(false);
     expect(stages[1].parallel).toBe(false);
-    expect(stages[1].steps).toHaveLength(5);
+    expect(stages[1].steps).toHaveLength(6);
     expect(stages[2].steps.map((s) => s.id).sort()).toEqual(['dedup_articles', 'market_reactions'].sort());
   });
 
@@ -71,17 +96,20 @@ describe('bootstrapPipeline', () => {
         pricesUpdatedAt: recent,
         insidersUpdatedAt: recent,
         insiderClustersUpdatedAt: recent,
+        edgarEventsUpdatedAt: recent,
         latestArticleFetchedAt: recent,
       },
       counts: {
         companies: 10000,
         feeds: 18,
         articles: 50,
+        edgar_events: 100,
       },
       coverage: {
         articlesWithMarketReactions: 50,
         linkedArticles: 50,
       },
+      tickerCount: 8,
     });
     expect(selected).not.toContain('sync_companies');
     expect(selected).toHaveLength(0);
@@ -166,6 +194,6 @@ describe('bootstrapPipeline', () => {
 
   test('stepDisplayIndex matches step order', () => {
     expect(stepDisplayIndex('sync_companies')).toBe(1);
-    expect(stepDisplayIndex('market_reactions')).toBe(8);
+    expect(stepDisplayIndex('market_reactions')).toBe(9);
   });
 });

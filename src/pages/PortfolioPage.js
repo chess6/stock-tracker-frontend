@@ -35,6 +35,8 @@ import {
     hydrateCompanyTagsFromApi,
 } from '../utils/companyTags';
 import DataGrid from '../components/DataGrid';
+import HeatGridCell from '../components/HeatGridCell';
+import { buildFormulaContextFromPortfolioRow, resolveFormulaMetricKey } from '../utils/formulaContext';
 import CompareMetricsPanel, { MAX_COMPARE_TICKERS } from '../components/research/CompareMetricsPanel';
 import ConfirmModal from '../components/ConfirmModal';
 import PortfolioWatchlists from '../components/PortfolioWatchlists';
@@ -71,6 +73,24 @@ const meta = (key) => ({
 const isRowDataIncomplete = (row) => row.price == null || row.marketCap == null;
 
 const portfolioHeatCell = (key) => ({ row }) => row.original?._heatStyles?.[key] || {};
+
+function portfolioFormulaCell(columnKey, formatValue, { valueFormat = 'decimal' } = {}) {
+    return ({ row, getValue }) => {
+        const val = getValue();
+        return (
+            <HeatGridCell
+                value={val}
+                formatted={formatValue(val)}
+                metricKey={resolveFormulaMetricKey(columnKey)}
+                heatContext={{ mode: 'deep_value', format: valueFormat }}
+                dataContext={buildFormulaContextFromPortfolioRow(row.original)}
+                showTier={false}
+            />
+        );
+    };
+}
+
+const portfolioPct = (v) => formatPercent(v != null ? v * 100 : null);
 
 const incompleteCacheTitle = (row) => {
     if (row.price == null && row.marketCap == null) {
@@ -309,181 +329,181 @@ const PortfolioPage = () => {
             meta: meta('sp'),
             header: 'SP',
             cellStyle: portfolioHeatCell('sp'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('sp', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('ebitdaEv', {
             meta: meta('ebitdaEv'),
             header: 'Eb/EV',
             cellStyle: portfolioHeatCell('ebitdaEv'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('ebitdaEv', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('tbp', {
             meta: meta('tbp'),
             header: 'TBP',
             cellStyle: portfolioHeatCell('tbp'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('tbp', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('bp', {
             meta: meta('bp'),
             header: 'BP',
             cellStyle: portfolioHeatCell('bp'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('bp', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('ep', {
             meta: meta('ep'),
             header: 'EP',
             cellStyle: portfolioHeatCell('ep'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('ep', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('pe', {
             meta: meta('pe'),
             header: 'P/E',
             cellStyle: portfolioHeatCell('pe'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 1)}</span>,
+            cell: portfolioFormulaCell('pe', (v) => formatDecimal(v, 1)),
         }),
         columnHelper.accessor('de', {
             meta: meta('de'),
             header: 'D/E',
             cellStyle: portfolioHeatCell('de'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('de', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('currentRatio', {
             meta: meta('currentRatio'),
             header: 'Cur R',
             cellStyle: portfolioHeatCell('currentRatio'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('currentRatio', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('grossMargin', {
             meta: meta('grossMargin'),
             header: 'GM%',
             cellStyle: portfolioHeatCell('grossMargin'),
-            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+            cell: portfolioFormulaCell('grossMargin', portfolioPct, { valueFormat: 'percent' }),
         }),
         columnHelper.accessor('netMargin', {
             meta: meta('netMargin'),
             header: 'NM%',
             cellStyle: portfolioHeatCell('netMargin'),
-            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+            cell: portfolioFormulaCell('netMargin', portfolioPct, { valueFormat: 'percent' }),
         }),
         columnHelper.accessor('roe', {
             meta: meta('roe'),
             header: 'ROE',
             cellStyle: portfolioHeatCell('roe'),
-            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+            cell: portfolioFormulaCell('roe', portfolioPct, { valueFormat: 'percent' }),
         }),
         columnHelper.accessor('roa', {
             meta: meta('roa'),
             header: 'ROA',
             cellStyle: portfolioHeatCell('roa'),
-            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+            cell: portfolioFormulaCell('roa', portfolioPct, { valueFormat: 'percent' }),
         }),
         columnHelper.accessor('divYield', {
             meta: meta('divYield'),
             header: 'Div%',
             cellStyle: portfolioHeatCell('divYield'),
-            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+            cell: portfolioFormulaCell('divYield', portfolioPct, { valueFormat: 'percent' }),
         }),
         columnHelper.accessor('revDebt', {
             meta: meta('revDebt'),
             header: 'Rev/Debt',
             cellStyle: portfolioHeatCell('revDebt'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('revDebt', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('mcEv', {
             meta: meta('mcEv'),
             header: 'MC/EV',
             cellStyle: portfolioHeatCell('mcEv'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('mcEv', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('operatingMargin', {
             meta: meta('operatingMargin'),
             header: 'Op%',
             cellStyle: portfolioHeatCell('operatingMargin'),
-            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+            cell: portfolioFormulaCell('operatingMargin', portfolioPct, { valueFormat: 'percent' }),
         }),
         columnHelper.accessor('fcfMargin', {
             meta: meta('fcfMargin'),
             header: 'FCF%',
             cellStyle: portfolioHeatCell('fcfMargin'),
-            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+            cell: portfolioFormulaCell('fcfMargin', portfolioPct, { valueFormat: 'percent' }),
         }),
         columnHelper.accessor('quickRatio', {
             meta: meta('quickRatio'),
             header: 'Quick',
             cellStyle: portfolioHeatCell('quickRatio'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('quickRatio', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('interestCoverage', {
             meta: meta('interestCoverage'),
             header: 'IntCov',
             cellStyle: portfolioHeatCell('interestCoverage'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('interestCoverage', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('roic', {
             meta: meta('roic'),
             header: 'ROIC',
             cellStyle: portfolioHeatCell('roic'),
-            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+            cell: portfolioFormulaCell('roic', portfolioPct, { valueFormat: 'percent' }),
         }),
         columnHelper.accessor('evEbitda', {
             meta: meta('evEbitda'),
             header: 'EV/Eb',
             cellStyle: portfolioHeatCell('evEbitda'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 1)}</span>,
+            cell: portfolioFormulaCell('evEbitda', (v) => formatDecimal(v, 1)),
         }),
         columnHelper.accessor('fcfYield', {
             meta: meta('fcfYield'),
             header: 'FCF Yld',
             cellStyle: portfolioHeatCell('fcfYield'),
-            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+            cell: portfolioFormulaCell('fcfYield', portfolioPct, { valueFormat: 'percent' }),
         }),
         columnHelper.accessor('netDebt', {
             meta: meta('netDebt'),
             header: 'Net D',
             cellStyle: portfolioHeatCell('netDebt'),
-            cell: ({ getValue }) => <span>{formatUsd(getValue(), 0)}</span>,
+            cell: portfolioFormulaCell('netDebt', (v) => formatUsd(v, 0), { valueFormat: 'usd' }),
         }),
         columnHelper.accessor('earningsYield', {
             meta: meta('earningsYield'),
             header: 'E/P',
             cellStyle: portfolioHeatCell('earningsYield'),
-            cell: ({ getValue }) => <span>{formatPercent(getValue() != null ? getValue() * 100 : null)}</span>,
+            cell: portfolioFormulaCell('earningsYield', portfolioPct, { valueFormat: 'percent' }),
         }),
         columnHelper.accessor('assetTurnover', {
             meta: meta('assetTurnover'),
             header: 'AT',
             cellStyle: portfolioHeatCell('assetTurnover'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('assetTurnover', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('cfop', {
             meta: meta('cfop'),
             header: 'CFOP',
             cellStyle: portfolioHeatCell('cfop'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('cfop', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('sfcfp', {
             meta: meta('sfcfp'),
             header: 'SFCFP',
             cellStyle: portfolioHeatCell('sfcfp'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('sfcfp', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('ncfp', {
             meta: meta('ncfp'),
             header: 'NCFP',
             cellStyle: portfolioHeatCell('ncfp'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('ncfp', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('cashp', {
             meta: meta('cashp'),
             header: 'Cash/P',
             cellStyle: portfolioHeatCell('cashp'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('cashp', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('assetp', {
             meta: meta('assetp'),
             header: 'Asset/P',
             cellStyle: portfolioHeatCell('assetp'),
-            cell: ({ getValue }) => <span>{formatDecimal(getValue(), 2)}</span>,
+            cell: portfolioFormulaCell('assetp', (v) => formatDecimal(v, 2)),
         }),
         columnHelper.accessor('divergenceSignal', {
             meta: meta('divergenceSignal'),
@@ -762,11 +782,14 @@ const PortfolioPage = () => {
                         axios.get(API_ENDPOINTS.TOP_OF_BOOK, { params: { tickers: tickersStr }, signal }),
                     ]);
                     if (signal.aborted) return;
-                    const metricsMap = fundRes.status === 'fulfilled' ? (fundRes.value.data?.metrics || {}) : {};
+                    const fundData = fundRes.status === 'fulfilled' ? fundRes.value.data : {};
+                    const metricsMap = fundData?.metrics || {};
+                    const periodSeriesMap = fundData?.periodSeries || {};
                     const topQuotes = topRes.status === 'fulfilled' ? (topRes.value.data?.quotes || {}) : {};
 
                     const newRows = fetchTickers.map((ticker) => {
                         const m = metricsMap[ticker] || {};
+                        const fundamentals = periodSeriesMap[ticker]?.[0]?.fundamentals || {};
                         const tq = topQuotes[ticker] || {};
                         const lastVal = [tq.last, tq.tngoLast].find(v => v != null && !Number.isNaN(Number(v)));
                         const price = lastVal != null ? Number(lastVal) : null;
@@ -822,6 +845,7 @@ const PortfolioPage = () => {
                             insiderBuy1m: null,
                             prevClose: null,
                             _pending: { change: true },
+                            _fundamentals: fundamentals,
                             onDelete: handleDeleteTicker,
                         };
                     });

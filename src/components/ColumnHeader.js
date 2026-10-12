@@ -1,12 +1,15 @@
 import { memo } from 'react';
 import StTooltip, { StTooltipMetricHelp } from './StTooltip';
+import { formatFormulaPlainText, getFormulaDisplaySpec } from '../utils/formulaDisplayRegistry';
 
 /** Plain-text help for screen readers when tooltip is closed. */
 export function formatColumnHeaderHelp(meta = {}) {
   const parts = [];
   if (meta.fullName) parts.push(meta.fullName);
   if (meta.tooltip) parts.push(meta.tooltip);
-  if (meta.formula) parts.push(`Formula: ${meta.formula}`);
+  const formulaSpec = getFormulaDisplaySpec(meta.metricKey, meta.formula);
+  if (formulaSpec) parts.push(`Formula: ${formatFormulaPlainText(formulaSpec)}`);
+  else if (meta.formula) parts.push(`Formula: ${meta.formula}`);
   if (meta.source) parts.push(`Source: ${meta.source}`);
   return parts.join('\n');
 }
@@ -70,6 +73,7 @@ function ColumnHeader({
       floating={tooltipFloating}
       tip={(
         <StTooltipMetricHelp
+          metricKey={meta.metricKey}
           fullName={meta.fullName}
           tooltip={meta.tooltip}
           formula={meta.formula}

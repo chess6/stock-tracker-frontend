@@ -7,7 +7,9 @@ import {
   DEFAULT_SCREEN_PRESET_ID,
   SCREEN_PRESETS,
   SCREEN_UNIVERSE_OPTIONS,
+  buildDefaultVisibleColumns,
   buildScreenRequestSpec,
+  collectActiveFilterMetrics,
   formatScreenFilter,
   getScreenPreset,
   groupsFromSpec,
@@ -93,6 +95,7 @@ function buildResultRows(results = [], rankByTicker = {}) {
       survivability: row.scores?.survivability,
       altmanZ: row.scores?.altmanZ,
       buy6m: row.insider?.buy6m,
+      cluster_count: row.insider?.cluster_count,
       compositeScore: rankRow?.compositeScore,
       compositeRank: rankRow?.rank,
       rankDelta: rankRow?.rank_delta,
@@ -185,7 +188,23 @@ export default function ScreenPage() {
 
   const rankCellLoading = (value) => rankLoading && value == null && (payload?.results?.length > 0);
 
-  const columns = useMemo(() => [
+  const activeFilterMetrics = useMemo(
+    () => collectActiveFilterMetrics(filterGroups, screenSort),
+    [filterGroups, screenSort],
+  );
+
+  const defaultVisibleColumns = useMemo(
+    () => buildDefaultVisibleColumns(filterGroups, screenSort),
+    [filterGroups, screenSort],
+  );
+
+  const columns = useMemo(() => {
+    const metricColumnIds = new Set([
+      'ticker', 'companyName', 'sector', 'price', 'pb', 'pe', 'compositeScore', 'rankDelta',
+      'survivability', 'altmanZ', 'buy6m', 'cluster_count', 'filtersPassed', 'evidence',
+    ]);
+
+    const baseColumns = [
     {
       id: 'ticker',
       accessorKey: 'ticker',
@@ -285,6 +304,12 @@ export default function ScreenPage() {
       cell: ({ getValue }) => formatUsd(getValue(), 0),
     },
     {
+      id: 'cluster_count',
+      accessorKey: 'cluster_count',
+      header: 'Clusters',
+      cell: ({ getValue }) => formatDecimal(getValue(), 0),
+    },
+    {
       id: 'filtersPassed',
       accessorKey: 'filtersPassed',
       header: 'Filters',
@@ -317,7 +342,24 @@ export default function ScreenPage() {
         );
       },
     },
-  ], [payload?.results?.length, rankLoading]);
+    ];
+
+    const dynamicMetricColumns = activeFilterMetrics
+      .filter((metric) => !metricColumnIds.has(metric) && metric !== 'buy6m' && metric !== 'cluster_count')
+      .map((metric) => ({
+        id: `metric:${metric}`,
+        header: metric,
+        accessorFn: (row) => {
+          const evidence = row.filterEvidence?.find(
+            (item) => String(item.metric || '').trim().toLowerCase() === metric.toLowerCase(),
+          );
+          return evidence?.actual;
+        },
+        cell: ({ getValue }) => formatEvidenceValue(metric, getValue()),
+      }));
+
+    return [...baseColumns, ...dynamicMetricColumns];
+  }, [activeFilterMetrics, payload?.results?.length, rankLoading]);
 
   useEffect(() => {
     if (activeSavedScreenId) return;
@@ -596,7 +638,7 @@ export default function ScreenPage() {
               compact
               activeRowId={activeRowId}
               scrollPersistenceKey="research-screen"
-              defaultVisibleColumns={['ticker', 'companyName', 'sector', 'compositeScore', 'rankDelta', 'pb', 'pe', 'survivability', 'filtersPassed', 'evidence']}
+              defaultVisibleColumns={defaultVisibleColumns}
               maxHeight="70vh"
             />
           )}

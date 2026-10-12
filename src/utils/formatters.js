@@ -75,6 +75,12 @@ export function formatCompactNumber(value, significantDigits = 3) {
     return sign + (absVal / divisor).toPrecision(significantDigits) + suffix;
 }
 
+/** Insert space before K/M/B/T scale suffix (e.g. "$392B" → "$392 B"). */
+export function spaceScaleSuffix(formatted) {
+    if (!formatted || typeof formatted !== 'string') return formatted;
+    return formatted.replace(/(\d(?:\.\d+)?)([KMBT])\b/g, '$1 $2');
+}
+
 export function formatCompactUsd(value, significantDigits = 3) {
     if (isMissing(value)) return '-';
     const num = Number(value);

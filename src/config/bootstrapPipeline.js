@@ -51,6 +51,16 @@ export const BOOTSTRAP_STEPS = [
     wave: 1,
   },
   {
+    id: 'edgar_events',
+    label: 'Refresh EDGAR Events',
+    shortLabel: 'EDGAR',
+    description:
+      'Fetch 8-K events, going-concern flags, and activist 13D filings from SEC (ticker-scoped; slow for large lists).',
+    defaultEnabled: false,
+    requiresTickers: true,
+    wave: 1,
+  },
+  {
     id: 'macro',
     label: 'Refresh Macro',
     shortLabel: 'Macro',
@@ -89,11 +99,24 @@ export function defaultSelectedStepIds() {
   return BOOTSTRAP_STEPS.filter((step) => step.defaultEnabled).map((step) => step.id);
 }
 
+/** Max tickers for auto-recommending EDGAR refresh (SEC-heavy). */
+export const EDGAR_RECOMMENDED_MAX_TICKERS = 40;
+
+export function countSelectedTickers(tickersCsv) {
+  if (!tickersCsv?.trim()) return 0;
+  return tickersCsv.split(',').map((item) => item.trim()).filter(Boolean).length;
+}
+
 /**
  * Select only pipeline steps that need to run given current cache freshness.
  * Uses the same thresholds as the admin freshness panel and navbar stale badge.
  */
-export function recommendedSelectedStepIds({ freshness = {}, counts = {}, coverage = {} } = {}) {
+export function recommendedSelectedStepIds({
+  freshness = {},
+  counts = {},
+  coverage = {},
+  tickerCount = null,
+} = {}) {
   const selected = [];
   const T = FRESHNESS_THRESHOLDS;
 
@@ -125,6 +148,17 @@ export function recommendedSelectedStepIds({ freshness = {}, counts = {}, covera
     || isStale(freshness.insiderClustersUpdatedAt, T.insiderClustersUpdatedAt)
   ) {
     selected.push('insiders');
+  }
+
+  const edgarScopeOk = tickerCount == null || tickerCount <= EDGAR_RECOMMENDED_MAX_TICKERS;
+  if (
+    edgarScopeOk
+    && (
+      (counts.edgar_events || 0) === 0
+      || isStale(freshness.edgarEventsUpdatedAt, T.edgarEventsUpdatedAt)
+    )
+  ) {
+    selected.push('edgar_events');
   }
 
   const ingestSelected = selected.includes('ingest_feeds');
@@ -171,6 +205,11 @@ export function explainStepRecommendation(stepId, context = {}) {
       return { included: true, reason: 'Benchmark ETFs refresh with prices' };
     case 'insiders':
       return { included: true, reason: 'Insider data or clusters are stale' };
+    case 'edgar_events':
+      if ((context.counts?.edgar_events || 0) === 0) {
+        return { included: true, reason: 'No EDGAR events loaded yet' };
+      }
+      return { included: true, reason: 'EDGAR events older than 7 days (ticker-scoped runs only)' };
     case 'dedup_articles':
       if (recommended.has('ingest_feeds')) {
         return { included: true, reason: 'Runs after feed ingest' };

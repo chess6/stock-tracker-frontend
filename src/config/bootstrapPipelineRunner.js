@@ -9,20 +9,25 @@ const STEP_ENDPOINTS = {
   ingest_feeds: API_ENDPOINTS.ADMIN_INGEST_DEFAULT_FEEDS,
   prices: API_ENDPOINTS.ADMIN_REFRESH_PRICES,
   insiders: API_ENDPOINTS.ADMIN_REFRESH_INSIDERS,
+  edgar_events: API_ENDPOINTS.ADMIN_REFRESH_EDGAR_EVENTS,
   macro: API_ENDPOINTS.ADMIN_REFRESH_MACRO,
   dedup_articles: API_ENDPOINTS.ADMIN_DEDUP_ARTICLES,
   market_reactions: API_ENDPOINTS.ADMIN_BACKFILL_MARKET_REACTIONS,
 };
 
-const TICKER_CHUNK_STEPS = new Set(['fundamentals', 'prices', 'insiders']);
+const TICKER_CHUNK_STEPS = new Set(['fundamentals', 'prices', 'insiders', 'edgar_events']);
 const TICKER_CHUNK_SIZE = 40;
+const EDGAR_CHUNK_SIZE = 10;
 
 export function formatStepError(error) {
   const data = error?.response?.data;
+  const status = error?.response?.status;
   if (typeof data === 'string' && data.trim()) {
     const trimmed = data.trim();
     if (/<!doctype html>/i.test(trimmed)) {
-      const status = error?.response?.status;
+      if (status === 404) {
+        return 'HTTP 404: admin route not found — restart the backend (sh stop.sh && sh start.sh in stock_tracker_backend) and retry';
+      }
       return status
         ? `HTTP ${status}: server error — check backend logs and retry`
         : 'Server error — check backend logs and retry';
@@ -31,7 +36,9 @@ export function formatStepError(error) {
   }
   if (data?.error) return String(data.error);
   if (data?.message) return String(data.message);
-  const status = error?.response?.status;
+  if (status === 404) {
+    return 'HTTP 404: admin route not found — restart the backend and retry';
+  }
   if (status) {
     const base = error?.message || 'Request failed';
     return `HTTP ${status}: ${base}`;
@@ -107,6 +114,16 @@ function mergeTickerStepResults(stepId, chunks) {
       errors: chunks.flatMap((chunk) => chunk.errors || []),
     };
   }
+  if (stepId === 'edgar_events') {
+    return {
+      tickers: chunks.flatMap((chunk) => chunk.tickers || []),
+      eventsWritten: chunks.reduce((sum, chunk) => sum + (chunk.eventsWritten || 0), 0),
+      flagsWritten: chunks.reduce((sum, chunk) => sum + (chunk.flagsWritten || 0), 0),
+      activistWritten: chunks.reduce((sum, chunk) => sum + (chunk.activistWritten || 0), 0),
+      skipped: chunks.flatMap((chunk) => chunk.skipped || []),
+      errors: chunks.flatMap((chunk) => chunk.errors || []),
+    };
+  }
   return chunks[chunks.length - 1] || {};
 }
 
@@ -117,7 +134,8 @@ async function postStepRequest(step, tickers, mode, extractArticles = false) {
 }
 
 async function runTickerChunkedStep(step, tickers, mode, extractArticles = false) {
-  const chunks = chunkTickers(tickers);
+  const chunkSize = step.id === 'edgar_events' ? EDGAR_CHUNK_SIZE : TICKER_CHUNK_SIZE;
+  const chunks = chunkTickers(tickers, chunkSize);
   const results = [];
   const chunkErrors = [];
 
@@ -186,7 +204,8 @@ async function runStep(step, tickersCsv, mode, extractArticles = false) {
   }
 
   const tickers = parseTickersCsv(tickersCsv);
-  if (TICKER_CHUNK_STEPS.has(step.id) && tickers.length > TICKER_CHUNK_SIZE) {
+  const chunkSize = step.id === 'edgar_events' ? EDGAR_CHUNK_SIZE : TICKER_CHUNK_SIZE;
+  if (TICKER_CHUNK_STEPS.has(step.id) && tickers.length > chunkSize) {
     return runTickerChunkedStep(step, tickers, mode, extractArticles);
   }
 
@@ -271,6 +290,12 @@ export function formatPipelineStepResult(stepId, result) {
     if (typeof data.message === 'string') return data.message;
     if (typeof data.articlesUpdated === 'number') {
       return `${data.articlesUpdated} articles updated`;
+    }
+    if (stepId === 'edgar_events' && typeof data.eventsWritten === 'number') {
+      const parts = [`${data.eventsWritten} 8-K events`];
+      if (typeof data.flagsWritten === 'number') parts.push(`${data.flagsWritten} flags`);
+      if (typeof data.activistWritten === 'number') parts.push(`${data.activistWritten} activist filings`);
+      return parts.join(', ');
     }
   }
   return '';

@@ -262,3 +262,60 @@ export function formatScreenFilter(filter) {
   const rendered = Array.isArray(value) ? value.join(', ') : value;
   return `${metric} ${opLabel} ${rendered}`;
 }
+
+/** Default grid columns shown for every screen preset (filter metrics are added on top). */
+export const SCREEN_DEFAULT_VISIBLE_COLUMNS = [
+  'ticker',
+  'companyName',
+  'sector',
+  'compositeScore',
+  'rankDelta',
+  'pb',
+  'pe',
+  'survivability',
+  'filtersPassed',
+  'evidence',
+];
+
+/** Map screening metric keys to existing grid column ids. */
+export const SCREEN_METRIC_COLUMN_MAP = {
+  buy6m: 'buy6m',
+  buy3m: 'buy3m',
+  cluster_count: 'cluster_count',
+  pb: 'pb',
+  pe: 'pe',
+  survivability: 'survivability',
+  survivability_score: 'survivability',
+  altman_z: 'altmanZ',
+};
+
+/** Unique metric keys from active filter groups and optional sort field. */
+export function collectActiveFilterMetrics(filterGroups = [], sort = null) {
+  const metrics = new Set();
+  (filterGroups || []).forEach((group) => {
+    (group.filters || []).forEach((filter) => {
+      const metric = String(filter?.metric || '').trim();
+      if (metric) metrics.add(metric);
+    });
+  });
+  const sortMetric = String(sort?.metric || '').trim();
+  if (sortMetric) metrics.add(sortMetric);
+  return [...metrics];
+}
+
+/** Resolve a screening metric to a grid column id (built-in or dynamic). */
+export function metricToColumnId(metric) {
+  const key = String(metric || '').trim();
+  if (!key) return null;
+  const mapped = SCREEN_METRIC_COLUMN_MAP[key] || SCREEN_METRIC_COLUMN_MAP[key.toLowerCase()];
+  if (mapped) return mapped;
+  return `metric:${key}`;
+}
+
+/** Standard columns plus any columns for active filter/sort metrics. */
+export function buildDefaultVisibleColumns(filterGroups = [], sort = null) {
+  const filterColumns = collectActiveFilterMetrics(filterGroups, sort)
+    .map(metricToColumnId)
+    .filter(Boolean);
+  return [...new Set([...SCREEN_DEFAULT_VISIBLE_COLUMNS, ...filterColumns])];
+}

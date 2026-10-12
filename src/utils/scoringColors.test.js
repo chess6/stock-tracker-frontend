@@ -79,10 +79,23 @@ describe('scoringColors', () => {
     expect(getScoreTier(-0.1, 'shareDilutionRate', { mode: 'deep_value', format: 'percent' })).toBeGreaterThanOrEqual(3);
   });
 
-  test('describeHeat includes mode and tier', () => {
-    const text = describeHeat('altmanZ', 3.5, { mode: 'deep_value' });
-    expect(text).toContain('deep value');
-    expect(text).toContain('tier');
+  test('describeHeat shows tier and registry thresholds', () => {
+    const text = describeHeat('pe', 13, { mode: 'deep_value' });
+    expect(text).toMatch(/^Elite \(5\/5\)/);
+    expect(text).toContain('13.00');
+    expect(text).toContain('Elite ≤ 8');
+    expect(text).toContain('Distress ≥ 40');
+  });
+
+  test('describeHeat shows percentile basis in historical mode', () => {
+    const historical = buildHistoricalStats([0.1, 0.2, 0.3, 0.4, 0.5]);
+    const text = describeHeat('grossMargin', 0.5, {
+      mode: 'historical',
+      format: 'percent',
+      historical,
+    });
+    expect(text).toMatch(/^Elite \(5\/5\)/);
+    expect(text).toContain('p95');
   });
 
   test('sector mode uses sector breakpoints', () => {
@@ -128,6 +141,5 @@ describe('scoringColors', () => {
     );
     expect(styles.t0?.backgroundColor).toBeTruthy();
     expect(styles.t1?.backgroundColor).toBeTruthy();
-    expect(styles.t0Title).toBeTruthy();
   });
 });

@@ -24,6 +24,13 @@ describe('bootstrapPipelineRunner', () => {
     })).toBe('SPY prices missing');
   });
 
+  test('formatStepError explains 404 as missing backend route', () => {
+    expect(formatStepError({
+      response: { status: 404, data: '<!doctype html><html></html>' },
+      message: 'Request failed with status code 404',
+    })).toContain('restart the backend');
+  });
+
   test('market_reactions reports per-ticker failures', async () => {
     axios.post
       .mockResolvedValueOnce({ data: { ticker: 'AAPL', articlesUpdated: 3, limit: 200 } })

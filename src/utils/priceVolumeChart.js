@@ -202,3 +202,33 @@ export function buildPeriodEndAnnotations(periods = [], rangeStart, rangeEnd, li
 
   return markers.slice(0, limit);
 }
+
+/**
+ * ApexCharts mixed charts paint bar groups after area groups regardless of series
+ * order. Move volume bars earlier in the SVG so the price line renders on top.
+ */
+export function placeVolumeBarsBehindPriceLine(chartContext) {
+  const reorder = () => {
+    const inner = chartContext?.el?.querySelector('.apexcharts-inner');
+    if (!inner) return false;
+
+    const barSeries = inner.querySelector('g.apexcharts-bar-series');
+    const priceSeries = inner.querySelector('g.apexcharts-area-series')
+      ?? inner.querySelector('g.apexcharts-line-series');
+    if (!barSeries || !priceSeries || barSeries === priceSeries) return false;
+
+    const children = [...inner.children];
+    const barIndex = children.indexOf(barSeries);
+    const priceIndex = children.indexOf(priceSeries);
+    if (barIndex < 0 || priceIndex < 0 || barIndex < priceIndex) return false;
+
+    inner.insertBefore(barSeries, priceSeries);
+    return true;
+  };
+
+  const moved = reorder();
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(reorder);
+  }
+  return moved;
+}

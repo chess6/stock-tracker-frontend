@@ -11,6 +11,7 @@ import {
   tightPriceBounds,
   tightVolumeBounds,
   marketHistoryChartHeight,
+  placeVolumeBarsBehindPriceLine,
 } from './priceVolumeChart';
 
 describe('priceVolumeChart utils', () => {
@@ -101,5 +102,26 @@ describe('priceVolumeChart utils', () => {
     ]);
     expect(bounds.min).toBe(0);
     expect(bounds.max).toBeGreaterThan(85_962_200);
+  });
+
+  it('moves bar series before price series in the Apex SVG DOM', () => {
+    const inner = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    inner.setAttribute('class', 'apexcharts-inner');
+    const area = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    area.setAttribute('class', 'apexcharts-area-series apexcharts-plot-series');
+    const bar = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    bar.setAttribute('class', 'apexcharts-bar-series apexcharts-plot-series');
+    inner.append(area, bar);
+
+    const root = document.createElement('div');
+    root.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'svg'));
+    root.querySelector('svg').appendChild(inner);
+
+    expect(placeVolumeBarsBehindPriceLine({ el: root })).toBe(true);
+    expect([...inner.children].map((node) => node.getAttribute('class'))).toEqual([
+      'apexcharts-bar-series apexcharts-plot-series',
+      'apexcharts-area-series apexcharts-plot-series',
+    ]);
+    expect(placeVolumeBarsBehindPriceLine({ el: root })).toBe(false);
   });
 });

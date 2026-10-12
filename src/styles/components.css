@@ -647,6 +647,135 @@ a.st-ticker:focus-visible {
   white-space: pre-line;
 }
 
+.st-tooltip-heat-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.st-tooltip-heat-tier {
+  font-weight: 600;
+  color: var(--st-text);
+}
+
+.st-metric-fraction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.st-metric-fraction-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 3.25rem;
+}
+
+.st-metric-fraction-num,
+.st-metric-fraction-den {
+  text-align: center;
+  line-height: 1.15;
+  padding: 0 0.12rem;
+}
+
+.st-metric-fraction-bar {
+  border-top: 1px solid color-mix(in srgb, var(--st-text-subtle) 72%, transparent);
+  margin: 0.1rem 0;
+  width: 100%;
+}
+
+.st-metric-fraction-eq {
+  color: var(--st-text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.st-tooltip-formula-block {
+  margin-top: 0.22rem;
+}
+
+.st-tooltip-formula-block .st-tooltip-label {
+  display: block;
+  margin-bottom: 0.18rem;
+  font-weight: 600;
+  color: var(--st-text-muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.st-formula-display {
+  display: block;
+  color: var(--st-accent-amber);
+  font-size: 0.72rem;
+}
+
+.st-formula-label {
+  white-space: nowrap;
+}
+
+.st-formula-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.08rem;
+}
+
+.st-formula-paren {
+  opacity: 0.72;
+}
+
+.st-formula-operator {
+  margin: 0 0.18rem;
+  opacity: 0.82;
+  font-weight: 600;
+}
+
+.st-formula-difference,
+.st-formula-sum,
+.st-formula-product,
+.st-formula-alternatives {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+.st-formula-weighted-sum {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.st-formula-weighted-term {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+
+.st-formula-coef {
+  min-width: 1.6rem;
+  text-align: right;
+  font-weight: 600;
+}
+
+.st-formula-note,
+.st-formula-alt-sep {
+  color: var(--st-text-muted);
+  font-size: 0.66rem;
+  font-style: italic;
+}
+
+.st-formula-alt-sep {
+  margin: 0 0.12rem;
+  font-style: normal;
+  text-transform: lowercase;
+}
+
+.st-formula-text {
+  color: var(--st-text-subtle);
+  line-height: 1.35;
+}
+
 .st-grid-table thead th,
 .data-grid-table thead th,
 .portfolio-grid-table thead th {

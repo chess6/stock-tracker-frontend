@@ -22,6 +22,7 @@ import {
   tightPriceBounds,
   tightVolumeBounds,
   marketHistoryChartHeight,
+  placeVolumeBarsBehindPriceLine,
 } from '../../utils/priceVolumeChart';
 
 function formatVolume(value) {
@@ -133,7 +134,7 @@ export default function PriceVolumeChart({
   const volumeColor = dark ? '#ffc857' : '#b86e00';
   const priceFillFrom = dark ? 0.35 : 0.4;
   const priceFillTo = dark ? 0.05 : 0.1;
-  const volumeFillOpacity = dark ? 0.88 : 0.62;
+  const volumeFillOpacity = dark ? 0.55 : 0.4;
 
   const volumeAxisBounds = useMemo(
     () => tightVolumeBounds(volumeValues.map((v) => ({ y: v }))),
@@ -145,6 +146,7 @@ export default function PriceVolumeChart({
       name: 'Close',
       type: 'area',
       data: priceValues,
+      zIndex: 1,
     }];
     if (showVolume && hasVolumeData) {
       series.push({
@@ -171,6 +173,12 @@ export default function PriceVolumeChart({
       toolbar: { show: false },
       zoom: { enabled: false },
       animations: { enabled: false },
+      events: showVolume && hasVolumeData
+        ? {
+          mounted: placeVolumeBarsBehindPriceLine,
+          updated: placeVolumeBarsBehindPriceLine,
+        }
+        : {},
     },
     plotOptions: {
       bar: {
@@ -180,7 +188,7 @@ export default function PriceVolumeChart({
     stroke: {
       width: showVolume && hasVolumeData ? [2, 0] : 2,
       curve: 'smooth',
-      colors: [priceColor, volumeColor],
+      colors: showVolume && hasVolumeData ? [priceColor, volumeColor] : [priceColor],
     },
     fill: showVolume && hasVolumeData
       ? {
@@ -283,7 +291,9 @@ export default function PriceVolumeChart({
       },
       y: {
         formatter: (value, { seriesIndex }) => (
-          seriesIndex === 1 ? formatVolume(value) : formatCompactUsd(value)
+          showVolume && hasVolumeData && seriesIndex === 1
+            ? formatVolume(value)
+            : formatCompactUsd(value)
         ),
       },
     },

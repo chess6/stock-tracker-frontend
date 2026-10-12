@@ -27,18 +27,16 @@ import {
 } from '../utils/researchNavigation';
 import { tickerOverviewUrl } from '../utils/tickerLinks';
 import { hydratePinnedTickersFromApi } from '../utils/researchPinned';
-import StTooltip, { StTooltipText } from '../components/StTooltip';
+import HeatGridCell from '../components/HeatGridCell';
+import { buildFormulaContextFromScreenerRow } from '../utils/formulaContext';
 import {
   SCREENER_METRIC_GROUPS,
   getScreenerMetricValue,
 } from '../config/researchMetrics';
 import { divergenceSignalLabel } from '../config/narrativeStates';
-import { formatMetricCellTooltip } from '../config/tooltipRegistry';
 import { formatDecimal, formatPercent, formatUsd, formatCompactUsd, formatSharesCell } from '../utils/formatters';
 import {
   buildHistoricalStats,
-  describeHeat,
-  precomputeRowHeatStyles,
   precomputeScreenerRowHeatStyles,
 } from '../utils/scoringColors';
 import { researchPrefsFromUserData, saveResearchPreferences } from '../utils/researchPrefs';
@@ -55,8 +53,6 @@ import { getPortfolio, loadUserPreferences } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
 import { isRegistryLoaded, loadMetricRegistry } from '../config/metricRegistry';
 import './research.css';
-
-const GRID_HEAT_TOOLTIP_PROPS = { placement: 'top-start', floating: true };
 
 function parseTickers(text) {
   return [...new Set(String(text || '').split(/[,\s]+/).map((t) => t.trim().toUpperCase()).filter(Boolean))];
@@ -381,11 +377,13 @@ export default function ResearchPage() {
             screenerTickers.map((_, idx) => row[`t${idx}`]),
           );
           if (colorMode !== 'sector' || sectorStats) {
-            row._heatStyles = colorMode === 'sector'
-              ? precomputeScreenerRowHeatStyles(row, screenerTickers, screenerData, sectorStats, colorMode)
-              : precomputeRowHeatStyles(row, screenerTickers.length, {
-                mode: colorMode === 'historical' ? 'relative' : colorMode,
-              });
+            row._heatStyles = precomputeScreenerRowHeatStyles(
+              row,
+              screenerTickers,
+              screenerData,
+              sectorStats,
+              colorMode,
+            );
           }
         }
         rows.push(row);
@@ -480,18 +478,17 @@ export default function ResearchPage() {
             historical: row.original._historicalStats,
             sector: sectorStats?.bySector?.[sector]?.[row.original.metricKey],
           };
-          const tip = colorMode === 'sector'
-            ? formatMetricCellTooltip(
-              row.original.metricKey,
-              describeHeat(row.original.metricKey, val, cellContext),
-            )
-            : row.original._heatStyles?.[`t${idx}Title`];
           const formatted = formatCellValue(val, row.original.format);
-          if (!tip) return <span>{formatted}</span>;
+          const showHeatTip = row.original.scoreCategory && val != null && val !== '';
+          if (!showHeatTip) return <span>{formatted}</span>;
           return (
-            <StTooltip tip={<StTooltipText text={tip} />} {...GRID_HEAT_TOOLTIP_PROPS}>
-              <span>{formatted}</span>
-            </StTooltip>
+            <HeatGridCell
+              value={val}
+              formatted={formatted}
+              metricKey={row.original.metricKey}
+              heatContext={cellContext}
+              dataContext={buildFormulaContextFromScreenerRow(data)}
+            />
           );
         },
       });

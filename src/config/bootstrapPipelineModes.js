@@ -21,12 +21,14 @@ const FAST_CHUNK_SECONDS = {
   fundamentals: { min: 15, max: 27 },
   prices: { min: 10, max: 16 },
   insiders: { min: 50, max: 75 },
+  edgar_events: { min: 45, max: 90 },
 };
 
 const FULL_CHUNK_SECONDS = {
   fundamentals: { min: 25, max: 45 },
   prices: { min: 18, max: 30 },
   insiders: { min: 180, max: 300 },
+  edgar_events: { min: 120, max: 240 },
 };
 
 export const FAST_LIMITS = {
@@ -38,6 +40,7 @@ export const FAST_LIMITS = {
   },
   prices: { days: 90 },
   insiders: { maxFilingsPerCompany: 10 },
+  edgar_events: { maxFilingsPerCompany: 30, maxTotalRequests: 150 },
   dedup_articles: { enrichLimit: 200 },
   market_reactions: { limit: 200 },
 };
@@ -51,6 +54,7 @@ export const FULL_LIMITS = {
   },
   prices: { days: 400 },
   insiders: { maxFilingsPerCompany: 40 },
+  edgar_events: { maxFilingsPerCompany: 60, maxTotalRequests: 500 },
   dedup_articles: { enrichLimit: 5000 },
   market_reactions: { limit: 500 },
 };
@@ -88,13 +92,14 @@ function countTickers(tickersCsv) {
   return tickersCsv.split(',').map((item) => item.trim()).filter(Boolean).length;
 }
 
-export function chunkCountForTickers(tickerCount) {
+export function chunkCountForTickers(tickerCount, chunkSize = TICKER_CHUNK_SIZE) {
   const count = Math.max(tickerCount, 1);
-  return Math.ceil(count / TICKER_CHUNK_SIZE);
+  return Math.ceil(count / chunkSize);
 }
 
 function chunkedStepEstimate(stepId, mode, tickerCount) {
-  const chunks = chunkCountForTickers(tickerCount);
+  const chunkSize = stepId === 'edgar_events' ? 10 : TICKER_CHUNK_SIZE;
+  const chunks = chunkCountForTickers(tickerCount, chunkSize);
   const rates = mode === PIPELINE_MODES.FULL ? FULL_CHUNK_SECONDS : FAST_CHUNK_SECONDS;
   const { min, max } = rates[stepId];
   return { min: chunks * min, max: chunks * max };
@@ -139,7 +144,7 @@ export function estimateFullIngestFeedsDuration(
 
 function stepEstimate(stepId, mode, tickerCount, options = {}) {
   const tickerTotal = Math.max(tickerCount, 1);
-  if (stepId === 'fundamentals' || stepId === 'prices' || stepId === 'insiders') {
+  if (stepId === 'fundamentals' || stepId === 'prices' || stepId === 'insiders' || stepId === 'edgar_events') {
     return chunkedStepEstimate(stepId, mode, tickerCount);
   }
 
@@ -288,6 +293,8 @@ export function buildStepRequestUrl(stepId, { tickersCsv, mode, extractArticles 
       return `?tickers=${tickersParam}&${buildQuery(limits.prices)}`;
     case 'insiders':
       return `?tickers=${tickersParam}&${buildQuery(limits.insiders)}`;
+    case 'edgar_events':
+      return `?tickers=${tickersParam}&${buildQuery(limits.edgar_events)}`;
     case 'dedup_articles':
       return `?${buildQuery(limits.dedup_articles)}`;
     case 'macro':
@@ -305,9 +312,9 @@ export function modeSummary(mode, options = {}) {
     const extraction = limits.ingest_feeds.extractArticles
       ? 'HTML article extraction'
       : 'RSS summaries only';
-    return `Full run: ${extraction}, ${limits.ingest_feeds.maxArticlesPerFeed} articles/feed, 400-day prices, 40 Form 4 filings per ticker.`;
+    return `Full run: ${extraction}, ${limits.ingest_feeds.maxArticlesPerFeed} articles/feed, 400-day prices, 40 Form 4 filings/ticker, EDGAR capped at ${limits.edgar_events.maxTotalRequests} SEC requests per chunk.`;
   }
-  return `Fast run (default): RSS summaries only, ${limits.ingest_feeds.maxArticlesPerFeed} articles/feed, ${limits.prices.days}-day prices, ${limits.insiders.maxFilingsPerCompany} Form 4 filings/ticker.`;
+  return `Fast run (default): RSS summaries only, ${limits.ingest_feeds.maxArticlesPerFeed} articles/feed, ${limits.prices.days}-day prices, ${limits.insiders.maxFilingsPerCompany} Form 4 filings/ticker, EDGAR capped at ${limits.edgar_events.maxTotalRequests} SEC requests per chunk.`;
 }
 
 export function stepDescriptionForMode(stepId, mode, options = {}) {
@@ -324,6 +331,8 @@ export function stepDescriptionForMode(stepId, mode, options = {}) {
       return `Update daily price history for selected tickers (${limits.prices.days} days).`;
     case 'insiders':
       return `Fetch Form 4 insider transactions for selected tickers (up to ${limits.insiders.maxFilingsPerCompany} filings per company).`;
+    case 'edgar_events':
+      return `Fetch 8-K events, going-concern flags, and activist 13D filings (up to ${limits.edgar_events.maxFilingsPerCompany} filings/ticker, ${limits.edgar_events.maxTotalRequests} SEC requests per chunk).`;
     case 'dedup_articles':
       return `Normalize dates, fuzzy dedupe titles, and enrich sentiment (up to ${limits.dedup_articles.enrichLimit} articles).`;
     case 'macro':

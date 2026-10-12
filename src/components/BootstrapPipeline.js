@@ -4,6 +4,7 @@ import {
   BOOTSTRAP_STEPS,
   WAVE_LABELS,
   buildPipelineStages,
+  countSelectedTickers,
   explainStepRecommendation,
   recommendedSelectedStepIds,
   stepDisplayIndex,
@@ -100,8 +101,13 @@ export default function BootstrapPipeline({
 }) {
   const stages = useMemo(() => buildPipelineStages(), []);
   const cacheContext = useMemo(
-    () => ({ freshness, counts, coverage }),
-    [freshness, counts, coverage],
+    () => ({
+      freshness,
+      counts,
+      coverage,
+      tickerCount: countSelectedTickers(tickersCsv),
+    }),
+    [freshness, counts, coverage, tickersCsv],
   );
   const recommendedIds = useMemo(
     () => recommendedSelectedStepIds(cacheContext),

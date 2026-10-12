@@ -23,15 +23,16 @@ describe('tooltipRegistry', () => {
 
   test('getMetricTooltipMeta shapes ColumnHeader metadata', () => {
     const meta = getMetricTooltipMeta('altmanZ', 'Z');
+    expect(meta.metricKey).toBe('altmanZ');
     expect(meta.fullName).toBe('Altman Z-Score');
     expect(meta.tooltip).toMatch(/1\.8/);
     expect(meta.formula).toBeTruthy();
   });
 
-  test('formatMetricCellTooltip joins metric copy and heat line', () => {
-    const text = formatMetricCellTooltip('pe', 'valuation · deep value · strong (tier 4/5)');
-    expect(text).toMatch(/^Price relative to trailing earnings/);
-    expect(text).toContain('valuation · deep value · strong');
+  test('formatMetricCellTooltip returns heat line only', () => {
+    const text = formatMetricCellTooltip('pe', 'Elite (5/5)\n13.00 · Elite ≤ 8 · Distress ≥ 40');
+    expect(text).toContain('Elite (5/5)');
+    expect(text).not.toMatch(/^Price relative/);
   });
 
   test('priority metrics stay concise', () => {

@@ -7,12 +7,11 @@ import DataGrid, { DataGridColumnMenu } from '../components/DataGrid';
 import TickerSubnav from '../components/TickerSubnav';
 import MetricTooltipLabel from '../components/research/MetricTooltipLabel';
 import MarginTrendChart from '../components/research/MarginTrendChart';
-import StTooltip, { StTooltipText } from '../components/StTooltip';
+import HeatGridCell from '../components/HeatGridCell';
 import { useToast } from '../context/ToastContext';
 import { useHeatmapThemeKey } from '../hooks/useHeatmapThemeKey';
 import { isInPortfolio, addToPortfolioWithNotification } from '../utils/portfolio';
 import { isRegistryLoaded, loadMetricRegistry } from '../config/metricRegistry';
-import { formatMetricCellTooltip } from '../config/tooltipRegistry';
 import {
   RESEARCH_METRIC_GROUPS,
   YEAR_OPTIONS,
@@ -25,9 +24,9 @@ import {
 import { formatDecimal, formatPercent, formatUsd, formatCompactUsd, formatSharesCell } from '../utils/formatters';
 import { analyticsChartOptions, scrollChartLayout } from '../utils/chartTheme';
 import { computeTrendPair, metricOverallTrendArrow } from '../utils/researchCalculations';
+import { buildFormulaContextFromPeriod } from '../utils/formulaContext';
 import {
   buildHistoricalStats,
-  describeHeat,
   getMetricBackground,
   precomputeRowHeatStyles,
 } from '../utils/scoringColors';
@@ -35,7 +34,6 @@ import './research.css';
 
 const FINANCIALS_GROUPS = RESEARCH_METRIC_GROUPS.filter((group) => group.id !== 'scores');
 const COLOR_MODE = 'historical';
-const GRID_HEAT_TOOLTIP_PROPS = { placement: 'top-start', floating: true };
 
 const STATEMENT_TABS = [
   { label: 'Income Statement', value: 'income', groupId: 'income' },
@@ -309,13 +307,22 @@ const FinancialsPage = () => {
         cell: ({ row, getValue }) => {
           if (row.original._isGroupHeader) return null;
           const val = getValue();
-          const tip = row.original._heatStyles?.[`p${idx}Title`];
           const formatted = fmt(val, row.original.format);
-          if (!tip) return <span>{formatted}</span>;
+          const heatContext = {
+            mode: COLOR_MODE,
+            format: row.original.format,
+            historical: row.original._historicalStats,
+          };
+          const showTip = row.original.scoreCategory && val != null && val !== '';
+          if (!showTip) return <span>{formatted}</span>;
           return (
-            <StTooltip tip={<StTooltipText text={tip} />} {...GRID_HEAT_TOOLTIP_PROPS}>
-              <span>{formatted}</span>
-            </StTooltip>
+            <HeatGridCell
+              value={val}
+              formatted={formatted}
+              metricKey={row.original.metricKey || row.original.key}
+              heatContext={heatContext}
+              dataContext={buildFormulaContextFromPeriod(columnPeriods[idx])}
+            />
           );
         },
         size: 120,
@@ -334,15 +341,16 @@ const FinancialsPage = () => {
         cell: ({ row, getValue }) => {
           if (row.original._isGroupHeader) return null;
           const val = getValue();
-          const tip = val != null
-            ? formatMetricCellTooltip('yoy', describeHeat('yoy', val, { mode: COLOR_MODE, format: 'percent' }))
-            : null;
           const body = val == null ? '-' : formatPercent(val, 1);
-          if (!tip) return <span>{body}</span>;
+          if (val == null) return <span>{body}</span>;
           return (
-            <StTooltip tip={<StTooltipText text={tip} />} {...GRID_HEAT_TOOLTIP_PROPS}>
-              <span>{body}</span>
-            </StTooltip>
+            <HeatGridCell
+              value={val}
+              formatted={body}
+              metricKey="yoy"
+              heatContext={{ mode: COLOR_MODE, format: 'percent' }}
+              dataContext={null}
+            />
           );
         },
         size: 90,
@@ -361,15 +369,16 @@ const FinancialsPage = () => {
         cell: ({ row, getValue }) => {
           if (row.original._isGroupHeader) return null;
           const val = getValue();
-          const tip = val != null
-            ? formatMetricCellTooltip('cagr', describeHeat('cagr', val, { mode: COLOR_MODE, format: 'percent' }))
-            : null;
           const body = val == null ? '-' : formatPercent(val, 1);
-          if (!tip) return <span>{body}</span>;
+          if (val == null) return <span>{body}</span>;
           return (
-            <StTooltip tip={<StTooltipText text={tip} />} {...GRID_HEAT_TOOLTIP_PROPS}>
-              <span>{body}</span>
-            </StTooltip>
+            <HeatGridCell
+              value={val}
+              formatted={body}
+              metricKey="cagr"
+              heatContext={{ mode: COLOR_MODE, format: 'percent' }}
+              dataContext={null}
+            />
           );
         },
         size: 90,

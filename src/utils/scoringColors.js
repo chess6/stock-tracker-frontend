@@ -4,7 +4,7 @@
  * @see docs/HEATMAP_AND_SCORING_PHILOSOPHY.md
  */
 
-import { formatMetricCellTooltip } from '../config/tooltipRegistry';
+import { formatDecimal, formatPercent } from './formatters';
 import {
   tierHeatStyle,
   signedHeatStyle,
@@ -372,14 +372,163 @@ export function getTrendColor(delta, scale = 8) {
   return `rgba(220, 53, 69, ${0.5 + magnitude * 0.5})`;
 }
 
+function capitalizeTierLabel(label) {
+  if (!label) return 'Neutral';
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function formatHeatValue(value, format) {
+  if (!isValidNumber(value)) return null;
+  const num = Number(value);
+  const fmt = format || 'decimal';
+  if (fmt === 'percent') {
+    const pct = Math.abs(num) <= 1 ? num * 100 : num;
+    return formatPercent(pct, Math.abs(pct) >= 10 ? 1 : 2);
+  }
+  if (fmt === 'integer') return String(Math.round(num));
+  return formatDecimal(num, 2);
+}
+
+function describeScoreBasis(metricKey, value, format) {
+  const formatted = formatHeatValue(value, format);
+  switch (metricKey) {
+    case 'piotroskiF':
+      return `Score ${formatted} · Elite ≥ 8 · Strong ≥ 6 · Distress < 3`;
+    case 'altmanZ':
+      return `Score ${formatted} · Elite > 4 · Strong > 2.99 · Distress < 1.81`;
+    case 'beneishM':
+      return `Score ${formatted} · Elite ≤ −1.78 · Distress > −1.78`;
+    case 'survivability':
+      return `Score ${formatted} · Elite ≥ 80 · Strong ≥ 60 · Distress < 20`;
+    default:
+      return formatted ? `Score ${formatted}` : null;
+  }
+}
+
+function describeTrendBasis(value, format, invertTrend = false) {
+  const num = Number(value);
+  const effective = invertTrend ? -num : num;
+  const pct = Math.abs(effective) <= 1 ? effective * 100 : effective;
+  const formatted = formatHeatValue(pct, 'percent');
+  if (Math.abs(pct) < 0.5) return `${formatted} · Flat (±0.5%)`;
+  if (pct > 0) {
+    return `${formatted} · Strong ≥ 15% · Good ≥ 8% · Mild ≥ 3%`;
+  }
+  return `${formatted} · Distress ≤ −15% · Weak ≤ −8%`;
+}
+
+function describeRegistryBasis(value, rule, format) {
+  const formatted = formatHeatValue(value, format);
+  const danger = rule?.dangerThreshold;
+  const excellent = rule?.excellentThreshold;
+  const higher = rule?.higherIsBetter !== false;
+  const parts = [];
+  if (formatted) parts.push(formatted);
+  if (higher) {
+    if (excellent != null) parts.push(`Elite ≥ ${formatHeatValue(excellent, format)}`);
+    if (danger != null) parts.push(`Distress ≤ ${formatHeatValue(danger, format)}`);
+  } else {
+    if (excellent != null) parts.push(`Elite ≤ ${formatHeatValue(excellent, format)}`);
+    if (danger != null) parts.push(`Distress ≥ ${formatHeatValue(danger, format)}`);
+  }
+  return parts.length > 1 ? parts.join(' · ') : null;
+}
+
+function describePercentileBasis(tier, stats, higherIsBetter, format) {
+  if (!stats || stats.count < 2) return null;
+  const hi = higherIsBetter !== false;
+  const fmt = (v) => formatHeatValue(v, format);
+
+  if (hi) {
+    if (tier >= 5) return stats.p95 != null ? `≥ p95 (${fmt(stats.p95)})` : null;
+    if (tier === 4 && stats.p80 != null) {
+      return stats.p95 != null
+        ? `≥ p80 (${fmt(stats.p80)}) · < p95 (${fmt(stats.p95)})`
+        : `≥ p80 (${fmt(stats.p80)})`;
+    }
+    if (tier === 3 && stats.p60 != null) {
+      return stats.p80 != null
+        ? `≥ p60 (${fmt(stats.p60)}) · < p80 (${fmt(stats.p80)})`
+        : `≥ p60 (${fmt(stats.p60)})`;
+    }
+    if (tier === 2 && stats.p40 != null) {
+      return stats.p60 != null
+        ? `≥ p40 (${fmt(stats.p40)}) · < p60 (${fmt(stats.p60)})`
+        : `≥ p40 (${fmt(stats.p40)})`;
+    }
+    if (tier === 1 && stats.p20 != null) {
+      return stats.p40 != null
+        ? `≥ p20 (${fmt(stats.p20)}) · < p40 (${fmt(stats.p40)})`
+        : `≥ p20 (${fmt(stats.p20)})`;
+    }
+    if (tier === 0 && stats.p20 != null) return `< p20 (${fmt(stats.p20)})`;
+    return null;
+  }
+
+  if (tier >= 5) return stats.min != null ? `≤ min (${fmt(stats.min)})` : null;
+  if (tier === 4 && stats.p20 != null) {
+    return stats.min != null
+      ? `≤ p20 (${fmt(stats.p20)}) · > min (${fmt(stats.min)})`
+      : `≤ p20 (${fmt(stats.p20)})`;
+  }
+  if (tier === 3 && stats.p40 != null) {
+    return stats.p20 != null
+      ? `≤ p40 (${fmt(stats.p40)}) · > p20 (${fmt(stats.p20)})`
+      : `≤ p40 (${fmt(stats.p40)})`;
+  }
+  if (tier === 2 && stats.p60 != null) {
+    return stats.p40 != null
+      ? `≤ p60 (${fmt(stats.p60)}) · > p40 (${fmt(stats.p40)})`
+      : `≤ p60 (${fmt(stats.p60)})`;
+  }
+  if (tier === 1 && stats.p80 != null) {
+    return stats.p60 != null
+      ? `≤ p80 (${fmt(stats.p80)}) · > p60 (${fmt(stats.p60)})`
+      : `≤ p80 (${fmt(stats.p80)})`;
+  }
+  if (tier === 0 && stats.p80 != null) return `> p80 (${fmt(stats.p80)})`;
+  return null;
+}
+
+function describeHeatBasis(metricKey, value, context, tier, rule) {
+  const format = context.format || rule?.format;
+  const mode = context.mode || 'deep_value';
+
+  if ((mode === 'historical' || mode === 'relative') && context.historical) {
+    return describePercentileBasis(tier, context.historical, rule?.higherIsBetter, format);
+  }
+  if (mode === 'sector' && context.sector) {
+    const basis = describePercentileBasis(tier, context.sector, rule?.higherIsBetter, format);
+    return basis ? `Sector · ${basis}` : null;
+  }
+
+  if (rule?.category === 'score') {
+    return describeScoreBasis(metricKey, value, format);
+  }
+  if (rule?.category === 'trend') {
+    return describeTrendBasis(value, format, rule?.invertTrend);
+  }
+
+  const registryBasis = describeRegistryBasis(value, rule, format);
+  if (registryBasis) return registryBasis;
+
+  const formatted = formatHeatValue(value, format);
+  return formatted || null;
+}
+
+/**
+ * Plain-text tooltip for a heat-colored grid cell: tier label plus optional
+ * calculation basis (thresholds or percentiles). Does not repeat metric definitions
+ * already shown in the column header.
+ */
 export function describeHeat(metricKey, value, context = {}) {
   const tier = getScoreTier(value, metricKey, context);
   if (tier == null) return '';
-  const mode = context.mode || 'deep_value';
-  const label = TIER_LABELS[tier] || 'neutral';
   const rule = resolveMetricRule(metricKey, context.legacyHeatmap);
-  const category = rule?.category || 'metric';
-  return `${category} · ${mode.replace('_', ' ')} · ${label} (tier ${tier}/5)`;
+  const label = capitalizeTierLabel(TIER_LABELS[tier]);
+  const basis = describeHeatBasis(metricKey, value, context, tier, rule);
+  if (!basis) return `${label} (${tier}/5)`;
+  return `${label} (${tier}/5)\n${basis}`;
 }
 
 /** @deprecated Use getMetricBackground('beneishM', value, { mode: 'deep_value' }) */
@@ -423,10 +572,6 @@ export function precomputeRowHeatStyles(row, periodCount, context = {}) {
       legacyHeatmap: row.heatmap,
     };
     styles[`${prefix}${idx}`] = getMetricBackground(metricKey, val, cellContext);
-    styles[`${prefix}${idx}Title`] = formatMetricCellTooltip(
-      metricKey,
-      describeHeat(metricKey, val, cellContext),
-    );
   }
   return styles;
 }
@@ -478,10 +623,6 @@ export function precomputeScreenerRowHeatStyles(row, tickers, screenerData, sect
         : undefined,
     };
     styles[colKey] = getMetricBackground(metricKey, val, cellContext);
-    styles[`${colKey}Title`] = formatMetricCellTooltip(
-      metricKey,
-      describeHeat(metricKey, val, cellContext),
-    );
   });
   return styles;
 }

@@ -262,6 +262,7 @@ export default function AdminConsolePage() {
                 <li>Fundamentals: {status.counts?.fundamentals ?? 0}</li>
                 <li>Prices: {status.counts?.prices ?? 0}</li>
                 <li>Insider transactions: {status.counts?.insider_transactions ?? 0}</li>
+                <li>EDGAR events: {status.counts?.edgar_events ?? 0}</li>
                 <li>Jobs queued: {status.jobs?.queued ?? 0}</li>
                 <li>Jobs running: {status.jobs?.running ?? 0}</li>
                 <li className={status.jobs?.failed > 0 ? 'text-danger fw-semibold' : ''}>
@@ -301,6 +302,9 @@ export default function AdminConsolePage() {
                 </li>
                 <li className={staleClass(status.freshness?.insiderClustersUpdatedAt, FRESHNESS_THRESHOLDS.insiderClustersUpdatedAt)}>
                   Insider clusters updated: {formatDate(status.freshness?.insiderClustersUpdatedAt)}
+                </li>
+                <li className={staleClass(status.freshness?.edgarEventsUpdatedAt, FRESHNESS_THRESHOLDS.edgarEventsUpdatedAt)}>
+                  EDGAR events updated: {formatDate(status.freshness?.edgarEventsUpdatedAt)}
                 </li>
                 <li>Latest article published: {formatDate(status.freshness?.latestArticlePublishedAt)}</li>
                 <li className={staleClass(status.freshness?.latestArticleFetchedAt, FRESHNESS_THRESHOLDS.latestArticleFetchedAt)}>

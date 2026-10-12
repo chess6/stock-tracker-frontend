@@ -22,6 +22,7 @@ const FRESHNESS = {
   insidersUpdatedAt: hoursAgo(4),
   companyScoresUpdatedAt: hoursAgo(3),
   insiderClustersUpdatedAt: hoursAgo(4),
+  edgarEventsUpdatedAt: hoursAgo(4),
   latestArticlePublishedAt: hoursAgo(1),
   latestArticleFetchedAt: hoursAgo(1),
 };
@@ -56,6 +57,7 @@ const ADMIN_STATUS = {
     fundamentals: 2400,
     prices: 50000,
     insider_transactions: 120,
+    edgar_events: 45,
   },
   freshness: FRESHNESS,
   coverage: {

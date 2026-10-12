@@ -511,7 +511,9 @@ export function getMetricTooltip(key) {
 export function getMetricTooltipMeta(key, label) {
   const entry = getMetricTooltip(key);
   if (!entry) return null;
+  const resolved = TOOLTIP_ALIASES[key] || key;
   return {
+    metricKey: resolved,
     fullName: entry.fullName || label,
     tooltip: entry.tooltip,
     formula: entry.formula,
@@ -520,14 +522,11 @@ export function getMetricTooltipMeta(key, label) {
 }
 
 /**
- * Plain-text tooltip for grid cells: metric context + optional heat tier line.
- * @param {string} key
+ * @deprecated Grid cells use describeHeat() directly — metric definitions belong in column headers.
+ * Kept for callers that still pass a heat line without duplicating registry copy.
+ * @param {string} _key
  * @param {string} [heatLine] — from describeHeat()
  */
-export function formatMetricCellTooltip(key, heatLine) {
-  const entry = getMetricTooltip(key);
-  if (!entry?.tooltip && !heatLine) return '';
-  if (!heatLine) return entry.tooltip;
-  if (!entry?.tooltip) return heatLine;
-  return `${entry.tooltip}\n— ${heatLine}`;
+export function formatMetricCellTooltip(_key, heatLine) {
+  return heatLine || '';
 }
