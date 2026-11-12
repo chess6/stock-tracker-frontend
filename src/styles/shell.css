@@ -343,3 +343,13 @@
   font-size: 0.78rem;
   padding: 0.2rem 0.5rem;
 }
+
+/* Narrow centered panel for focused single-task pages (owner sign-in, access prompts). */
+.st-narrow-panel {
+  max-width: 28rem;
+  margin: 1.5rem auto 0;
+}
+
+.st-narrow-panel-wide {
+  max-width: 40rem;
+}

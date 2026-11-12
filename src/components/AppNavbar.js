@@ -10,6 +10,7 @@ import API_ENDPOINTS from '../apiConfig';
 import { summarizeFreshness } from '../utils/dataFreshness';
 import { fetchFreshness } from '../utils/fetchFreshness';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import ThemeProfileMenu from './ThemeProfileMenu';
 import { useCloseOnOutside } from '../hooks/useDismissiblePopover';
 import { tickerFinancialsUrl } from '../utils/tickerLinks';
@@ -42,6 +43,7 @@ const AppNavbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useToast();
+  const { authRequired, readOnly, logout } = useAuth();
 
   const closeSearchDropdown = useCallback(() => {
     setDropdownOpen(false);
@@ -173,6 +175,39 @@ const AppNavbar = () => {
                 >
                   {staleLabel}
                 </Link>
+              </li>
+            )}
+            {authRequired && readOnly && (
+              <li className="d-flex align-items-center gap-2">
+                <span
+                  className="badge rounded-pill text-bg-secondary"
+                  title="Visitors can browse everything; changes need the owner to sign in"
+                >
+                  Read-only demo
+                </span>
+                <Link
+                  to="/login"
+                  state={{ from: `${location.pathname}${location.search}` }}
+                  className="st-nav-link"
+                  onClick={() => setNavOpen(false)}
+                >
+                  Sign in
+                </Link>
+              </li>
+            )}
+            {authRequired && !readOnly && (
+              <li>
+                <button
+                  type="button"
+                  className="st-nav-link btn btn-link p-0 text-decoration-none"
+                  onClick={async () => {
+                    setNavOpen(false);
+                    await logout();
+                    showToast('Signed out. The app is now read-only.', 'info');
+                  }}
+                >
+                  Sign out
+                </button>
               </li>
             )}
           </ul>
