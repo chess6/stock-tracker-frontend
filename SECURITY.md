@@ -28,6 +28,17 @@ We aim to acknowledge reports within **7 days** and will coordinate disclosure o
 * Portfolio tickers live in **browser localStorage** — not server-side secrets, but users should not paste sensitive holdings into public bug reports.
 * The dev server proxies `/api` to `localhost:5000` — production deployments must configure CORS and TLS appropriately.
 * Never commit `.env`, `.env.local`, or agent task logs with tokens.
+* Never put secrets in `REACT_APP_*` variables. Create React App inlines them into the public JavaScript bundle; keep API keys on the backend.
+
+## Secret scanning
+
+Secrets are checked at three points:
+
+1. **Before each commit:** `.githooks/pre-commit` runs [gitleaks](https://github.com/gitleaks/gitleaks) on staged changes. Enable it once per clone with `brew install gitleaks && git config core.hooksPath .githooks`.
+2. **On every push and pull request:** `.github/workflows/secret-scan.yml` scans the full git history and fails the check if anything is found.
+3. **GitHub push protection:** rejects pushes that contain secrets from known providers.
+
+Rules, including Nasdaq Data Link and Tiingo key formats, live in `.gitleaks.toml`. Run `gitleaks git --redact .` to scan locally. Vendor API dumps such as `src/mock/SHARADAR_*.txt` are git-ignored because copied request URLs carry `api_key=`. If a secret is ever committed, **rotate it first**; removing it from history does not make it safe again.
 
 ## Safe defaults for public deployments
 
