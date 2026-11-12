@@ -5,8 +5,6 @@ __pycache__/
 .cursor/agent_tasks/
 node_modules/
 build/
-.env
-.env.local
 test-results/
 playwright-report/
 playwright/.cache/
@@ -20,3 +18,22 @@ src/mock/SHARADAR_*.txt
 agent_tasks/health-scan-report.json
 *.out
 *.pid
+
+# --- Secrets & local credentials (never commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+id_rsa*
+id_ed25519*
+credentials.json
+service-account*.json
+secrets.*
+.secrets/
+.netrc
+.npmrc
+.pypirc
