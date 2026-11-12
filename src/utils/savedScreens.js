@@ -1,5 +1,6 @@
 import API_ENDPOINTS from '../apiConfig';
-import { buildScreenRequestSpec, getScreenPreset, groupsFromSpec } from '../config/screenPresets';
+import { buildScreenRequestSpec, groupsFromSpec } from '../config/screenPresets';
+import { setLocalItem } from './safeStorage';
 
 const STORAGE_KEY = 'stock-tracker-saved-screens';
 const MAX_SAVED = 30;
@@ -50,7 +51,7 @@ function readStore() {
 }
 
 function writeStore(screens) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ screens }));
+  setLocalItem(STORAGE_KEY, JSON.stringify({ screens }));
 }
 
 function persistSavedScreenToApi(screen) {

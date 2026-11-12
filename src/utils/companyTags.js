@@ -1,4 +1,5 @@
 import API_ENDPOINTS from '../apiConfig';
+import { setLocalItem } from './safeStorage';
 
 export const COMPANY_TAGS_STORAGE_KEY = 'portfolio-company-tags';
 export const ALL_TAGS_FILTER = 'all';
@@ -63,7 +64,7 @@ function readStore() {
 }
 
 function writeStore(store) {
-  localStorage.setItem(
+  setLocalItem(
     COMPANY_TAGS_STORAGE_KEY,
     JSON.stringify({
       tickerTags: store.tickerTags,

@@ -13,6 +13,7 @@ import { useHeatmapThemeKey } from '../hooks/useHeatmapThemeKey';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { formatFreshnessTimestamp } from '../utils/dataFreshness';
+import { fetchFreshness } from '../utils/fetchFreshness';
 import { insiderScreenerUrl, tickerFindersUrl, tickerFinancialsUrl } from '../utils/tickerLinks';
 import { isDarkTheme } from '../utils/themeState';
 
@@ -123,8 +124,8 @@ const StockScreenerPage = () => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await axios.get(API_ENDPOINTS.ADMIN_STATUS);
-        if (!cancelled) setInsidersUpdatedAt(res.data?.freshness?.insidersUpdatedAt || null);
+        const { freshness } = await fetchFreshness();
+        if (!cancelled) setInsidersUpdatedAt(freshness?.insidersUpdatedAt || null);
       } catch {
         if (!cancelled) setInsidersUpdatedAt(null);
       }

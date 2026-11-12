@@ -632,7 +632,6 @@ const FinancialsPage = () => {
 
       <section
         className={`st-details financials-panel financials-charts-panel${chartsPanelOpen ? ' is-open' : ''}`}
-        aria-expanded={chartsPanelOpen}
       >
         <div
           className="st-details-summary financials-charts-panel-summary"
@@ -743,7 +742,6 @@ const FinancialsPage = () => {
 
       <section
         className={`st-details financials-panel${statementsPanelOpen ? ' is-open' : ''}`}
-        aria-expanded={statementsPanelOpen}
       >
         <div
           className="st-details-summary financials-panel-summary"

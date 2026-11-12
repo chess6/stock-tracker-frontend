@@ -1,3 +1,4 @@
+import { setLocalItem } from './safeStorage';
 const STORAGE_KEY = 'stock-tracker-portfolio-watchlists';
 const MAX_WATCHLISTS = 20;
 
@@ -25,7 +26,7 @@ function readStore() {
 }
 
 function writeStore(watchlists) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ watchlists }));
+  setLocalItem(STORAGE_KEY, JSON.stringify({ watchlists }));
 }
 
 export function getPortfolioWatchlists() {

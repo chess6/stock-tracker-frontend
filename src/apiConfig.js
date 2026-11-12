@@ -59,6 +59,7 @@ export const API_ENDPOINTS = {
   // legacy client alias — same URL as INSIDER_TRANSACTIONS
   // SF2: ticker => `${API_BASE}/ticker/${ticker}/sf2`,
   ADMIN_STATUS: `${API_BASE}/admin/status`,
+  STATUS_FRESHNESS: `${API_BASE}/status/freshness`,
   ADMIN_CONFIG: `${API_BASE}/admin/config`,
   ADMIN_PIPELINE_STATUS: `${API_BASE}/admin/pipeline-status`,
   ADMIN_UNIVERSES: `${API_BASE}/admin/universes`,

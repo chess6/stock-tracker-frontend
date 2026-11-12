@@ -1,5 +1,6 @@
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
+import { setLocalItem } from './safeStorage';
 
 const STORAGE_KEY = 'stock-tracker-signal-state-cache';
 
@@ -13,7 +14,7 @@ export function readLocalSignalState() {
 }
 
 export function writeLocalSignalState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  setLocalItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 export async function fetchSignalState() {

@@ -8,6 +8,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 import { summarizeFreshness } from '../utils/dataFreshness';
+import { fetchFreshness } from '../utils/fetchFreshness';
 import { useToast } from '../context/ToastContext';
 import ThemeProfileMenu from './ThemeProfileMenu';
 import { useCloseOnOutside } from '../hooks/useDismissiblePopover';
@@ -53,9 +54,9 @@ const AppNavbar = () => {
     let cancelled = false;
     const loadFreshness = async () => {
       try {
-        const res = await axios.get(API_ENDPOINTS.ADMIN_STATUS);
+        const { freshness } = await fetchFreshness();
         if (cancelled) return;
-        const { label } = summarizeFreshness(res.data?.freshness);
+        const { label } = summarizeFreshness(freshness);
         setStaleLabel(label);
       } catch {
         if (!cancelled) setStaleLabel(null);
@@ -77,9 +78,10 @@ const AppNavbar = () => {
       searchTimeoutRef.current = setTimeout(async () => {
         if (latestSearchValue.current === searchValueAtTimeout && searchValueAtTimeout.trim() !== '') {
           try {
-            const res = await axios.get(`${API_ENDPOINTS.SEARCH}?q=${searchValueAtTimeout}`);
+            // params encodes the query ("AT&T" used to search "AT", and "#" truncated it).
+            const res = await axios.get(API_ENDPOINTS.SEARCH, { params: { q: searchValueAtTimeout } });
             if (latestSearchValue.current === searchValueAtTimeout) {
-              setSearchResults(res.data);
+              setSearchResults(Array.isArray(res.data) ? res.data : []);
               setDropdownOpen(true);
             }
           } catch {

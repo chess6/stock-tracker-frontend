@@ -1,4 +1,5 @@
 import { PORTFOLIO_DEFAULT_VISIBLE_COLUMNS } from './portfolioColumns';
+import { setLocalItem } from '../utils/safeStorage';
 
 export const PORTFOLIO_PRESET_STORAGE_KEY = 'portfolio-research-presets';
 
@@ -161,7 +162,7 @@ export function getActivePortfolioPresetId() {
 
 export function setActivePortfolioPresetId(presetId) {
   const resolved = PRESET_BY_ID[presetId] ? presetId : DEFAULT_PORTFOLIO_PRESET_ID;
-  localStorage.setItem(
+  setLocalItem(
     PORTFOLIO_PRESET_STORAGE_KEY,
     JSON.stringify({ activePresetId: resolved }),
   );

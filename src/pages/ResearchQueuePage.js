@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import StSpinner from '../components/StSpinner';
@@ -82,9 +82,14 @@ export default function ResearchQueuePage() {
     [radarSelection],
   );
 
-  const radarOptions = useMemo(() => listRadarScanOptions(), [savedRadarScans]);
+  const radarOptions = useMemo(() => listRadarScanOptions(savedRadarScans), [savedRadarScans]);
+
+  // Ignore responses from superseded loads (fast lens/filter switches).
+  const loadGenRef = useRef(0);
 
   const loadSignals = useCallback(async () => {
+    const gen = ++loadGenRef.current;
+    const isCurrent = () => gen === loadGenRef.current;
     setLoading(true);
     setError('');
     setDisabled(false);
@@ -103,6 +108,7 @@ export default function ResearchQueuePage() {
         axios.get(API_ENDPOINTS.SIGNALS, { params }),
         axios.get(API_ENDPOINTS.SIGNALS_MORNING_BRIEF, { params: { limit: BRIEF_LIMIT } }),
       ]);
+      if (!isCurrent()) return;
 
       setSignals(signalsRes.data?.items || []);
       setWatchDigest(lens === 'watch' ? signalsRes.data?.digest || null : null);
@@ -119,6 +125,7 @@ export default function ResearchQueuePage() {
       });
       await fetchSignalState();
     } catch (err) {
+      if (!isCurrent()) return;
       const flag = err.response?.data?.flag;
       if (err.response?.status === 404 && flag === 'experimental_signals') {
         setDisabled(true);
@@ -127,7 +134,7 @@ export default function ResearchQueuePage() {
         setError(err.response?.data?.error || err.message || 'Failed to load signals');
       }
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [lens, activeRadar?.lens, portfolioOnly, showRead]);
 
@@ -165,25 +172,38 @@ export default function ResearchQueuePage() {
     setRadarSelection(SIGNAL_RADAR_PRESETS[0].id);
   };
 
-  const handleDismiss = async (signal) => {
-    await dismissSignal({
+  const runSignalAction = async (action, failureMessage) => {
+    try {
+      await action();
+    } catch (err) {
+      const message = err?.response?.status === 401
+        ? 'Sign in to update signals.'
+        : (err?.response?.data?.error || failureMessage);
+      showToast?.(message, 'danger', 5000);
+      return;
+    }
+    await loadSignals();
+  };
+
+  const handleDismiss = (signal) => runSignalAction(
+    () => dismissSignal({
       dedupKey: signal.dedupKey,
       ticker: signal.ticker,
       eventType: signal.signalType,
       eventDate: signal.eventDate,
-    });
-    await loadSignals();
-  };
+    }),
+    'Could not dismiss this signal.',
+  );
 
-  const handleSnooze = async (signal) => {
-    await snoozeSignal(signal.dedupKey, 7);
-    await loadSignals();
-  };
+  const handleSnooze = (signal) => runSignalAction(
+    () => snoozeSignal(signal.dedupKey, 7),
+    'Could not snooze this signal.',
+  );
 
-  const handleMarkRead = async (signal) => {
-    await markSignalRead(signal.dedupKey, true);
-    await loadSignals();
-  };
+  const handleMarkRead = (signal) => runSignalAction(
+    () => markSignalRead(signal.dedupKey, true),
+    'Could not mark this signal as read.',
+  );
 
   const displayedSignals = lens === 'brief' ? briefItems : signals;
 

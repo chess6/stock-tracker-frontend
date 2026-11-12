@@ -12,6 +12,9 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 
+// Stable fallback so memoized callbacks don't change identity every render.
+const EMPTY_SORTING = [];
+
 export const DataGridColumnMenu = memo(function DataGridColumnMenu({
   columns,
   effectiveVisibleColumns,
@@ -209,7 +212,7 @@ export default function DataGrid({
   const [internalSorting, setInternalSorting] = useState([]);
   const sorting = controlledSorting ?? internalSorting;
   const handleSortingChange = onSortingChange ?? setInternalSorting;
-  const resolvedDefaultSorting = defaultSorting ?? [];
+  const resolvedDefaultSorting = defaultSorting ?? EMPTY_SORTING;
   const multiSortActive = sorting.length > 1;
   const showResetSorting = enableSorting
     && !sortingStatesEqual(sorting, resolvedDefaultSorting);

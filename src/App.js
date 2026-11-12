@@ -33,8 +33,13 @@ function LegacyResearchTickerRedirect() {
   return <Navigate to={`${tickerOverviewUrl(ticker)}${location.search}`} replace />;
 }
 
+// Ticker-shaped single path segments only (AAPL, BRK.B, RDS-A), so typos like
+// "/dashbord" go home instead of opening a "DASHBORD" financials page.
+const LEGACY_TICKER_RE = /^[A-Za-z]{1,5}([.-][A-Za-z0-9]{1,2})?$/;
+
 function LegacyOverviewRedirect() {
   const { ticker } = useParams();
+  if (!LEGACY_TICKER_RE.test(ticker || '')) return <Navigate to="/" replace />;
   return <Navigate to={tickerFinancialsUrl(ticker)} replace />;
 }
 

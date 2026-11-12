@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
 
+const MAX_IDLE_ROUNDS = 3;
+
 const DEFAULT_BATCH = 50;
 const STATUS_POLL_MS = 2000;
 const BATCH_SLEEP_MS = 500;
@@ -31,6 +33,11 @@ export default function ArticleEnrichmentPanel({
   const [lastBatch, setLastBatch] = useState(null);
   const [embeddingsError, setEmbeddingsError] = useState('');
   const stopRef = useRef(false);
+
+  // Leaving the page stops the loop instead of letting it POST in the background.
+  useEffect(() => () => {
+    stopRef.current = true;
+  }, []);
   const onCountsChangeRef = useRef(onCountsChange);
   const onRunCompleteRef = useRef(onRunComplete);
   onCountsChangeRef.current = onCountsChange;
@@ -90,6 +97,7 @@ export default function ArticleEnrichmentPanel({
       }
 
       let rounds = 0;
+      let idleRounds = 0;
       while (!stopRef.current) {
         rounds += 1;
         const response = await axios.post(
@@ -120,7 +128,14 @@ export default function ArticleEnrichmentPanel({
           showToast?.('Article enrichment complete', 'success', 5000);
           break;
         }
-        if (processed === 0 && pending === 0 && processing === 0) {
+        // Articles stuck in "processing" or failing every time would otherwise loop forever.
+        idleRounds = processed === 0 ? idleRounds + 1 : 0;
+        if (idleRounds >= MAX_IDLE_ROUNDS) {
+          showToast?.(
+            `Enrichment paused: no progress in ${MAX_IDLE_ROUNDS} batches (${pending} pending, ${processing} processing)`,
+            'warning',
+            6000,
+          );
           break;
         }
 

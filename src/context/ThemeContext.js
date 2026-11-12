@@ -51,6 +51,12 @@ export function ThemeProvider({ children }) {
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
+/** Theme name without requiring a provider (falls back to the applied theme). */
+export function useThemeName() {
+  const ctx = useContext(ThemeContext);
+  return ctx ? ctx.theme : getCurrentTheme();
+}
+
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) {

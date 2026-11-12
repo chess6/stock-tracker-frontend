@@ -1,3 +1,4 @@
+import { setLocalItem } from './safeStorage';
 export const PORTFOLIO_GROUP_BY_STORAGE_KEY = 'portfolio-group-by';
 export const PORTFOLIO_GROUP_COLLAPSED_STORAGE_KEY = 'portfolio-group-collapsed';
 
@@ -166,7 +167,7 @@ export function getActivePortfolioGroupBy() {
 
 export function setActivePortfolioGroupBy(groupBy) {
   const resolved = GROUP_BY_IDS.has(groupBy) ? groupBy : DEFAULT_PORTFOLIO_GROUP_BY;
-  localStorage.setItem(
+  setLocalItem(
     PORTFOLIO_GROUP_BY_STORAGE_KEY,
     JSON.stringify({ groupBy: resolved }),
   );
@@ -187,7 +188,7 @@ export function getCollapsedPortfolioGroups() {
 
 export function setCollapsedPortfolioGroups(collapsedKeys) {
   const collapsed = [...(collapsedKeys instanceof Set ? collapsedKeys : new Set(collapsedKeys))];
-  localStorage.setItem(
+  setLocalItem(
     PORTFOLIO_GROUP_COLLAPSED_STORAGE_KEY,
     JSON.stringify({ collapsed }),
   );

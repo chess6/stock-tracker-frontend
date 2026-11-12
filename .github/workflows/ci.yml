@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Lint (fails above the warning budget in package.json)
+        run: npm run lint
+
+      - name: Unit tests
+        run: npx craco test --watchAll=false
+        env:
+          CI: "true"
+
+      - name: Production build
+        # Lint warnings are gated above; CRA would otherwise fail the build on any warning.
+        run: npm run build
+        env:
+          CI: "false"

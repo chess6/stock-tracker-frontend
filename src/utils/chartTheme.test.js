@@ -1,25 +1,23 @@
-import { apexBaseOptions, isDarkTheme, mergeApexOptions } from './chartTheme';
+import { apexBaseOptions, mergeApexOptions } from './chartTheme';
+import { applyTheme, getCurrentTheme, isDarkTheme } from './themeState';
 
 describe('chartTheme', () => {
-  const originalTheme = document.documentElement.getAttribute('data-bs-theme');
+  // Theme lives in themeState (applyTheme also sets data-bs-theme on <html>).
+  const originalTheme = getCurrentTheme();
 
   afterEach(() => {
-    if (originalTheme) {
-      document.documentElement.setAttribute('data-bs-theme', originalTheme);
-    } else {
-      document.documentElement.removeAttribute('data-bs-theme');
-    }
+    applyTheme(originalTheme);
   });
 
-  test('isDarkTheme reflects document attribute', () => {
-    document.documentElement.setAttribute('data-bs-theme', 'dark');
+  test('isDarkTheme reflects the applied theme', () => {
+    applyTheme('dark');
     expect(isDarkTheme()).toBe(true);
-    document.documentElement.setAttribute('data-bs-theme', 'light');
+    applyTheme('light');
     expect(isDarkTheme()).toBe(false);
   });
 
   test('apexBaseOptions uses dark foreground colors in dark mode', () => {
-    document.documentElement.setAttribute('data-bs-theme', 'dark');
+    applyTheme('dark');
     const opts = apexBaseOptions();
     expect(opts.theme.mode).toBe('dark');
     expect(opts.chart.foreColor).toBe('#dee2e6');
@@ -27,7 +25,7 @@ describe('chartTheme', () => {
   });
 
   test('mergeApexOptions preserves page-specific chart config', () => {
-    document.documentElement.setAttribute('data-bs-theme', 'light');
+    applyTheme('light');
     const merged = mergeApexOptions({ title: { text: 'Test Chart' } });
     expect(merged.title.text).toBe('Test Chart');
     expect(merged.theme.mode).toBe('light');

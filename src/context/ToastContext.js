@@ -1,4 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import {
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
+} from 'react';
+import { PORTFOLIO_SAVE_FAILED_EVENT } from '../utils/portfolio';
 import './ToastStack.css';
 
 const ToastContext = createContext(null);
@@ -27,6 +30,13 @@ export function ToastProvider({ children }) {
       timersRef.current.set(id, timer);
     }
   }, [dismiss]);
+
+  // Portfolio saves are optimistic; surface rejections (e.g. signed out, server down) app-wide.
+  useEffect(() => {
+    const onSaveFailed = (event) => showToast(event.detail?.message, 'danger', 6000);
+    window.addEventListener(PORTFOLIO_SAVE_FAILED_EVENT, onSaveFailed);
+    return () => window.removeEventListener(PORTFOLIO_SAVE_FAILED_EVENT, onSaveFailed);
+  }, [showToast]);
 
   const value = useMemo(() => ({ showToast, dismiss }), [showToast, dismiss]);
 

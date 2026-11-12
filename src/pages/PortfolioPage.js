@@ -49,6 +49,7 @@ import {
 import { getPortfolio, loadUserPreferences, PORTFOLIO_UPDATED_EVENT, setPortfolioTickers } from '../utils/portfolio';
 import { useToast } from '../context/ToastContext';
 import { formatFreshnessTimestamp } from '../utils/dataFreshness';
+import { fetchFreshness } from '../utils/fetchFreshness';
 import './portfolio.css';
 import {
     secEdgarUrl, instHoldingsUrl, analysisUrl, tickerFinancialsUrl, tickerNewsUrl,
@@ -955,8 +956,8 @@ const PortfolioPage = () => {
         let cancelled = false;
         (async () => {
             try {
-                const res = await axios.get(API_ENDPOINTS.ADMIN_STATUS);
-                if (!cancelled) setCacheFreshness(res.data?.freshness || null);
+                const { freshness } = await fetchFreshness();
+                if (!cancelled) setCacheFreshness(freshness || null);
             } catch {
                 if (!cancelled) setCacheFreshness(null);
             }

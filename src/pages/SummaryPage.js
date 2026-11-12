@@ -11,7 +11,8 @@ import { useTheme } from '../context/ThemeContext';
 import { mergeApexOptions } from '../utils/chartTheme';
 
 const SummaryPage = () => {
-  const { ticker } = useParams();
+  // Backend responses key quotes by upper-case symbol.
+  const ticker = (useParams().ticker || '').toUpperCase();
   const [prices, setPrices] = useState([]); // summary endpoint
   const [intraday, setIntraday] = useState([]); // intraday endpoint
   const [news, setNews] = useState([]);
@@ -285,7 +286,8 @@ const SummaryPage = () => {
             )}
           </div>
           <div className="mb-1 st-segment">
-            {['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'MAX'].map((r) => (
+            {/* 1D/5D omitted: the backend intraday endpoint has no data source yet. */}
+            {['1M', '3M', '6M', 'YTD', '1Y', '5Y', 'MAX'].map((r) => (
               <button
                 key={r}
                 type="button"

@@ -24,6 +24,7 @@ describe('StTooltipHeatCell', () => {
     expect(screen.getByText('$392 B')).toBeInTheDocument();
     expect(screen.getByText('$439 B')).toBeInTheDocument();
     expect(screen.getByText('= 89.27%')).toBeInTheDocument();
+    // eslint-disable-next-line testing-library/no-node-access -- the fraction bar is decorative (no role/text)
     expect(document.querySelector('.st-metric-fraction-bar')).toBeInTheDocument();
   });
 });

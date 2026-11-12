@@ -43,7 +43,9 @@ export default function ResearchToolbar({
     (async () => {
       try {
         const res = await axios.get(API_ENDPOINTS.WATCHLISTS);
-        if (!cancelled) setWatchlists(Array.isArray(res.data) ? res.data : []);
+        // GET /api/watchlists returns { watchlists: [...] }.
+        const list = Array.isArray(res.data?.watchlists) ? res.data.watchlists : [];
+        if (!cancelled) setWatchlists(list);
       } catch {
         if (!cancelled) setWatchlists([]);
       }
@@ -59,11 +61,13 @@ export default function ResearchToolbar({
     }
     if (!name) return;
     try {
-      const res = await axios.get(API_ENDPOINTS.WATCHLIST_TICKERS(name));
-      const tickers = Array.isArray(res.data?.tickers) ? res.data.tickers : (Array.isArray(res.data) ? res.data : []);
-      onTickersTextChange(tickers.map((t) => String(t).toUpperCase()).join(','));
+      // GET /api/watchlists/<name> returns the watchlist with its tickers
+      // (/tickers only accepts POST).
+      const res = await axios.get(API_ENDPOINTS.WATCHLIST(name));
+      const tickers = Array.isArray(res.data?.tickers) ? res.data.tickers : [];
+      onTickersTextChange(tickers.map((t) => String(t?.ticker ?? t).toUpperCase()).join(','));
     } catch {
-      onTickersTextChange('');
+      // Keep whatever the user already typed.
     }
   };
 

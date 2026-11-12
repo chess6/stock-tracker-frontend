@@ -75,7 +75,6 @@ export default function NewsPage() {
   );
   const [articles, setArticles] = useState([]);
   const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
@@ -102,6 +101,14 @@ export default function NewsPage() {
 
   const [portfolioTickers, setPortfolioTickers] = useState(() => getPortfolio());
   const [sourceDomainOptions, setSourceDomainOptions] = useState([]);
+  // Responses from superseded requests (filters changed, page reset) are ignored.
+  const requestGenRef = useRef(0);
+  // Read portfolio tickers through a ref so portfolio updates don't recreate loadNews
+  // (which re-fetched the feed on every visit and on every portfolio change).
+  const portfolioTickersRef = useRef(portfolioTickers);
+  useEffect(() => {
+    portfolioTickersRef.current = portfolioTickers;
+  }, [portfolioTickers]);
 
   const tickerOptions = useMemo(() => {
     const merged = new Set([...portfolioTickers, ...initialTickers]);
@@ -129,7 +136,7 @@ export default function NewsPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const loadClusters = useCallback(async (nextOffset, append = false) => {
+  const loadClusters = useCallback(async (nextOffset, append, gen) => {
     if (append) {
       setLoadingMore(true);
     } else {
@@ -140,26 +147,31 @@ export default function NewsPage() {
       const res = await axios.get(API_ENDPOINTS.NEWS_CLUSTERS, {
         params: { limit: PAGE_SIZE, offset: nextOffset, hours: 72 },
       });
+      if (gen !== requestGenRef.current) return;
       const newClusters = res.data?.clusters || [];
       setClusters((prev) => append ? [...prev, ...newClusters] : newClusters);
       setTotal(res.data?.total || 0);
-      setOffset(nextOffset);
       setArticles([]);
     } catch (err) {
+      if (gen !== requestGenRef.current) return;
       if (!append) {
         setClusters([]);
         setTotal(0);
       }
       setError(err?.response?.data?.error || 'Failed to load news clusters');
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (gen === requestGenRef.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, []);
 
   const loadNews = useCallback(async (nextOffset, filters, append = false) => {
+    // A fresh load supersedes everything in flight; "load more" belongs to the current one.
+    const gen = append ? requestGenRef.current : ++requestGenRef.current;
     if (filters.clusterView) {
-      await loadClusters(nextOffset, append);
+      await loadClusters(nextOffset, append, gen);
       return;
     }
     if (append) {
@@ -175,18 +187,20 @@ export default function NewsPage() {
       if (filters.sourceDomain) params.sourceDomain = filters.sourceDomain;
       if (filters.divergenceOnly) params.divergenceOnly = true;
       if (filters.sort && filters.sort !== 'importance') params.sort = filters.sort;
-      if (filters.portfolioOnly && portfolioTickers.length > 0) {
-        params.tickers = portfolioTickers.join(',');
+      const currentPortfolio = portfolioTickersRef.current;
+      if (filters.portfolioOnly && currentPortfolio.length > 0) {
+        params.tickers = currentPortfolio.join(',');
       } else if (filters.tickers) {
         params.tickers = filters.tickers;
       }
       const res = await axios.get(API_ENDPOINTS.NEWS_FEED, { params });
+      if (gen !== requestGenRef.current) return;
       const newArticles = res.data?.articles || [];
       setArticles((prev) => append ? [...prev, ...newArticles] : newArticles);
       setClusters([]);
       setTotal(res.data?.total || 0);
-      setOffset(nextOffset);
     } catch (err) {
+      if (gen !== requestGenRef.current) return;
       if (!append) {
         setArticles([]);
         setClusters([]);
@@ -194,14 +208,18 @@ export default function NewsPage() {
       }
       setError(err?.response?.data?.error || 'Failed to load news feed');
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (gen === requestGenRef.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
-  }, [portfolioTickers, loadClusters]);
+  }, [loadClusters]);
 
+  // Reload when filters change, or when the portfolio changes while filtering by it.
+  const portfolioFilterKey = appliedFilters.portfolioOnly ? portfolioTickers.join(',') : '';
   useEffect(() => {
     loadNews(0, appliedFilters, false);
-  }, [appliedFilters, loadNews]);
+  }, [appliedFilters, loadNews, portfolioFilterKey]);
 
   const loadedCount = appliedFilters.clusterView ? clusters.length : articles.length;
   const hasMore = loadedCount < total;

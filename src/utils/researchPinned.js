@@ -1,4 +1,5 @@
 import API_ENDPOINTS from '../apiConfig';
+import { setLocalItem } from './safeStorage';
 
 export const RESEARCH_PINNED_STORAGE_KEY = 'research-pinned-tickers';
 export const MAX_PINNED_TICKERS = 24;
@@ -33,7 +34,7 @@ function dedupeTickers(tickers) {
 
 function writeStore(tickers) {
   const deduped = dedupeTickers(tickers);
-  localStorage.setItem(RESEARCH_PINNED_STORAGE_KEY, JSON.stringify(deduped));
+  setLocalItem(RESEARCH_PINNED_STORAGE_KEY, JSON.stringify(deduped));
   persistPinnedTickersToApi(deduped);
   return deduped;
 }
@@ -60,7 +61,7 @@ export async function hydratePinnedTickersFromApi(shouldApply = () => true) {
     const data = await res.json();
     const tickers = dedupeTickers(data.researchPinnedTickers || []);
     if (!shouldApply()) return loadPinnedTickers();
-    localStorage.setItem(RESEARCH_PINNED_STORAGE_KEY, JSON.stringify(tickers));
+    setLocalItem(RESEARCH_PINNED_STORAGE_KEY, JSON.stringify(tickers));
     return tickers;
   } catch {
     return loadPinnedTickers();
