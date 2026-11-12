@@ -22,6 +22,9 @@ import ResearchPage from './pages/ResearchPage';
 import FinancialsPage from './pages/FinancialsPage';
 import ScreenPage from './pages/ScreenPage';
 import { ToastProvider } from './context/ToastContext';
+import { AuthProvider } from './context/AuthContext';
+import LoginPage from './pages/LoginPage';
+import OwnerOnly from './components/OwnerOnly';
 import { ThemeProvider } from './context/ThemeContext';
 import { loadMetricRegistry } from './config/metricRegistry';
 import { loadUserPreferences } from './utils/portfolio';
@@ -67,6 +70,7 @@ function App() {
     <Provider store={store}>
       <ThemeProvider>
       <ToastProvider>
+      <AuthProvider>
       <Router>
         <AppNavbar />
         <Routes>
@@ -87,7 +91,8 @@ function App() {
           <Route path="screener" element={<StockScreenerPage />} />
           <Route path="industry" element={<IndustryPage />} />
           <Route path="movers" element={<MoversPage />} />
-          <Route path="admin" element={<AdminConsolePage />} />
+          <Route path="admin" element={<OwnerOnly title="Admin console"><AdminConsolePage /></OwnerOnly>} />
+          <Route path="login" element={<LoginPage />} />
           <Route path="overview/:ticker" element={<ResearchOverviewPage />} />
           <Route path="finders/:ticker" element={<TickerDetailsPage />} />
           <Route path="financials/:ticker" element={<FinancialsPage />} />
@@ -101,6 +106,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>
+      </AuthProvider>
       </ToastProvider>
       </ThemeProvider>
     </Provider>

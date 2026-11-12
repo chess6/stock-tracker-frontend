@@ -47,6 +47,16 @@ The dev server proxies `/api` to `localhost:5000` via `package.json` `"proxy"`.
 
 Portfolio tickers are stored in **browser localStorage** (`portfolio` key). Add tickers via the navbar search box (+ button).
 
+## Owner sign-in (public demos)
+
+When the backend sets `APP_PASSWORD_HASH` (see the backend `SECURITY.md`), the app becomes a read-only demo for visitors:
+
+* The navbar shows a **Read-only demo** badge and a **Sign in** link (`/login`). The owner can sign out from the navbar.
+* Guests can browse every page. A change that needs the owner shows one "read-only demo" toast instead of an error.
+* `/admin` shows a sign-in prompt to guests.
+
+Without `APP_PASSWORD_HASH`, nothing changes: no badge, and everything is editable as before.
+
 ## Admin console
 
 Open **http://localhost:3000/admin** after the backend is running.
