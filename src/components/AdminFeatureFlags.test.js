@@ -48,6 +48,7 @@ describe('AdminFeatureFlags', () => {
     render(<AdminFeatureFlags showToast={jest.fn()} />);
 
     const summary = await screen.findByText('Experimental feature flags');
+    // eslint-disable-next-line testing-library/no-node-access -- <details> open state has no accessible query
     expect(summary.closest('details')).not.toHaveAttribute('open');
     expect(await screen.findByText('0 of 9 enabled')).toBeInTheDocument();
   });

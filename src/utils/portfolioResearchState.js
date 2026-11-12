@@ -13,6 +13,7 @@ import {
   setActivePortfolioPresetId,
 } from '../config/portfolioPresets';
 import { parseCompareParam } from './researchUrlState';
+import { setLocalItem } from './safeStorage';
 
 export const PORTFOLIO_RESEARCH_STATE_KEY = 'portfolio-research-state';
 
@@ -138,7 +139,7 @@ export function buildPortfolioSearchParams(state = {}) {
 
 export function savePortfolioResearchState(state) {
   const sanitized = sanitizePortfolioResearchState(state);
-  localStorage.setItem(PORTFOLIO_RESEARCH_STATE_KEY, JSON.stringify(sanitized));
+  setLocalItem(PORTFOLIO_RESEARCH_STATE_KEY, JSON.stringify(sanitized));
 
   setActivePortfolioPresetId(sanitized.presetId);
   setActivePortfolioGroupBy(sanitized.groupBy);

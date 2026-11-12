@@ -1,9 +1,10 @@
-import { useTheme } from '../context/ThemeContext';
+import { useThemeName } from '../context/ThemeContext';
 
 /**
  * useMemo dependency for row/cell heat styles — recomputes when light/dark toggles.
  */
 export function useHeatmapThemeKey() {
-  const { theme } = useTheme();
-  return theme;
+  // Only the theme name is needed, so components using heat styles also render
+  // outside ThemeProvider (isolated tests, embeds).
+  return useThemeName();
 }

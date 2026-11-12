@@ -28,6 +28,7 @@ describe('ColumnHeader', () => {
     expect(tooltip).toHaveTextContent('Price');
     expect(tooltip).toHaveTextContent('Diluted EPS');
     expect(tooltip).not.toHaveTextContent('price / diluted EPS');
+    // eslint-disable-next-line testing-library/no-node-access -- the fraction bar is decorative (no role/text)
     expect(document.querySelector('.st-metric-fraction-bar')).toBeInTheDocument();
     expect(tooltip).not.toHaveAttribute('title');
   });

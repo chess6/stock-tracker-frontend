@@ -5,6 +5,9 @@ import { signedHeatBackground, signedHeatForeground } from '../../utils/heatMap'
 import { formatDecimal, formatPercent } from '../../utils/formatters';
 import { mergeApexOptions } from '../../utils/chartTheme';
 
+// A new Set per render re-ran the tile-attach effect on every render.
+const EMPTY_SELECTION = new Set();
+
 const HEAT_SCALE = 5;
 const MUTED_FILL_DARK = 'rgba(73, 80, 87, 0.35)';
 const MUTED_FILL_LIGHT = 'rgba(233, 236, 239, 0.9)';
@@ -79,7 +82,7 @@ export default function MacroTreemap({
   /** @deprecated */ selectedIndustryIds,
   /** @deprecated */ onIndustryToggle,
 }) {
-  const resolvedSelected = selectedTileIds ?? selectedIndustryIds ?? new Set();
+  const resolvedSelected = selectedTileIds ?? selectedIndustryIds ?? EMPTY_SELECTION;
   const resolvedToggle = onTileToggle ?? onIndustryToggle;
   const { theme } = useTheme();
   const dark = theme === 'dark';

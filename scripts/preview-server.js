@@ -16,6 +16,9 @@ app.use(
   createProxyMiddleware({
     target: API_TARGET,
     changeOrigin: true,
+    // Forward the client address (X-Forwarded-For). Without it every LAN visitor
+    // reaches Flask as 127.0.0.1 and passes the loopback-only admin guard.
+    xfwd: true,
     logLevel: 'warn',
   }),
 );

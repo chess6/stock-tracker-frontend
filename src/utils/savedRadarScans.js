@@ -1,4 +1,5 @@
 import { SIGNAL_RADAR_PRESETS } from '../config/signalRadarPresets';
+import { setLocalItem } from './safeStorage';
 
 const STORAGE_KEY = 'stock-tracker-saved-radar-scans';
 const MAX_SAVED = 20;
@@ -29,7 +30,7 @@ function readStore() {
 }
 
 function writeStore(scans) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ scans }));
+  setLocalItem(STORAGE_KEY, JSON.stringify({ scans }));
 }
 
 export function getSavedRadarScans() {
@@ -85,8 +86,8 @@ export function resolveRadarSelection(selectionId) {
   };
 }
 
-export function listRadarScanOptions() {
-  const saved = getSavedRadarScans().map((scan) => ({
+export function listRadarScanOptions(savedScans = getSavedRadarScans()) {
+  const saved = savedScans.map((scan) => ({
     id: scan.id,
     label: scan.name,
     lens: scan.lens,

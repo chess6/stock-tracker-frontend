@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
 import API_ENDPOINTS from '../apiConfig';
@@ -176,7 +176,6 @@ export default function ResearchOverviewPage() {
   const { showToast } = useToast();
 
   const [loadError, setLoadError] = useState('');
-  const [metaLoading, setMetaLoading] = useState(true);
   const [changeLoading, setChangeLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(true);
   const [narrativeLoading, setNarrativeLoading] = useState(true);
@@ -205,7 +204,6 @@ export default function ResearchOverviewPage() {
     const failures = [];
 
     setLoadError('');
-    setMetaLoading(true);
     setChangeLoading(true);
     setDetailLoading(true);
     setNarrativeLoading(true);
@@ -243,7 +241,6 @@ export default function ResearchOverviewPage() {
         }
       })
       .finally(() => {
-        if (!cancelled) setMetaLoading(false);
         finish();
       });
 
@@ -361,20 +358,31 @@ export default function ResearchOverviewPage() {
     return () => { cancelled = true; };
   }, [ticker]);
 
+  // Ticker whose extended history may still be applied; switching tickers invalidates
+  // in-flight requests so AAPL's prices can't land on MSFT's chart.
+  const extendedHistoryTickerRef = useRef(ticker);
+  useEffect(() => {
+    extendedHistoryTickerRef.current = ticker;
+  }, [ticker]);
+
   const handleNeedExtendedHistory = useCallback(() => {
     if (!ticker || extendedPriceFetched || extendedPriceLoading) return;
+    const requestedTicker = ticker;
+    const isCurrent = () => extendedHistoryTickerRef.current === requestedTicker;
     setExtendedPriceLoading(true);
-    axios.get(API_ENDPOINTS.SUMMARY(ticker))
+    axios.get(API_ENDPOINTS.SUMMARY(requestedTicker))
       .then((res) => {
+        if (!isCurrent()) return;
         setExtendedPriceHistory(res.data?.prices || []);
         setExtendedPriceFetched(true);
       })
       .catch(() => {
+        if (!isCurrent()) return;
         setExtendedPriceHistory(null);
         setExtendedPriceFetched(true);
       })
       .finally(() => {
-        setExtendedPriceLoading(false);
+        if (isCurrent()) setExtendedPriceLoading(false);
       });
   }, [ticker, extendedPriceFetched, extendedPriceLoading]);
 

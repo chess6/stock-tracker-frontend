@@ -32,6 +32,7 @@ describe('MetricFormulaDisplay', () => {
     render(<MetricFormulaDisplay spec={getFormulaDisplaySpec('grossMargin')} />);
     expect(screen.getByText('Gross profit')).toBeInTheDocument();
     expect(screen.getByText('Revenue')).toBeInTheDocument();
+    // eslint-disable-next-line testing-library/no-node-access -- the fraction bar is decorative (no role/text)
     expect(document.querySelector('.st-metric-fraction-bar')).toBeInTheDocument();
   });
 

@@ -118,7 +118,8 @@ function avoidObstacles(anchorEl, popupEl, placement, { lockVerticalFlip = false
   const hitsObstacle = () => obstacles.some((o) => rectsOverlap(box, o));
 
   for (let attempt = 0; attempt < 5 && obstacles.length && hitsObstacle(); attempt += 1) {
-    const obstacle = obstacles.find((o) => rectsOverlap(box, o));
+    const currentBox = box;
+    const obstacle = obstacles.find((o) => rectsOverlap(currentBox, o));
     if (!obstacle) break;
 
     if (effectivePlacement === 'top-start') {
